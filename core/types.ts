@@ -1,25 +1,79 @@
+export type BlockType = 'navigate' | 'click' | 'input' | 'loop_elements' | 'loop_pagination' | 'extract_scope' | 'go_back' | 'scroll' | 'wait' | 'condition';
+export type SelectorType = 'css' | 'xpath';
 
-export type BlockType = 'navigate' | 'click' | 'input' | 'loop_elements' | 'loop_pagination' | 'extract_scope';
+export type TransformerType = 'trim' | 'uppercase' | 'lowercase' | 'replace' | 'regex';
+
+export interface Transformer {
+  type: TransformerType;
+  config?: {
+    searchValue?: string;
+    replaceValue?: string;
+    regexPattern?: string;
+    regexFlags?: string;
+  };
+}
 
 export interface ExtractionField {
   key: string;
   selector: string;
+  selectorType?: SelectorType;
+  detectedCssSelector?: string;
+  detectedXpathSelector?: string;
   attribute: string;
+  transformers?: Transformer[];
 }
 
 export interface PaginationConfig {
   nextButtonSelector: string;
+  nextButtonSelectorType?: SelectorType;
+  detectedCssSelector?: string;
+  detectedXpathSelector?: string;
   maxPages?: number;
+}
+
+export interface ScrollConfig {
+  target: 'window' | 'element';
+  behavior: 'bottom' | 'top' | 'pixels';
+  pixels?: number;
+  selector?: string; // If target is element
+  selectorType?: SelectorType;
+  detectedCssSelector?: string;
+  detectedXpathSelector?: string;
+}
+
+export interface WaitConfig {
+  type: 'timeout' | 'selector_visible' | 'selector_hidden';
+  timeout?: number; // ms
+  selector?: string;
+  selectorType?: SelectorType;
+  detectedCssSelector?: string;
+  detectedXpathSelector?: string;
+}
+
+export interface ConditionConfig {
+  selector: string;
+  selectorType?: SelectorType;
+  detectedCssSelector?: string;
+  detectedXpathSelector?: string;
+  check: 'exists' | 'not_exists' | 'visible' | 'text_contains' | 'text_equals';
+  value?: string; // For text checks
 }
 
 export interface Block {
   id: string;
   type: BlockType;
-  children?: Block[];
+  children?: Block[];      // Used as THEN branch for condition
+  elseChildren?: Block[];  // Used as ELSE branch for condition
   url?: string;
   selector?: string;
+  selectorType?: SelectorType;
+  detectedCssSelector?: string;
+  detectedXpathSelector?: string;
   value?: string;
   config?: PaginationConfig;
+  scrollConfig?: ScrollConfig; // For scroll blocks
+  waitConfig?: WaitConfig; // For wait blocks
+  conditionConfig?: ConditionConfig; // For condition blocks
   fields?: ExtractionField[];
   navigationBehavior?: 'new_tab' | 'default';
 }
@@ -51,6 +105,7 @@ export type JobStatus = 'queued' | 'running' | 'completed' | 'failed';
 
 export interface Job {
   id: string;
+  planId?: string; // Reference to the plan that should be executed
   planName: string;
   status: JobStatus;
   submittedAt: string;

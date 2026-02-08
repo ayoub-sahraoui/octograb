@@ -7,6 +7,7 @@
 - ✅ Created messaging system for sidepanel ↔ content script communication
 - ✅ Updated WXT config with required permissions (`activeTab`, `scripting`)
 - ✅ Implemented message-based element picking
+- ✅ Added advanced picker features (Keyboard navigation, scroll support, left/right traversal)
 
 ### 2. Core Files Created/Updated
 - ✅ `entrypoints/content.ts` - Content script with SelectorEngine integration
@@ -17,28 +18,18 @@
 ## 🚧 In Progress / TODO
 
 ### 3. Plan Execution Engine
-**Status:** Not implemented (currently just UI simulation)
+**Status:** ✅ Implemented
 
-**What needs to be done:**
-```typescript
-// In content script, add execution handler:
-case 'EXECUTE_PLAN':
-  const executor = new PlanExecutor(message.plan);
-  executor.on('log', (log) => {
-    browser.runtime.sendMessage({ type: 'EXECUTION_LOG', data: log });
-  });
-  executor.on('result', (result) => {
-    browser.runtime.sendMessage({ type: 'EXECUTION_RESULT', data: result });
-  });
-  await executor.run();
-  browser.runtime.sendMessage({ type: 'EXECUTION_COMPLETE' });
-  break;
-```
+**Completed features:**
+- ✅ PlanExecutor implemented in content script
+- ✅ Support for Navigate, Click, Input, Loop Elements, Extract blocks
+- ✅ Scoped execution for loops (correctly handling repeated elements)
+- ✅ Context-aware element picking (relative selectors)
+- ✅ Robust error handling and log batching
+- ✅ Real-time execution logs in sidepanel
 
-**Files to create:**
-- `core/executor/plan-executor.ts` - Main execution engine
-- `core/executor/action-handlers.ts` - Handlers for each action type (navigate, click, extract, etc.)
-- `core/executor/data-extractor.ts` - Data extraction logic
+**Files created:**
+- `core/executor.ts` - Main execution engine with robust block handling
 
 ### 4. Data Persistence
 **Status:** Using mock data in memory
@@ -90,14 +81,14 @@ case 'EXECUTE_PLAN':
 ### Phase 1: Core Functionality (Week 1)
 1. ✅ Element selector working on web page
 2. ✅ Message-based communication
-3. 🚧 Basic plan execution (navigate, click, extract)
+3. ✅ Basic plan execution (navigate, click, extract)
 4. 🚧 Data persistence (save/load plans)
 
 ### Phase 2: Advanced Execution (Week 2)
-5. 🚧 Loop handling (elements, pagination)
+5. ✅ Loop handling (elements, pagination)
 6. 🚧 Data export (JSON, CSV)
-7. 🚧 Error handling & recovery
-8. 🚧 Execution logs & debugging
+7. ✅ Error handling & recovery
+8. ✅ Execution logs & debugging
 
 ### Phase 3: Polish & Features (Week 3)
 9. 🚧 AI plan generation
@@ -113,8 +104,8 @@ case 'EXECUTE_PLAN':
    - **Future:** could auto-inject using scripting API
 
 2. **Scope Element Passing**
-   - TODO: Implement passing scope element reference to content script
-   - Currently always uses full page
+   - **Resolved:** We now use context-aware relative selectors (`parentSelector`) to handle scoped picking.
+   - Passing actual DOM elements between contexts is not possible, but the relative selector approach solves the use case.
 
 3. **Type Safety**
    - Some `any` types in messaging

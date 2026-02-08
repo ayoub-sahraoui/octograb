@@ -1,0 +1,10 @@
+export { NavigateBlockConfig } from './navigate-block-config';
+export { ClickBlockConfig } from './click-block-config';
+export { InputBlockConfig } from './input-block-config';
+export { WaitBlockConfig } from './wait-block-config';
+export { ScrollBlockConfig } from './scroll-block-config';
+export { GoBackBlockConfig } from './go-back-block-config';
+export { ConditionBlockConfig } from './condition-block-config';
+export { LoopElementsBlockConfig } from './loop-elements-block-config';
+export { LoopPaginationBlockConfig } from './loop-pagination-block-config';
+export { ExtractScopeBlockConfig } from './extract-scope-block-config';

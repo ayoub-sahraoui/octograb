@@ -1,24 +1,25 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { Plan, Block, Job, SavedPlan, Log, ExecutionResult } from './types';
-import { INITIAL_PLAN, BLOCK_TYPES, MOCK_SAVED_PLANS, MOCK_JOBS } from './constants';
+import { INITIAL_PLAN, BLOCK_TYPES } from './constants';
 import { addBlockToTree, updateBlockInTree, deleteBlockFromTree, findBlock } from './utils';
 import { sendToContentScript, onMessageFromContentScript } from './messaging';
+import { PlanExecutor } from './executor';
+import { RemoteExecutionEnvironment } from './remote-env';
+import { db, ExecutionHistory } from './database';
 
 export function useScraperBuilder() {
-  // Navigation
-  const [view, setView] = useState('builder'); 
-
   // Plan State
   const [plan, setPlan] = useState<Plan>(JSON.parse(JSON.stringify(INITIAL_PLAN)));
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
   const selectedBlock = selectedBlockId ? findBlock(plan.pipeline, selectedBlockId) : null;
-  
-  // Storage State
-  const [savedPlans, setSavedPlans] = useState<SavedPlan[]>(MOCK_SAVED_PLANS);
-  const [jobs, setJobs] = useState<Job[]>(MOCK_JOBS);
+
+  // Storage State (now from Dexie)
+  const [savedPlans, setSavedPlans] = useState<SavedPlan[]>([]);
+  const [jobs, setJobs] = useState<Job[]>([]);
   const [currentPlanId, setCurrentPlanId] = useState<string | null>(null);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [currentExecutionId, setCurrentExecutionId] = useState<number | null>(null);
 
   // Execution & UI State
   const [showExecution, setShowExecution] = useState(false);
@@ -31,6 +32,25 @@ export function useScraperBuilder() {
 
   // Callback ref for element selection
   const pickingCallbackRef = useRef<((selector: string, xpath: string) => void) | null>(null);
+
+  // Ref for the active executor
+  const executorRef = useRef<PlanExecutor | null>(null);
+
+  // Load data from Dexie on mount
+  useEffect(() => {
+    loadPlansFromDB();
+    loadJobsFromDB();
+  }, []);
+
+  const loadPlansFromDB = async () => {
+    const plans = await db.getAllPlans();
+    setSavedPlans(plans);
+  };
+
+  const loadJobsFromDB = async () => {
+    const jobsList = await db.getAllJobs();
+    setJobs(jobsList);
+  };
 
   // Listen for messages from content script
   useEffect(() => {
@@ -48,33 +68,10 @@ export function useScraperBuilder() {
         setIsPicking(false);
         setIsPropertiesOpen(true); // Open properties when done
       }
-      
-      // Execution Logging
-      if (message.type === 'EXECUTION_LOG') {
-        const { message: logMsg, type } = message.data;
-        setLogs(prev => [...prev, { 
-          timestamp: new Date().toLocaleTimeString().split(' ')[0], 
-          message: logMsg, 
-          type 
-        }]);
-      }
-      
-      // Execution Results
-      if (message.type === 'EXECUTION_RESULT') {
-        setResults(prev => [...prev, message.data]);
-      }
-      
-      // Execution Complete
-      if (message.type === 'EXECUTION_COMPLETE') {
-        setIsSimulating(false);
-        setLogs(prev => [...prev, { 
-          timestamp: new Date().toLocaleTimeString().split(' ')[0], 
-          message: 'Execution finished successfully', 
-          type: 'success' 
-        }]);
-      }
+
+      // Legacy Execution logs listeners removed as we now run in sidepanel
     });
-    
+
     return cleanup;
   }, []);
 
@@ -83,121 +80,140 @@ export function useScraperBuilder() {
     // @ts-ignore
     const typeDef = BLOCK_TYPES[typeKey];
     if (!typeDef) {
-        console.error("Unknown block type:", typeKey);
-        return;
+      console.error("Unknown block type:", typeKey);
+      return;
     }
     const newId = `${typeDef.type}_${Date.now()}`;
-    const newBlock: Block = { 
-        id: newId, 
-        type: typeDef.type, 
-        ...(typeDef.type === 'navigate' && { url: 'https://' }), 
-        ...(typeDef.type === 'click' && { selector: '' }), 
-        ...(typeDef.type === 'loop_elements' && { selector: '', children: [] }), 
-        ...(typeDef.type === 'loop_pagination' && { config: { nextButtonSelector: '' }, children: [] }), 
-        ...(typeDef.type === 'extract_scope' && { fields: [] }) 
+    const newBlock: Block = {
+      id: newId,
+      type: typeDef.type,
+      ...(typeDef.type === 'navigate' && { url: 'https://' }),
+      ...(typeDef.type === 'click' && { selector: '', selectorType: 'css' }),
+      ...(typeDef.type === 'input' && { selector: '', selectorType: 'css', value: '' }),
+      ...(typeDef.type === 'loop_elements' && { selector: '', selectorType: 'css', children: [] }),
+      ...(typeDef.type === 'loop_pagination' && { config: { nextButtonSelector: '', nextButtonSelectorType: 'css' }, children: [] }),
+      ...(typeDef.type === 'extract_scope' && { fields: [] }),
+      ...(typeDef.type === 'scroll' && { scrollConfig: { target: 'window', behavior: 'bottom' } }),
+      ...(typeDef.type === 'wait' && { waitConfig: { type: 'timeout', timeout: 2000 } }),
+      ...(typeDef.type === 'condition' && { conditionConfig: { check: 'exists', selector: '', selectorType: 'css' }, children: [], elseChildren: [] })
     };
-    const newPipeline = addBlockToTree(plan.pipeline, parentId, newBlock);
-    setPlan({ ...plan, pipeline: newPipeline }); 
-    setSelectedBlockId(newId); 
-    setIsPropertiesOpen(true); 
+
+    // Special handling for adding to condition branches
+    let targetParentId = parentId;
+    let targetProperty: 'children' | 'elseChildren' = 'children';
+
+    if (parentId && parentId.includes(':')) {
+      const [realParentId, branch] = parentId.split(':');
+      targetParentId = realParentId;
+      if (branch === 'else') {
+        targetProperty = 'elseChildren';
+      }
+    }
+
+    const newPipeline = addBlockToTree(plan.pipeline, targetParentId, newBlock, targetProperty);
+    setPlan({ ...plan, pipeline: newPipeline });
+    setSelectedBlockId(newId);
+    setIsPropertiesOpen(true);
     if (window.innerWidth < 1024) setIsSidebarOpen(false);
   };
 
-  const handleUpdateBlock = (id: string, updates: Partial<Block>) => { 
-    const newPipeline = updateBlockInTree(plan.pipeline, id, updates); 
-    setPlan({ ...plan, pipeline: newPipeline }); 
+  const handleUpdateBlock = (id: string, updates: Partial<Block>) => {
+    const newPipeline = updateBlockInTree(plan.pipeline, id, updates);
+    setPlan({ ...plan, pipeline: newPipeline });
   };
 
-  const handleDeleteBlock = (id: string) => { 
-    const newPipeline = deleteBlockFromTree(plan.pipeline, id); 
-    setPlan({ ...plan, pipeline: newPipeline }); 
-    if (selectedBlockId === id) setSelectedBlockId(null); 
+  const handleDeleteBlock = (id: string) => {
+    const newPipeline = deleteBlockFromTree(plan.pipeline, id);
+    setPlan({ ...plan, pipeline: newPipeline });
+    if (selectedBlockId === id) setSelectedBlockId(null);
   };
 
-  const handleBlockSelect = (e: React.MouseEvent, blockId: string) => { 
-    e.stopPropagation(); 
-    setSelectedBlockId(blockId); 
-    setIsPropertiesOpen(true); 
+  const handleBlockSelect = (e: React.MouseEvent, blockId: string) => {
+    e.stopPropagation();
+    setSelectedBlockId(blockId);
+    setIsPropertiesOpen(true);
   };
 
   // Plan Management
-  const handleSavePlan = () => {
+  const handleSavePlan = async () => {
     const now = new Date().toISOString();
     const planName = plan.meta?.name || 'Untitled Plan';
-    
-    if (currentPlanId) {
-        setSavedPlans(prev => prev.map(p => 
-            p.id === currentPlanId 
-            ? { ...p, name: planName, updatedAt: now, plan: JSON.parse(JSON.stringify(plan)) }
-            : p
-        ));
-    } else {
-        const newId = `plan_${Date.now()}`;
-        const newSaved: SavedPlan = {
-            id: newId,
-            name: planName,
-            updatedAt: now,
-            plan: JSON.parse(JSON.stringify(plan))
-        };
-        setSavedPlans(prev => [newSaved, ...prev]);
-        setCurrentPlanId(newId);
+
+    const savedPlan: SavedPlan = {
+      id: currentPlanId || `plan_${Date.now()}`,
+      name: planName,
+      updatedAt: now,
+      plan: JSON.parse(JSON.stringify(plan))
+    };
+
+    await db.savePlan(savedPlan);
+
+    if (!currentPlanId) {
+      setCurrentPlanId(savedPlan.id);
     }
+
+    await loadPlansFromDB();
     setLastSaved(new Date());
     setTimeout(() => setLastSaved(null), 2000);
   };
 
-  const handleLoadPlan = (wrapperOrNull: SavedPlan | null) => {
+  const handleLoadPlan = async (wrapperOrNull: SavedPlan | null) => {
     if (!wrapperOrNull) {
-        setPlan(JSON.parse(JSON.stringify(INITIAL_PLAN)));
-        setCurrentPlanId(null);
+      setPlan(JSON.parse(JSON.stringify(INITIAL_PLAN)));
+      setCurrentPlanId(null);
     } else {
-        setPlan(JSON.parse(JSON.stringify(wrapperOrNull.plan)));
-        setCurrentPlanId(wrapperOrNull.id);
+      setPlan(JSON.parse(JSON.stringify(wrapperOrNull.plan)));
+      setCurrentPlanId(wrapperOrNull.id);
     }
-    setView('builder');
-    setIsPropertiesOpen(false);
+    window.location.hash = '#/builder';
   };
 
-  const handleDeletePlan = (id: string) => {
-    // eslint-disable-next-line
-    if (confirm("Are you sure?")) setSavedPlans(savedPlans.filter(p => p.id !== id));
+  const handleDeletePlan = async (planId: string) => {
+    await db.deletePlan(planId);
+    await loadPlansFromDB();
+    if (currentPlanId === planId) {
+      setPlan(JSON.parse(JSON.stringify(INITIAL_PLAN)));
+      setCurrentPlanId(null);
+    }
   };
 
-  const handleQueueJob = (targetPlan: SavedPlan) => {
+  const handleQueueJob = async (targetPlan: SavedPlan) => {
     const newJob: Job = {
       id: `job_${Date.now()}`,
+      planId: targetPlan.id, // Store reference to the plan
       planName: targetPlan.name || targetPlan.plan.meta?.name,
       status: 'queued',
-      submittedAt: 'Just now',
+      submittedAt: new Date().toLocaleString(),
       duration: null,
       items: null
     };
-    setJobs([newJob, ...jobs]);
-    setView('jobs');
+    await db.createJob(newJob);
+    await loadJobsFromDB();
+    window.location.hash = '#/jobs';
   };
 
   const handleAiPlanCreated = (newPlan: Plan) => {
-      setPlan(newPlan);
-      setView('builder');
-      setIsPropertiesOpen(false);
-      setCurrentPlanId(null);
+    setPlan(newPlan);
+    window.location.hash = '#/builder';
+    setIsPropertiesOpen(false);
+    setCurrentPlanId(null);
   };
 
   // Picking
   const startPicking = async (callback: (selector: string, xpath: string) => void, scoped = false, parentSelector: string | null = null) => {
-    setIsPicking(true); 
-    setIsPropertiesOpen(false); 
+    setIsPicking(true);
+    setIsPropertiesOpen(false);
     setIsSidebarOpen(false);
-    
+
     pickingCallbackRef.current = callback;
-    
+
     // Send message to content script to start picking
     const response = await sendToContentScript({
       type: 'START_PICKING',
       scopeElement: scoped ? null : null, // TODO: Implement scope element passing
       parentSelector
     });
-    
+
     if (!response.success) {
       console.error('[OctoGrab] Failed to start picking:', response.error);
       setIsPicking(false);
@@ -206,39 +222,130 @@ export function useScraperBuilder() {
   };
 
   // Logs
-  const addLog = (message: string, type: Log['type'] = 'info') => { 
-    setLogs(prev => [...prev, { timestamp: new Date().toLocaleTimeString().split(' ')[0], message, type }]); 
+  const addLog = (message: string, type: Log['type'] = 'info') => {
+    setLogs(prev => prev.concat([{ timestamp: new Date().toLocaleTimeString().split(' ')[0], message, type }]));
   };
 
   // Execution
   const runSimulation = async () => {
     if (isSimulating) return;
-    setShowExecution(true); 
-    setIsSimulating(true); 
-    setLogs([]); 
-    setResults([]); 
-    setIsPropertiesOpen(false); 
+
+    // Reset state
+    setShowExecution(true);
+    setIsSimulating(true);
+    setLogs([]);
+    setResults([]);
+    setIsPropertiesOpen(false);
     setIsSidebarOpen(false);
-    
-    addLog("Initializing execution on active tab...", "system"); 
-    
-    const response = await sendToContentScript({
-      type: 'EXECUTE_PLAN',
-      plan: plan
+
+    addLog("Initializing execution environment...", "system");
+
+    // Create execution history record
+    const executionRecord: ExecutionHistory = {
+      planId: currentPlanId || 'temp',
+      planName: plan.meta?.name || 'Untitled Plan',
+      startedAt: new Date().toISOString(),
+      status: 'running',
+      itemsScraped: 0,
+      results: [],
+      logs: []
+    };
+
+    const execId = await db.saveExecution(executionRecord);
+    setCurrentExecutionId(execId);
+
+    // Initialize Remote Environment
+    const env = new RemoteExecutionEnvironment();
+
+    // Sanity check connection
+    try {
+      await env.getUrl();
+    } catch (e: any) {
+      addLog(`Failed to connect to content script: ${e.message}. Please refresh the page and try again.`, "error");
+      setIsSimulating(false);
+      await db.updateExecution(execId, {
+        status: 'failed',
+        completedAt: new Date().toISOString()
+      });
+      return;
+    }
+
+    addLog("Starting Sidepanel Orchestration...", "system");
+
+    // Initialize Executor
+    const executor = new PlanExecutor(plan, env, {
+      onLog: (msg, type) => addLog(msg, type),
+      onResult: (data) => {
+        setResults(prev => {
+          const newResults = [...prev, data];
+          // Update execution record with new result
+          if (execId) {
+            db.updateExecution(execId, {
+              itemsScraped: newResults.length,
+              results: newResults
+            }).catch(console.error);
+          }
+          return newResults;
+        });
+      },
+      onComplete: async () => {
+        setIsSimulating(false);
+        executorRef.current = null;
+        addLog("Execution finished.", "success");
+
+        // Update execution record as completed
+        if (execId) {
+          const endTime = new Date().toISOString();
+          const startTime = new Date(executionRecord.startedAt);
+          const duration = Math.round((new Date(endTime).getTime() - startTime.getTime()) / 1000);
+
+          await db.updateExecution(execId, {
+            status: 'completed',
+            completedAt: endTime,
+            duration,
+            logs: logs.map(l => `${l.timestamp} [${l.type}] ${l.message}`)
+          });
+        }
+      }
     });
 
-    if (!response.success) {
-      addLog(`Failed to start execution: ${response.error}`, "error");
+    executorRef.current = executor;
+
+    // Run execution
+    executor.run().catch(async err => {
+      addLog(`Top-level execution error: ${err.message}`, "error");
       setIsSimulating(false);
-      // Also show alert if it's a connection error
-      if (response.error?.includes('refresh')) {
-        alert(response.error);
+      executorRef.current = null;
+
+      // Update execution as failed
+      if (execId) {
+        await db.updateExecution(execId, {
+          status: 'failed',
+          completedAt: new Date().toISOString(),
+          logs: logs.map(l => `${l.timestamp} [${l.type}] ${l.message}`)
+        });
+      }
+    });
+  };
+
+  // Optional: Stop function if we want to expose it
+  const stopExecution = async () => {
+    if (executorRef.current) {
+      executorRef.current.stop();
+      addLog("Stopping execution...", "system");
+
+      // Update execution as stopped
+      if (currentExecutionId) {
+        await db.updateExecution(currentExecutionId, {
+          status: 'stopped',
+          completedAt: new Date().toISOString(),
+          logs: logs.map(l => `${l.timestamp} [${l.type}] ${l.message}`)
+        });
       }
     }
   };
 
   return {
-    view, setView,
     plan, setPlan,
     selectedBlockId, setSelectedBlockId, selectedBlock,
     savedPlans, setSavedPlans,
@@ -253,6 +360,6 @@ export function useScraperBuilder() {
     isPropertiesOpen, setIsPropertiesOpen,
     handleAddBlock, handleUpdateBlock, handleDeleteBlock, handleBlockSelect,
     handleSavePlan, handleLoadPlan, handleDeletePlan, handleQueueJob, handleAiPlanCreated,
-    startPicking, runSimulation
+    startPicking, runSimulation, stopExecution
   };
 }

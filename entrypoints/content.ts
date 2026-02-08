@@ -1,5 +1,6 @@
 import { SelectorEngine } from '../core/selector-engine';
-import { PlanExecutor } from '../core/executor';
+// PlanExecutor is now running in Sidepanel, communicating via EnvHandler
+import { initEnvHandler } from './content/env-handler';
 
 export default defineContentScript({
   matches: ['<all_urls>'],
@@ -8,11 +9,13 @@ export default defineContentScript({
     console.log('[OctoGrab] Content script loaded');
     
     const selectorEngine = new SelectorEngine();
-    let currentExecutor: PlanExecutor | null = null;
     
-    // Listen for messages from sidepanel
+    // Initialize Environment Handler for RPC calls from Sidepanel
+    initEnvHandler();
+
+    // Listen for messages from sidepanel (Picking logic)
     browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
-      console.log('[OctoGrab] Received message:', message);
+      // console.log('[OctoGrab] Received message:', message);
       
       switch (message.type) {
         case 'START_PICKING':
@@ -41,101 +44,37 @@ export default defineContentScript({
           sendResponse({ success: true });
           break;
           
-        case 'EXECUTE_PLAN':
-          // Execute the plan
-          if (currentExecutor) {
-            sendResponse({ success: false, error: 'Execution already in progress' });
-            break;
-          }
-          
-          // Log batching to prevent message flooding
-          const logBuffer: { message: string, type: string }[] = [];
-          const flushLogs = () => {
-            if (logBuffer.length === 0) return;
-            const batch = [...logBuffer];
-            logBuffer.length = 0;
-            
-            // Send batch or individual (UI expects individual usually, but high freq is bad)
-            // OctoGrab UI (hooks.ts) expects individual logs.
-            // We'll iterate and send, BUT we should probably debounce.
-            // BETTER: Update UI to accept batch? No, that requires changing hooks.ts.
-            // Let's throttle sending:
-            
-            // Actually, sending many messages in a loop is still flooding.
-            // Check if we can change the protocol.
-            // Hooks.ts 'EXECUTION_LOG' expects { message, type }.
-            
-            // Alternative: Send one message with joined text?
-            // "Iteration 1 start | Executing... | Done"
-            
-            // Let's try sending batched message if we change hooks.ts?
-            // For now, let's just console.log the high-freq stuff and ONLY send essential logs to UI?
-            
-            // Current strategy: Only send 'system', 'error', 'success'. 'info' goes to console only.
-          };
-          
-          currentExecutor = new PlanExecutor(message.plan, {
-            onLog: (logMessage: string, type: 'info' | 'success' | 'error' | 'system') => {
-              console.log(`[OctoGrab Executor] [${type}] ${logMessage}`);
-              
-              // Filter high-frequency logs to prevent UI freeze
-              // Only send important statuses to the UI
-              if (type === 'info' && (logMessage.includes('Iteration') || logMessage.includes('Extracting'))) {
-                  return; // Skip sending these to UI, keep in console
-              }
-              
-              browser.runtime.sendMessage({
-                type: 'EXECUTION_LOG',
-                data: { message: logMessage, type }
-              }).catch(err => console.warn('[OctoGrab] Failed to send log:', err));
-            },
-            onResult: (data: any) => {
-              console.log('[OctoGrab Executor] Result:', data);
-              browser.runtime.sendMessage({
-                type: 'EXECUTION_RESULT',
-                data
-              }).catch(err => console.warn('[OctoGrab] Failed to send result:', err));
-            },
-            onComplete: () => {
-              console.log('[OctoGrab Executor] Execution complete');
-              browser.runtime.sendMessage({
-                type: 'EXECUTION_COMPLETE'
-              }).catch(err => console.warn('[OctoGrab] Failed to send completion:', err));
-              currentExecutor = null;
-            }
-          });
-          
-          currentExecutor.run().catch((error: Error) => {
-            browser.runtime.sendMessage({
-              type: 'EXECUTION_LOG',
-              data: { message: `Execution error: ${error.message}`, type: 'error' }
-            }).catch(err => console.warn('[OctoGrab] Failed to send error:', err));
-            currentExecutor = null;
-          });
-          
-          sendResponse({ success: true, message: 'Execution started' });
-          break;
-          
-        case 'STOP_EXECUTION':
-          if (currentExecutor) {
-            currentExecutor.stop();
-            currentExecutor = null;
-            sendResponse({ success: true });
-          } else {
-            sendResponse({ success: false, error: 'No execution in progress' });
-          }
-          break;
-          
-        case 'PING':
-          sendResponse({ success: true, message: 'Content script is ready' });
-          break;
-          
-        default:
-          console.warn('[OctoGrab] Unknown message type:', message.type);
-          sendResponse({ success: false, error: 'Unknown message type' });
+        /* 
+           Legacy Execution Logic removed. 
+           Execution is now orchestrated by Sidepanel via EnvHandler.
+        */
       }
       
-      return true; // Keep the message channel open for async responses
+      // Return true only if we are handling async response (which we are not anymore here except for simple ack)
+      // Actually we sendResponse immediately above.
+      // But if we return true, we should be careful. 
+      // Since EnvHandler also listens, and it handles OTHER messages.
+      // We should return false/undefined if we didn't handle it here?
+      // But existing code returns true always.
+      // If we return true, existing listener keeps channel open.
+      // If EnvHandler returns true (async), it also keeps channel open.
+      // Multiple listeners returning true is fine in Chrome Extension?
+      // Yes, "If any listener returns true, the channel is kept open."
+      // BUT only ONE response can be sent.
+      // Since EnvHandler handles DIFFERENT types, they won't conflict on sendResponse.
+      // For START_PICKING, EnvHandler ignores (returns null). This listener handles it.
+      // For ENV_CLICK, this listener ignores (no case). EnvHandler handles it.
+      // So returning true here potentially keeps channel open for unknown messages?
+      // Yes, but we don't call sendResponse for unknown messages here.
+      // So the OTHER listener should be able to.
+      
+      // Ideally, we explicitly handle or not.
+      if (message.type === 'START_PICKING' || message.type === 'STOP_PICKING') {
+          return false; // synchronous response sent
+      }
+      
+      // For unknown types, let other listeners handle it.
+      return false;
     });
   },
 });
