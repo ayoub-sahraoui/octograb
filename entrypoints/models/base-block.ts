@@ -11,6 +11,8 @@ export interface BaseBlock {
     maxRetries?: number;
     retryDelay?: number;
     config: any;
+    parent?: Block | null;
     children?: Block[];
+    index?: number;
     toJSON(): any;
 }

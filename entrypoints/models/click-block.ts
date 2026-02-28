@@ -10,6 +10,8 @@ export interface ClickBlockConfig {
     selector: Selector;
     delayBefore?: number;
     delayAfter?: number;
+    openInNewTab?: boolean;
+    waitAfterClick?: number;
 }
 
 export class ClickBlock implements BaseBlock {
@@ -22,7 +24,9 @@ export class ClickBlock implements BaseBlock {
     maxRetries?: number;
     retryDelay?: number;
     config: ClickBlockConfig;
+    parent?: Block | null;
     children?: Block[];
+    index?: number;
 
     constructor(name: string, config: ClickBlockConfig) {
         this.id = uuidv4();

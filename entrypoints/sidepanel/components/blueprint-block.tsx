@@ -1,13 +1,17 @@
 import { Button } from '@/components/ui/button'
-import { CirclePlus, Database, FileStack, GitPullRequest, Globe, Hourglass, MousePointer, RefreshCcw, ScrollText, Settings2, Type, Undo2 } from 'lucide-react'
+import { ChevronDown, ChevronsDown, ChevronsDownUp, ChevronsUp, ChevronUp, Database, FileStack, GitPullRequest, Globe, Hourglass, MousePointer, Plus, RefreshCcw, ScrollText, Settings2, Type, Undo2, GripVertical } from 'lucide-react'
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
+import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import {
     Tooltip,
     TooltipContent,
     TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { Block } from '@/entrypoints/models/types';
-import { useBlueprintBuilderStore } from '@/entrypoints/stores/blueprint-builder';
+import { useBlueprintBuilderStore } from '@/entrypoints/stores/blueprint-builder-store';
 import { observer } from 'mobx-react-lite';
+import { useState } from 'react';
 import { NavigateBlock } from '@/entrypoints/models/navigate-block';
 import { ClickBlock } from '@/entrypoints/models/click-block';
 import { InputBlock } from '@/entrypoints/models/input-block';
@@ -44,7 +48,7 @@ const blockTypes = [
         type: 'loop_elements',
         icon: RefreshCcw,
         name: 'Loop Elements',
-        createBlock: () => new LoopElementsBlock("Loop Elements", { selector: { type: SelectorType.CSS, value: '' }, children: [] }),
+        createBlock: () => new LoopElementsBlock("Loop Elements", { selector: { type: SelectorType.CSS, value: '' } }),
     },
     {
         type: 'loop_pagination',
@@ -90,11 +94,64 @@ blockTypes.forEach(b => { blockTypeIcons[b.type] = b.icon; });
 
 export interface BlueprintBlockProps {
     block: Block;
+    level?: number;
 }
 
-const BlueprintBlock = observer(({ block }: BlueprintBlockProps) => {
+const SortableChildBlock = ({ block, level }: { block: Block; level: number }) => {
+    const {
+        attributes,
+        listeners,
+        setNodeRef,
+        transform,
+        transition,
+        isDragging,
+    } = useSortable({ id: block.id });
+
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.5 : 1,
+    };
+
+    return (
+        <div ref={setNodeRef} style={style} className="relative">
+            <div className="absolute left-0 top-1 flex items-center -ml-6 z-10">
+                <div
+                    {...attributes}
+                    {...listeners}
+                    className="cursor-grab active:cursor-grabbing p-1 hover:bg-gray-200 rounded"
+                >
+                    <GripVertical className="w-3 h-3 text-gray-400" />
+                </div>
+            </div>
+            <BlueprintBlock block={block} level={level} />
+        </div>
+    );
+};
+
+const BlueprintBlock = observer(({ block, level = 0 }: BlueprintBlockProps) => {
     const blueprintBuilderStore = useBlueprintBuilderStore();
     const isSelected = blueprintBuilderStore.selectedBlock?.id === block.id;
+    const [showAddBlock, setShowAddBlock] = useState(false);
+
+    const sensors = useSensors(
+        useSensor(PointerSensor),
+        useSensor(KeyboardSensor, {
+            coordinateGetter: sortableKeyboardCoordinates,
+        })
+    );
+
+    const handleChildDragEnd = (event: DragEndEvent) => {
+        const { active, over } = event;
+
+        if (over && active.id !== over.id && block.children) {
+            const oldIndex = block.children.findIndex(b => b.id === active.id);
+            const newIndex = block.children.findIndex(b => b.id === over.id);
+
+            const newChildren = arrayMove(block.children, oldIndex, newIndex);
+            block.children = newChildren;
+        }
+    };
 
     const handleConfigClick = () => {
         // Select the block to open the config drawer
@@ -106,9 +163,18 @@ const BlueprintBlock = observer(({ block }: BlueprintBlockProps) => {
         blueprintBuilderStore.selectBlock(block);
     };
 
-    const handleAddBlock = (createBlock: () => Block) => {
+    const handleAddChildBlock = (createBlock: () => Block) => {
         const newBlock = createBlock();
-        blueprintBuilderStore.addBlockToBlueprint(newBlock);
+        // Initialize children array if it doesn't exist
+        if (!block.children) {
+            block.children = [];
+        }
+        // Set parent reference
+        newBlock.parent = block;
+        // Add to children
+        block.children.push(newBlock);
+        // Select the new block for configuration
+        blueprintBuilderStore.selectBlock(newBlock);
     };
 
     // Get the icon for this block type
@@ -119,9 +185,9 @@ const BlueprintBlock = observer(({ block }: BlueprintBlockProps) => {
             {/* Block Card */}
             <div
                 onClick={handleBlockClick}
-                className={`flex w-full gap-2 items-center justify-between border rounded-lg p-2 cursor-pointer transition-all ${isSelected
-                        ? 'border-blue-500 ring-2 ring-blue-200 bg-blue-50'
-                        : 'border-gray-300 hover:ring-2 hover:ring-gray-300'
+                className={`bg-white flex w-full gap-2 items-center justify-between border rounded-lg p-2 cursor-pointer transition-all ${isSelected
+                    ? 'border-blue-500 ring-2 ring-blue-200 bg-blue-50'
+                    : 'border-gray-300 hover:ring-2 hover:ring-gray-300'
                     }`}
             >
                 <div className='w-10 h-10 bg-gray-200 rounded-lg flex items-center justify-center'>
@@ -139,39 +205,61 @@ const BlueprintBlock = observer(({ block }: BlueprintBlockProps) => {
                 }} size="icon" variant="outline" className='cursor-pointer'>
                     <Settings2 />
                 </Button>
+                <Button onClick={(e) => {
+                    e.stopPropagation();
+                    setShowAddBlock(!showAddBlock);
+                }} size="icon" variant="outline" className='cursor-pointer'>
+                    {showAddBlock ? <ChevronUp /> : <ChevronDown />}
+                </Button>
             </div>
 
             {/* Inline Block Selector */}
-            <div className="relative bg-gray-200 flex w-full gap-2 items-center mt-4 justify-center border border-dashed border-gray-300 rounded-lg p-2 hover:ring-2 hover:ring-gray-300 cursor-pointer">
-                {blockTypes.map((blockType, index) => (
-                    <Tooltip key={index}>
-                        <TooltipTrigger asChild>
-                            <Button
-                                onClick={() => handleAddBlock(blockType.createBlock)}
-                                size="icon"
-                                variant="outline"
-                                className='cursor-pointer'
-                            >
-                                <blockType.icon />
-                            </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                            <p>{blockType.name}</p>
-                        </TooltipContent>
-                    </Tooltip>
-                ))}
-                <div className='absolute mx-auto -top-4 right-0 left-0 w-0.5 h-4 bg-gray-300 rounded-full'></div>
-            </div>
+            {showAddBlock &&
+                <div className="relative bg-gray-200 w-full mt-4 border border-dashed border-gray-300 rounded-lg p-2 hover:ring-2 hover:ring-gray-300">
+                    <div className="flex gap-2 items-center justify-start overflow-x-auto pb-1" style={{ scrollbarWidth: 'thin' }}>
+                        {blockTypes.map((blockType, index) => (
+                            <Tooltip key={index}>
+                                <TooltipTrigger asChild>
+                                    <Button
+                                        onClick={() => handleAddChildBlock(blockType.createBlock)}
+                                        size="icon"
+                                        variant="outline"
+                                        className='cursor-pointer flex-shrink-0 w-10 h-10'
+                                    >
+                                        <blockType.icon className="w-4 h-4" />
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p>{blockType.name}</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        ))}
+                    </div>
+                    <div className='absolute mx-auto -top-[17px] right-0 left-0 w-px h-4 bg-gray-300 rounded-full'></div>
+                </div>}
 
-            {/* Add New Step Button */}
-            <div
-                onClick={() => handleAddBlock(blockTypes[0].createBlock)}
-                className='relative flex w-fit text-gray-600 bg-gray-200 px-3 py-2 rounded-full items-center gap-2 hover:ring-2 hover:ring-gray-300 cursor-pointer mt-4'
-            >
-                <CirclePlus />
-                <p className='font-semibold'>Add New Step</p>
-                <div className='absolute mx-auto -top-4 right-0 left-0 w-0.5 h-4 bg-gray-300 rounded-full'></div>
-            </div>
+            {/* Render Children Blocks */}
+            {block.children && block.children.length > 0 && (
+                <div className="relative w-full mt-4 pl-6 ml-4">
+                    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleChildDragEnd}>
+                        <SortableContext items={block.children.map(b => b.id)} strategy={verticalListSortingStrategy}>
+                            <div className="flex flex-col gap-2 pl-6">
+                                {block.children.map((childBlock) => (
+                                    <div key={childBlock.id} className='relative'>
+                                        <SortableChildBlock
+                                            block={childBlock}
+                                            level={level + 1}
+                                        />
+                                        <div className='absolute -left-4 top-8 my-auto w-4 h-px bg-gray-300 rounded-full'></div>
+                                    </div>
+                                ))}
+                            </div>
+                        </SortableContext>
+                    </DndContext>
+                    <div className='absolute left-2 -top-4 w-px h-[calc(100%+25px)] bg-gray-300 rounded-full'></div>
+                    <div className='absolute left-[8px] -bottom-[9px] w-[8px] h-px bg-gray-300 rounded-full'></div>
+                </div>
+            )}
         </div>
     )
 });

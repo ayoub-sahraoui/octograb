@@ -19,7 +19,9 @@ export class GoBackBlock implements BaseBlock {
     maxRetries?: number;
     retryDelay?: number;
     config: GoBackBlockConfig;
+    parent?: Block | null;
     children?: Block[];
+    index?: number;
 
     constructor(name: string, config: GoBackBlockConfig) {
         this.id = uuidv4();

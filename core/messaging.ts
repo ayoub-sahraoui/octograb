@@ -23,7 +23,8 @@ export type MessageType =
   | 'ENV_CLICK'
   | 'ENV_INPUT'
   | 'ENV_SCROLL'
-  | 'ENV_IS_VISIBLE';
+  | 'ENV_IS_VISIBLE'
+  | 'ENV_WAIT_NETWORK_IDLE';
 
 export interface Message {
   type: MessageType;
@@ -44,42 +45,47 @@ export interface MessageResponse {
  * Send a message to the active tab's content script
  */
 export async function sendToContentScript(message: Message): Promise<MessageResponse> {
-  const maxRetries = 8;  // Increased from 5
-  const retryDelay = 750; // Increased from 500ms
+  try {
+    // Get the active tab
+    let tabs = await browser.tabs.query({ active: true, currentWindow: true });
+    if (tabs.length === 0) {
+      tabs = await browser.tabs.query({ active: true, lastFocusedWindow: true });
+    }
+    const tab = tabs[0];
+    if (!tab?.id) {
+      throw new Error('No active web page found to communicate with');
+    }
+    return await sendToTab(tab.id, message);
+  } catch (error: any) {
+    return { success: false, error: error.message || 'Failed to communicate with content script' };
+  }
+}
+
+/**
+ * Send a message to a specific tab's content script by tab ID.
+ * This is the preferred method during blueprint execution to avoid
+ * targeting the wrong tab if the user switches tabs.
+ */
+export async function sendToTab(tabId: number, message: Message): Promise<MessageResponse> {
+  const maxRetries = 8;
+  const retryDelay = 750;
 
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
-      // Get the active tab
-      // Try current window first, fallback to last focused window
-      let tabs = await browser.tabs.query({ active: true, currentWindow: true });
-
-      if (tabs.length === 0) {
-        tabs = await browser.tabs.query({ active: true, lastFocusedWindow: true });
-      }
-
-      const tab = tabs[0];
-
-      if (!tab?.id) {
-        throw new Error('No active web page found to communicate with');
-      }
-
-      // Send message to content script
-      // Note: browser.tabs.sendMessage throws if no receiving end (content script not ready)
-      const response = await browser.tabs.sendMessage(tab.id, message);
+      const response = await browser.tabs.sendMessage(tabId, message);
       return response as MessageResponse;
     } catch (error: any) {
-      // Only retry on connection errors
       const errorMessage = error.message || '';
       const isConnectionError = errorMessage.includes('Receiving end does not exist') ||
         errorMessage.includes('Could not establish connection');
 
       if (isConnectionError && attempt < maxRetries - 1) {
-        console.log(`[OctoGrab] Connection failed (attempt ${attempt + 1}/${maxRetries}), retrying...`);
+        console.log(`[OctoGrab] Connection to tab ${tabId} failed (attempt ${attempt + 1}/${maxRetries}), retrying...`);
         await new Promise(resolve => setTimeout(resolve, retryDelay));
         continue;
       }
 
-      console.error('[OctoGrab] Error sending message to content script:', error);
+      console.error('[OctoGrab] Error sending message to tab:', error);
 
       if (isConnectionError) {
         return {

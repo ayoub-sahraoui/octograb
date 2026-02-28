@@ -8,7 +8,13 @@ import { ConditionConfig } from "./condition-block";
 import { Block } from "./types";
 
 export interface LoopPaginationBlockConfig {
+    paginationType?: 'button' | 'scroll';
     nextButtonSelector: Selector;
+    scrollTarget?: 'window' | 'element';
+    scrollSelector?: Selector;
+    scrollAmount?: number;
+    scrollStrategy?: 'fixed_amount' | 'scroll_to_bottom' | 'scroll_to_last_item';
+    itemSelector?: Selector;
     maxPages?: number;
     delayBetweenPages?: number;
     stopWhen?: ConditionConfig;
@@ -25,7 +31,9 @@ export class LoopPaginationBlock implements BaseBlock {
     maxRetries?: number;
     retryDelay?: number;
     config: LoopPaginationBlockConfig;
+    parent?: Block | null;
     children?: Block[];
+    index?: number;
 
     constructor(name: string, config: LoopPaginationBlockConfig) {
         this.id = uuidv4();

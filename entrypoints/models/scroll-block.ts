@@ -25,7 +25,9 @@ export class ScrollBlock implements BaseBlock {
     maxRetries?: number;
     retryDelay?: number;
     config: ScrollBlockConfig;
+    parent?: Block | null;
     children?: Block[];
+    index?: number;
 
     constructor(name: string, config: ScrollBlockConfig) {
         this.id = uuidv4();

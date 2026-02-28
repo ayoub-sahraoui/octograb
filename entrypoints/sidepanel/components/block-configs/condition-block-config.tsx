@@ -1,6 +1,5 @@
 import { observer } from 'mobx-react-lite';
 import { ConditionBlock } from '@/entrypoints/models/condition-block';
-import { SelectorType } from '@/entrypoints/models/selector';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -11,6 +10,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import { SelectorInput } from '../selector-input';
 
 interface ConditionBlockConfigProps {
     block: ConditionBlock;
@@ -27,45 +27,15 @@ export const ConditionBlockConfig = observer(({ block }: ConditionBlockConfigPro
 
     return (
         <div className="flex flex-col gap-4">
-            <div className="flex flex-col gap-2">
-                <Label htmlFor="selectorType">Selector Type</Label>
-                <Select
-                    value={block.config.selector?.type || 'css'}
-                    onValueChange={(value: any) => {
-                        if (!block.config.selector) {
-                            block.config.selector = { type: value, value: '' };
-                        } else {
-                            block.config.selector.type = value;
-                        }
-                    }}
-                >
-                    <SelectTrigger id="selectorType">
-                        <SelectValue placeholder="Select type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="css">CSS</SelectItem>
-                        <SelectItem value="xpath">XPath</SelectItem>
-                        <SelectItem value="text">Text</SelectItem>
-                    </SelectContent>
-                </Select>
-            </div>
-
-            <div className="flex flex-col gap-2">
-                <Label htmlFor="selector">Selector</Label>
-                <Input
-                    id="selector"
-                    type="text"
-                    placeholder=".my-element"
-                    value={block.config.selector?.value || ''}
-                    onChange={(e) => {
-                        if (!block.config.selector) {
-                            block.config.selector = { type: SelectorType.CSS, value: e.target.value };
-                        } else {
-                            block.config.selector.value = e.target.value;
-                        }
-                    }}
-                />
-            </div>
+            <SelectorInput
+                label="Condition Selector"
+                id="condition-selector"
+                placeholder=".my-element"
+                helpText="The element to check the condition against"
+                selector={block.config.selector}
+                onSelectorChange={(sel) => { block.config.selector = sel; }}
+                block={block}
+            />
 
             <div className="flex flex-col gap-2">
                 <Label htmlFor="check">Condition Check</Label>

@@ -15,7 +15,7 @@ import { ConditionBlock } from '@/entrypoints/models/condition-block';
 import { LoopElementsBlock } from '@/entrypoints/models/loop-elements-block';
 import { LoopPaginationBlock } from '@/entrypoints/models/loop-pagination-block';
 import { ExtractScopeBlock } from '@/entrypoints/models/extract-scope-block';
-import { useBlueprintBuilderStore } from '@/entrypoints/stores/blueprint-builder';
+import { useBlueprintBuilderStore } from '@/entrypoints/stores/blueprint-builder-store';
 import { SelectorType } from '@/entrypoints/models/selector';
 
 const blocks = [
@@ -45,7 +45,7 @@ const blocks = [
         icon: RefreshCcw,
         name: 'Loop Elements',
         description: 'Loop through elements',
-        createBlock: () => new LoopElementsBlock("Loop Elements", { selector: { type: SelectorType.CSS, value: '' }, children: [] }),
+        createBlock: () => new LoopElementsBlock("Loop Elements", { selector: { type: SelectorType.CSS, value: '' } }),
     },
     {
         type: 'loop_pagination',
@@ -93,17 +93,25 @@ const blocks = [
 
 interface BlueprintBlockSelectorProps {
     onBlockSelect?: () => void;
+    addAsChild?: boolean;
 }
 
-export default function BlueprintBlockSelector({ onBlockSelect }: BlueprintBlockSelectorProps) {
+export default function BlueprintBlockSelector({ onBlockSelect, addAsChild = false }: BlueprintBlockSelectorProps) {
     const blueprintBuilderStore = useBlueprintBuilderStore();
 
     const handleBlockClick = (createBlock: () => any) => {
         // Create the block
         const block = createBlock();
-        // Add to blueprint and select it
-        blueprintBuilderStore.addBlockToBlueprint(block);
-        // Close the add block drawer
+
+        if (addAsChild) {
+            // Add as child to the parent block
+            blueprintBuilderStore.addChildBlockToParent(block);
+        } else {
+            // Add to blueprint root
+            blueprintBuilderStore.addBlockToBlueprint(block);
+        }
+
+        // Close the drawer
         onBlockSelect?.();
     };
 

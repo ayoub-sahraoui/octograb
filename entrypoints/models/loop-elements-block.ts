@@ -8,7 +8,6 @@ import { Block } from "./types";
 
 export interface LoopElementsBlockConfig {
     selector: Selector;
-    children: BaseBlock[];
     maxIterations?: number;
     indexVariable?: string;
 }
@@ -23,7 +22,9 @@ export class LoopElementsBlock implements BaseBlock {
     maxRetries?: number;
     retryDelay?: number;
     config: LoopElementsBlockConfig;
+    parent?: Block | null;
     children?: Block[];
+    index?: number;
 
     constructor(name: string, config: LoopElementsBlockConfig) {
         this.id = uuidv4();

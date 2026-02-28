@@ -1,6 +1,5 @@
 import { observer } from 'mobx-react-lite';
 import { WaitBlock } from '@/entrypoints/models/wait-block';
-import { SelectorType } from '@/entrypoints/models/selector';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -10,6 +9,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import { SelectorInput } from '../selector-input';
 
 interface WaitBlockConfigProps {
     block: WaitBlock;
@@ -55,22 +55,15 @@ export const WaitBlockConfig = observer(({ block }: WaitBlockConfigProps) => {
             )}
 
             {showSelector && (
-                <div className="flex flex-col gap-2">
-                    <Label htmlFor="selector">Selector</Label>
-                    <Input
-                        id="selector"
-                        type="text"
-                        placeholder=".my-element"
-                        value={block.config.selector?.value || ''}
-                        onChange={(e) => {
-                            if (!block.config.selector) {
-                                block.config.selector = { type: SelectorType.CSS, value: e.target.value };
-                            } else {
-                                block.config.selector.value = e.target.value;
-                            }
-                        }}
-                    />
-                </div>
+                <SelectorInput
+                    label="Wait For Element"
+                    id="wait-selector"
+                    placeholder=".my-element"
+                    helpText={`Wait until this element is ${block.config.type === 'selector_visible' ? 'visible' : 'hidden'}`}
+                    selector={block.config.selector}
+                    onSelectorChange={(sel) => { block.config.selector = sel; }}
+                    block={block}
+                />
             )}
 
             {showIdleTime && (

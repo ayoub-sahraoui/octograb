@@ -4,12 +4,15 @@ export enum TransformerType {
   Lowercase = 'lowercase',
   Replace = 'replace',
   Regex = 'regex',
-  ParseNumber = 'parse_number', // New
-  ParseDate = 'parse_date', // New
-  ParseJSON = 'parse_json', // New
-  Split = 'split', // New
-  Join = 'join', // New
-  Custom = 'custom', // New: For custom JS transformers
+  ParseNumber = 'parse_number',
+  ParseDate = 'parse_date',
+  ParseJSON = 'parse_json',
+  Split = 'split',
+  Join = 'join',
+  CurrencyConvert = 'currency_convert',
+  Capitalize = 'capitalize',
+  TitleCase = 'title_case',
+  Custom = 'custom',
 }
 
 export interface BaseTransformerConfig {
@@ -52,10 +55,19 @@ export interface CustomTransformerConfig extends BaseTransformerConfig {
   functionBody: string;
 }
 
+export interface CurrencyConvertTransformerConfig extends BaseTransformerConfig {
+  type: TransformerType.CurrencyConvert;
+  fromCurrency: 'MAD' | 'USD' | 'EUR' | 'GBP' | 'JPY' | 'CNY';
+  toCurrency: 'MAD' | 'USD' | 'EUR' | 'GBP' | 'JPY' | 'CNY';
+  /** Optional: Use fixed exchange rate instead of API */
+  fixedRate?: number;
+}
+
 export type TransformerConfig =
   | BaseTransformerConfig
   | ReplaceTransformerConfig
   | RegexTransformerConfig
   | SplitTransformerConfig
   | ParseDateTransformerConfig
-  | CustomTransformerConfig;
+  | CustomTransformerConfig
+  | CurrencyConvertTransformerConfig;

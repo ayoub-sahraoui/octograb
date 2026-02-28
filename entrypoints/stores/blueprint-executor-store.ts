@@ -1,0 +1,1743 @@
+import { makeAutoObservable, runInAction } from "mobx";
+import { Blueprint } from "../models/blueprint";
+import { Block } from "../models/types";
+import { Scope } from "@/core/env";
+import { sendToTab, isContentScriptReady } from "@/core/messaging";
+import { browser } from "wxt/browser";
+import { toJS } from "mobx";
+import { db } from "@/core/database";
+import { v4 as uuidv4 } from 'uuid';
+
+// ─── Types ───────────────────────────────────────────────────────────────────
+
+export type ExecutionStatus = 'idle' | 'running' | 'paused' | 'completed' | 'error' | 'stopped';
+
+export interface ExecutionLog {
+    timestamp: number;
+    message: string;
+    type: 'info' | 'success' | 'error' | 'warn' | 'block';
+    blockId?: string;
+    blockLabel?: string;
+}
+
+export interface ExecutionTrace {
+    id: string;
+    timestamp: number;
+    blockId: string;
+    blockType: string;
+    blockLabel: string;
+    status: 'start' | 'success' | 'error';
+    details?: any;
+    duration?: number;
+}
+
+// Blocks that manage their own children execution internally
+const CONTAINER_BLOCKS = ['loop_elements', 'loop_pagination', 'condition', 'extract_scope'];
+
+// ─── Store ───────────────────────────────────────────────────────────────────
+
+export class BlueprintExecutorStore {
+    status: ExecutionStatus = 'idle';
+    currentBlock: Block | null = null;
+    progress: { current: number; total: number } = { current: 0, total: 0 };
+    logs: ExecutionLog[] = [];
+    traces: ExecutionTrace[] = [];
+    extractedData: Record<string, any>[] = [];
+    extractedColumns: string[] = [];
+    startTime: number | null = null;
+    endTime: number | null = null;
+    error: string | null = null;
+
+    // Settings
+    enableLogs: boolean = false;
+    enableTrace: boolean = false;
+
+    // Resume functionality
+    currentExecutionId: number | null = null;
+    canResume: boolean = false;
+    lastCheckpoint: { blockId: string; loopIndex?: number; url: string } | null = null;
+
+    // Track which blueprint is running
+    runningBlueprintId: string | null = null;
+    runningBlueprintName: string | null = null;
+
+    private _abortController: AbortController | null = null;
+    private _paused: boolean = false;
+    private _pausePromise: Promise<void> | null = null;
+    private _pauseResolve: (() => void) | null = null;
+    private _returnUrl: string | null = null; // Store URL to return to after go_back
+    // Tab ID tracking — locked to a specific tab during execution
+    private _targetTabId: number | null = null;
+
+    constructor() {
+        makeAutoObservable(this);
+        this.loadSettings();
+    }
+
+    async loadSettings() {
+        try {
+            const logsSettings = await db.settings.where('key').equals('enableLogs').first();
+            const traceSettings = await db.settings.where('key').equals('enableTrace').first();
+            runInAction(() => {
+                this.enableLogs = logsSettings?.value ?? false;
+                this.enableTrace = traceSettings?.value ?? false;
+            });
+        } catch (e) {
+            console.error('Failed to load executor settings', e);
+        }
+    }
+
+    async updateSettings(enableLogs: boolean, enableTrace: boolean) {
+        runInAction(() => {
+            this.enableLogs = enableLogs;
+            this.enableTrace = enableTrace;
+        });
+        try {
+            await db.settings.put({ key: 'enableLogs', value: enableLogs, updatedAt: new Date().toISOString() });
+            await db.settings.put({ key: 'enableTrace', value: enableTrace, updatedAt: new Date().toISOString() });
+        } catch (e) {
+            console.error('Failed to save executor settings', e);
+        }
+    }
+
+    // ─── Computed ────────────────────────────────────────────────────────────
+
+    get isRunning() { return this.status === 'running'; }
+    get isPaused() { return this.status === 'paused'; }
+    get isIdle() { return this.status === 'idle'; }
+    get duration(): number | null {
+        if (!this.startTime) return null;
+        const end = this.endTime || Date.now();
+        return end - this.startTime;
+    }
+    get durationFormatted(): string {
+        const ms = this.duration;
+        if (ms === null) return '--';
+        if (ms < 1000) return `${ms}ms`;
+        if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`;
+        return `${Math.floor(ms / 60000)}m ${((ms % 60000) / 1000).toFixed(0)}s`;
+    }
+
+    // ─── Tab-Targeted Messaging ─────────────────────────────────────────────
+
+    /**
+     * Send a message to the locked target tab (not the active tab).
+     * This prevents commands going to the wrong tab if the user switches tabs.
+     */
+    private async send(message: any) {
+        if (!this._targetTabId) throw new Error('No target tab set');
+        return sendToTab(this._targetTabId, message);
+    }
+
+    /**
+     * Wait for the content script to be ready on the target tab.
+     */
+    private async waitForTab(timeout: number = 30000): Promise<void> {
+        if (!this._targetTabId) throw new Error('No target tab set');
+        const startMs = Date.now();
+        while (Date.now() - startMs < timeout) {
+            try {
+                const resp = await sendToTab(this._targetTabId, { type: 'PING' } as any);
+                if (resp.success) return;
+            } catch { /* not ready yet */ }
+            await this.delay(500);
+        }
+        throw new Error('Content script not ready after navigation');
+    }
+
+    // ─── Execution Control ──────────────────────────────────────────────────
+
+    async execute(blueprint: Blueprint, resumeFromCheckpoint: boolean = false) {
+        if (this.status === 'running') return;
+
+        if (!resumeFromCheckpoint) {
+            this.resetState();
+        }
+        this.status = 'running';
+        this.runningBlueprintId = blueprint.id;
+        this.runningBlueprintName = blueprint.name;
+        if (!resumeFromCheckpoint) {
+            this.traces = []; // Ensure traces are cleared
+        }
+        this.startTime = this.startTime || Date.now();
+        this._abortController = new AbortController();
+
+        // Lock to the currently active tab — all commands go here
+        const tabs = await browser.tabs.query({ active: true, currentWindow: true });
+        if (!tabs[0]?.id) {
+            runInAction(() => {
+                this.status = 'error';
+                this.error = 'No active tab found';
+            });
+            return;
+        }
+        runInAction(() => {
+            this._targetTabId = tabs[0].id ?? null;
+        });
+
+        // Monitor tab closure
+        const onTabRemoved = (tabId: number) => {
+            if (tabId === this._targetTabId) {
+                this.log('error', '❌ Target tab closed by user');
+                this.stop();
+            }
+        };
+        browser.tabs.onRemoved.addListener(onTabRemoved);
+
+        const totalBlocks = this.countBlocks(blueprint.blocks);
+        runInAction(() => {
+            this.progress = { current: 0, total: totalBlocks };
+        });
+
+        // Create execution record at start so we can track it
+        if (!this.currentExecutionId) {
+            try {
+                this.currentExecutionId = await db.saveExecution({
+                    planId: blueprint.id,
+                    planName: blueprint.name,
+                    startedAt: new Date(this.startTime!).toISOString(),
+                    status: 'running',
+                    itemsScraped: 0,
+                    results: [],
+                    logs: [],
+                });
+            } catch (e) {
+                console.error('Failed to create execution record', e);
+            }
+        } else {
+            // Update existing execution to running
+            try {
+                await db.updateExecution(this.currentExecutionId, { status: 'running' });
+            } catch (e) {
+                console.error('Failed to update execution record', e);
+            }
+        }
+
+        this.log('info', `▶ Starting blueprint: ${blueprint.name} (tab ${this._targetTabId})`);
+
+        try {
+            // Execute top-level blocks sequentially with NO scope
+            for (const block of blueprint.blocks) {
+                if (this._abortController.signal.aborted) break;
+                await this.executeBlock(block);
+            }
+
+            if (!this._abortController.signal.aborted) {
+                runInAction(() => {
+                    this.status = 'completed';
+                    this.endTime = Date.now();
+                });
+                this.log('success', `✅ Blueprint completed. ${this.extractedData.length} rows extracted in ${this.durationFormatted}`);
+
+                // Save history
+                try {
+                    if (this.currentExecutionId) {
+                        await db.updateExecution(this.currentExecutionId, {
+                            completedAt: new Date().toISOString(),
+                            status: 'completed',
+                            itemsScraped: this.extractedData.length,
+                            results: toJS(this.extractedData),
+                            logs: this.logs.map(l => `[${new Date(l.timestamp).toISOString()}] [${l.type.toUpperCase()}] ${l.message}`),
+                            duration: Date.now() - this.startTime!
+                        });
+                        await db.clearProgressByExecution(this.currentExecutionId);
+                    }
+                    runInAction(() => {
+                        this.canResume = false;
+                        this.lastCheckpoint = null;
+                    });
+                } catch (e) {
+                    console.error('Failed to save execution history', e);
+                }
+            }
+        } catch (err: any) {
+            runInAction(() => {
+                this.status = 'error';
+                this.error = err.message;
+                this.endTime = Date.now();
+            });
+            this.log('error', `❌ Execution failed: ${err.message}`);
+
+            // Save history (failed)
+            try {
+                if (this.startTime && this.currentExecutionId) {
+                    await db.updateExecution(this.currentExecutionId, {
+                        completedAt: new Date().toISOString(),
+                        status: 'failed',
+                        itemsScraped: this.extractedData.length,
+                        results: toJS(this.extractedData),
+                        logs: this.logs.map(l => `[${new Date(l.timestamp).toISOString()}] [${l.type.toUpperCase()}] ${l.message}`),
+                        duration: Date.now() - this.startTime
+                    });
+                }
+            } catch (e) {
+                console.error('Failed to save execution history', e);
+            }
+        } finally {
+            if (this._targetTabId) {
+                browser.tabs.onRemoved.removeListener(onTabRemoved);
+            }
+            this._abortController = null;
+        }
+    }
+
+    pause() {
+        if (this.status !== 'running') return;
+        this._paused = true;
+        this.status = 'paused';
+        this.log('warn', '⏸ Execution paused');
+    }
+
+    resume() {
+        if (this.status !== 'paused') return;
+        this._paused = false;
+        this.status = 'running';
+        this.log('info', '▶ Execution resumed');
+        if (this._pauseResolve) {
+            this._pauseResolve();
+            this._pauseResolve = null;
+        }
+    }
+
+    async stop() {
+        this._abortController?.abort();
+        this._paused = false;
+        if (this._pauseResolve) {
+            this._pauseResolve();
+            this._pauseResolve = null;
+        }
+        this.status = 'stopped';
+        this.endTime = Date.now();
+        this.log('warn', '⏹ Execution stopped by user');
+
+        // Save extracted data and checkpoint for resume
+        if (this.currentExecutionId) {
+            try {
+                // Save current extracted data to DB so it persists
+                await db.updateExecution(this.currentExecutionId, {
+                    status: 'stopped',
+                    itemsScraped: this.extractedData.length,
+                    results: toJS(this.extractedData),
+                    logs: this.logs.map(l => `[${new Date(l.timestamp).toISOString()}] [${l.type.toUpperCase()}] ${l.message}`),
+                    duration: this.startTime ? Date.now() - this.startTime : 0
+                });
+
+                // Save checkpoint for resume
+                if (this.currentBlock && this.runningBlueprintId) {
+                    const tabs = await browser.tabs.query({ active: true, currentWindow: true });
+                    const currentUrl = tabs[0]?.url || '';
+                    await db.saveProgress({
+                        planId: this.runningBlueprintId,
+                        executionId: this.currentExecutionId,
+                        blockId: this.currentBlock.id,
+                        timestamp: Date.now(),
+                        url: currentUrl,
+                        completed: false
+                    });
+                    runInAction(() => {
+                        this.canResume = true;
+                        this.lastCheckpoint = {
+                            blockId: this.currentBlock!.id,
+                            url: currentUrl
+                        };
+                    });
+                    this.log('info', '💾 Checkpoint saved for resume');
+                }
+            } catch (e) {
+                console.error('Failed to save execution state', e);
+            }
+        }
+    }
+
+    clearResults() {
+        this.resetState();
+    }
+
+    async loadLastCheckpoint(blueprintId: string) {
+        try {
+            const checkpoint = await db.getLastCheckpoint(blueprintId);
+            if (checkpoint) {
+                // Also load the execution data
+                const execution = await db.getExecution(checkpoint.executionId);
+                runInAction(() => {
+                    this.canResume = true;
+                    this.lastCheckpoint = {
+                        blockId: checkpoint.blockId,
+                        loopIndex: checkpoint.loopIndex,
+                        url: checkpoint.url
+                    };
+                    this.currentExecutionId = checkpoint.executionId;
+                    // Restore previously extracted data
+                    if (execution?.results && execution.results.length > 0) {
+                        this.extractedData = execution.results as Record<string, any>[];
+                        this.extractedColumns = [];
+                        for (const row of this.extractedData) {
+                            for (const key of Object.keys(row)) {
+                                if (!this.extractedColumns.includes(key)) {
+                                    this.extractedColumns.push(key);
+                                }
+                            }
+                        }
+                        this.startTime = execution.startedAt ? new Date(execution.startedAt).getTime() : null;
+                    }
+                });
+                return checkpoint;
+            }
+        } catch (e) {
+            console.error('Failed to load checkpoint', e);
+        }
+        return null;
+    }
+
+    async loadExecutionData(executionId: number) {
+        try {
+            const execution = await db.getExecution(executionId);
+            if (execution) {
+                runInAction(() => {
+                    this.extractedData = (execution.results || []) as Record<string, any>[];
+                    this.extractedColumns = [];
+                    for (const row of this.extractedData) {
+                        for (const key of Object.keys(row)) {
+                            if (!this.extractedColumns.includes(key)) {
+                                this.extractedColumns.push(key);
+                            }
+                        }
+                    }
+                    this.currentExecutionId = execution.id || null;
+                    this.runningBlueprintId = execution.planId;
+                    this.runningBlueprintName = execution.planName;
+                    this.startTime = execution.startedAt ? new Date(execution.startedAt).getTime() : null;
+                    this.endTime = execution.completedAt ? new Date(execution.completedAt).getTime() : null;
+                    this.status = (execution.status === 'running' ? 'stopped' : execution.status) as ExecutionStatus;
+                });
+                return execution;
+            }
+        } catch (e) {
+            console.error('Failed to load execution data', e);
+        }
+        return null;
+    }
+
+    addTrace(trace: Omit<ExecutionTrace, 'id' | 'timestamp'>) {
+        if (!this.enableTrace) return;
+        runInAction(() => {
+            this.traces.push({
+                id: uuidv4(),
+                timestamp: Date.now(),
+                ...trace
+            });
+        });
+    }
+
+    downloadTrace() {
+        if (this.traces.length === 0) return;
+        const blob = new Blob([JSON.stringify(this.traces, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `trace-${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+
+    // ─── Block Router ───────────────────────────────────────────────────────
+
+    /**
+     * Execute a single block, then process its children if it's not a container block.
+     * Container blocks (Loop, Condition, Extract) handle their own children internally
+     * because they need special scope/iteration logic.
+     * Non-container blocks (Navigate, Click, Wait, etc.) get automatic child processing.
+     */
+    private async executeBlock(block: Block, scope?: Scope) {
+        if (this._abortController?.signal.aborted) return;
+        await this.checkPause();
+
+        if (block.enabled === false) {
+            this.log('info', `⏭ Skipping disabled block: ${block.label}`);
+            return;
+        }
+
+        runInAction(() => {
+            this.currentBlock = block;
+            this.progress.current++;
+        });
+
+        // Detailed logging for debugging
+        const scopeInfo = scope ? `[Scope: ${scope.selector}[${scope.index}]]` : '[No Scope]';
+        const configPreview = JSON.stringify(block.config).substring(0, 100);
+        this.log('block', `▶ Executing: ${block.label || block.type} ${scopeInfo}`, block.id, block.label);
+        this.log('info', `  📋 Config: ${configPreview}${JSON.stringify(block.config).length > 100 ? '...' : ''}`);
+
+        const retries = block.maxRetries || 0;
+        const retryDelay = block.retryDelay || 1000;
+
+        const startTraceTime = Date.now();
+        this.addTrace({
+            blockId: block.id,
+            blockType: block.type,
+            blockLabel: block.label || block.type,
+            status: 'start',
+            details: { config: block.config, scope }
+        });
+
+        for (let attempt = 0; attempt <= retries; attempt++) {
+            try {
+                if (attempt > 0) {
+                    this.log('warn', `↻ Retry ${attempt}/${retries}: ${block.label}`);
+                    this.log('info', `  ⏱ Waiting ${retryDelay}ms before retry...`);
+                    await this.delay(retryDelay);
+                }
+
+                // Apply delayBefore if the block config has it
+                const delayBefore = (block.config as any)?.delayBefore;
+                if (delayBefore && delayBefore > 0) {
+                    this.log('info', `  ⏱ Delay before: ${delayBefore}ms`);
+                    await this.delay(delayBefore);
+                }
+
+                switch (block.type) {
+                    case 'navigate': await this.executeNavigate(block); break;
+                    case 'click': await this.executeClick(block, scope); break;
+                    case 'input': await this.executeInput(block, scope); break;
+                    case 'wait': await this.executeWait(block, scope); break;
+                    case 'scroll': await this.executeScroll(block, scope); break;
+                    case 'go_back': await this.executeGoBack(block); break;
+                    case 'condition': await this.executeCondition(block, scope); break;
+                    case 'loop_elements': await this.executeLoopElements(block, scope); break;
+                    case 'loop_pagination': await this.executeLoopPagination(block, scope); break;
+                    case 'extract_scope': await this.executeExtractScope(block, scope); break;
+                    default:
+                        this.log('warn', `Unknown block type: ${block.type}`);
+                }
+
+                // Generic child processing for NON-container blocks
+                // Container blocks (loop, condition, extract) already handle children internally
+                if (!CONTAINER_BLOCKS.includes(block.type) && block.children?.length) {
+                    this.log('info', `  👶 Processing ${block.children.length} children...`);
+                    for (const child of block.children) {
+                        if (this._abortController?.signal.aborted) break;
+                        await this.executeBlock(child, scope);
+                    }
+                }
+
+                // Apply delayAfter if the block config has it
+                const delayAfter = (block.config as any)?.delayAfter;
+                if (delayAfter && delayAfter > 0) {
+                    this.log('info', `  ⏱ Delay after: ${delayAfter}ms`);
+                    await this.delay(delayAfter);
+                }
+
+                const executionTime = Date.now() - startTraceTime;
+                this.addTrace({
+                    blockId: block.id,
+                    blockType: block.type,
+                    blockLabel: block.label || block.type,
+                    status: 'success',
+                    duration: executionTime
+                });
+
+                this.log('info', `  ⏱ Execution time: ${executionTime}ms`);
+                break; // Success — exit retry loop
+            } catch (err: any) {
+                this.log('error', `  ❌ Error on attempt ${attempt + 1}: ${err.message}`);
+                this.log('info', `  📍 Error stack: ${err.stack?.split('\n')[0] || 'No stack trace'}`);
+
+                if (attempt >= retries) {
+                    this.addTrace({
+                        blockId: block.id,
+                        blockType: block.type,
+                        blockLabel: block.label || block.type,
+                        status: 'error',
+                        details: { error: err.message, stack: err.stack },
+                        duration: Date.now() - startTraceTime
+                    });
+
+                    // Final attempt failed
+                    if (block.onError === 'skip') {
+                        this.log('warn', `⏭ Skipping failed block: ${block.label} (${err.message})`);
+                        return;
+                    }
+                    this.log('error', `  💥 All ${retries + 1} attempts failed. Stopping execution.`);
+                    throw err; // Propagate to stop execution
+                }
+            }
+        }
+    }
+
+    // ─── Block Executors ────────────────────────────────────────────────────
+
+    private async executeNavigate(block: Block) {
+        const config = block.config as any;
+        const url = config.url;
+        if (!url) throw new Error('Navigate block: URL is required');
+
+        this.log('info', `🌐 Navigating to: ${url}`);
+        this.log('info', `  📍 Behavior: ${config.behavior || 'same_tab'}`);
+        this.log('info', `  ⏱ Timeout: ${config.timeout || 30000}ms`);
+        this.log('info', `  🎯 Current tab ID: ${this._targetTabId}`);
+
+        if (config.behavior === 'new_tab') {
+            // Create new tab and switch the executor's target to it
+            this.log('info', `  🆕 Creating new tab...`);
+            const newTab = await browser.tabs.create({ url });
+            if (newTab.id) {
+                this._targetTabId = newTab.id;
+                this.log('info', `  ↳ Opened new tab (id: ${newTab.id})`);
+            }
+        } else {
+            // Navigate in the same target tab
+            this.log('info', `  🔄 Navigating in current tab ${this._targetTabId}...`);
+
+            // Listen for navigation completion
+            let navigationCompleted = false;
+            const onUpdated = (tabId: number, changeInfo: any) => {
+                if (tabId === this._targetTabId && changeInfo.status === 'complete') {
+                    navigationCompleted = true;
+                }
+            };
+            browser.tabs.onUpdated.addListener(onUpdated);
+
+            try {
+                await browser.tabs.update(this._targetTabId!, { url });
+
+                // Wait for navigation to complete
+                const startWait = Date.now();
+                const timeout = config.timeout || 30000;
+                while (!navigationCompleted && Date.now() - startWait < timeout) {
+                    await this.delay(100);
+                }
+
+                if (!navigationCompleted) {
+                    throw new Error('Navigation timeout - page did not finish loading');
+                }
+            } finally {
+                browser.tabs.onUpdated.removeListener(onUpdated);
+            }
+        }
+
+        // Wait for content script to be ready in the (possibly new) target tab
+        this.log('info', `  ⏳ Waiting for content script to be ready...`);
+        await this.waitForTab(config.timeout || 30000);
+        this.log('success', `✓ Navigated to: ${url}`);
+    }
+
+    private async executeClick(block: Block, scope?: Scope) {
+        const config = block.config as any;
+        const sel = config.selector;
+        if (!sel?.value && !scope) throw new Error('Click block: selector or scope is required');
+
+        // Special handling for openInNewTab - this is a container-like behavior
+        if (config.openInNewTab) {
+            this.log('info', `  🆕 Click will open new tab`);
+            this.log('info', `  🎯 Selector: ${sel?.value || 'scope element'}`);
+            this.log('info', `  📌 Selector type: ${sel?.type || 'css'}`);
+            this.log('info', `  🔍 Has scope: ${scope ? 'Yes' : 'No'}`);
+
+            let tabCreated = false;
+            let newTabId: number | null = null;
+
+            const onTabCreated = (tab: any) => {
+                if (tab.id) {
+                    newTabId = tab.id;
+                    tabCreated = true;
+                    this.log('info', `  ✨ New tab created: ${tab.id}`);
+                }
+            };
+
+            browser.tabs.onCreated.addListener(onTabCreated);
+
+            try {
+                this.log('info', `  🖱 Sending click command...`);
+                const response = await this.send({
+                    type: 'ENV_CLICK',
+                    data: {
+                        selector: sel?.value || '',
+                        selectorType: sel?.type || 'css',
+                        scope: scope || undefined,
+                        openInNewTab: true,
+                    }
+                });
+
+                if (!response.success) throw new Error(response.error || 'Click failed');
+                this.log('success', `✓ Clicked: ${sel?.value || 'scope element'}`);
+
+                // Wait for the tab to be created
+                this.log('info', `  ⏳ Waiting for new tab (max 5s)...`);
+                const startWait = Date.now();
+                while (!tabCreated && Date.now() - startWait < 5000) {
+                    await this.delay(100);
+                }
+
+                if (newTabId) {
+                    this.log('info', `  ↳ Switched to new tab (id: ${newTabId})`);
+
+                    const oldTabId = this._targetTabId;
+                    this._targetTabId = newTabId;
+
+                    try {
+                        this.log('info', `  ⏳ Waiting for content script in new tab...`);
+                        await this.waitForTab(30000);
+
+                        // Execute children in the new tab context
+                        if (block.children?.length) {
+                            this.log('info', `  👶 Executing ${block.children.length} children in new tab...`);
+                            for (const child of block.children) {
+                                if (this._abortController?.signal.aborted) break;
+                                await this.executeBlock(child, scope);
+                            }
+                        }
+                    } catch (e: any) {
+                        this.log('error', `  ❌ Error in new tab execution: ${e.message}`);
+                    } finally {
+                        try {
+                            this.log('info', `  🗑 Closing new tab ${newTabId}...`);
+                            await browser.tabs.remove(newTabId);
+                            this.log('info', `  ↳ Closed tab ${newTabId}`);
+                        } catch (e) {
+                            this.log('warn', `  ⚠ Failed to close tab ${newTabId}`);
+                        }
+
+                        this._targetTabId = oldTabId;
+                        this.log('info', `  🔙 Switched back to tab ${oldTabId}`);
+                        await this.delay(500);
+                    }
+                } else {
+                    this.log('warn', '⚠ Click was supposed to open a new tab but none was detected.');
+                }
+            } finally {
+                browser.tabs.onCreated.removeListener(onTabCreated);
+            }
+        } else {
+            // Normal click - children will be handled by generic child processing
+            this.log('info', `  🖱 Normal click`);
+            this.log('info', `  🎯 Selector: ${sel?.value || 'scope element'}`);
+            this.log('info', `  📌 Selector type: ${sel?.type || 'css'}`);
+            this.log('info', `  🔍 Has scope: ${scope ? 'Yes' : 'No'}`);
+
+            const response = await this.send({
+                type: 'ENV_CLICK',
+                data: {
+                    selector: sel?.value || '',
+                    selectorType: sel?.type || 'css',
+                    scope: scope || undefined,
+                    openInNewTab: false,
+                }
+            });
+
+            if (!response.success) throw new Error(response.error || 'Click failed');
+            this.log('success', `✓ Clicked: ${sel?.value || 'scope element'}`);
+
+            // If click might cause navigation, wait for the page to settle
+            if (config.waitAfterClick) {
+                this.log('info', `  ⏳ Waiting ${config.waitAfterClick}ms after click...`);
+                await this.delay(config.waitAfterClick);
+                this.log('info', `  ⏳ Waiting for page to settle...`);
+                await this.waitForTab(config.timeout || 15000);
+            }
+        }
+    }
+
+    private async executeInput(block: Block, scope?: Scope) {
+        const config = block.config as any;
+        const sel = config.selector;
+        if (!sel?.value && !scope) throw new Error('Input block: selector or scope is required');
+
+        this.log('info', `  ⌨️ Input value: "${config.value || ''}"`);
+        this.log('info', `  🎯 Selector: ${sel?.value || 'scope element'}`);
+        this.log('info', `  📌 Selector type: ${sel?.type || 'css'}`);
+        this.log('info', `  🔍 Has scope: ${scope ? 'Yes' : 'No'}`);
+
+        const response = await this.send({
+            type: 'ENV_INPUT',
+            data: {
+                selector: sel?.value || '',
+                selectorType: sel?.type || 'css',
+                value: config.value || '',
+                scope: scope || undefined,
+            }
+        });
+
+        if (!response.success) throw new Error(response.error || 'Input failed');
+        this.log('success', `✓ Input "${config.value}" into: ${sel?.value || 'scope element'}`);
+    }
+
+    private async executeWait(block: Block, scope?: Scope) {
+        const config = block.config as any;
+
+        this.log('info', `  ⏱ Wait type: ${config.type}`);
+
+        if (config.type === 'timeout') {
+            const ms = config.timeout || 1000;
+            this.log('info', `  ⏳ Waiting ${ms}ms...`);
+            await this.delay(ms);
+        } else if (config.type === 'selector_visible' || config.type === 'selector_hidden') {
+            const sel = config.selector;
+            if (!sel?.value && !scope) throw new Error('Wait block: selector or scope is required for visibility wait');
+
+            const targetVisible = config.type === 'selector_visible';
+            const timeout = config.timeout || 10000;
+            this.log('info', `  🎯 Selector: ${sel?.value || 'scope element'}`);
+            this.log('info', `  📌 Selector type: ${sel?.type || 'css'}`);
+            this.log('info', `  👁 Target state: ${targetVisible ? 'visible' : 'hidden'}`);
+            this.log('info', `  ⏱ Timeout: ${timeout}ms`);
+            this.log('info', `  ⏳ Waiting for ${sel?.value || 'scope element'} to be ${targetVisible ? 'visible' : 'hidden'}...`);
+
+            const startMs = Date.now();
+            let checkCount = 0;
+            while (Date.now() - startMs < timeout) {
+                if (this._abortController?.signal.aborted) return;
+
+                checkCount++;
+                const response = await this.send({
+                    type: 'ENV_IS_VISIBLE',
+                    data: {
+                        selector: sel?.value || '',
+                        selectorType: sel?.type || 'css',
+                        scope: scope || undefined,
+                    }
+                });
+
+                if (response.success) {
+                    const isVisible = response.data as boolean;
+                    this.log('info', `  🔍 Check #${checkCount}: Element is ${isVisible ? 'visible' : 'hidden'}`);
+                    if (targetVisible === isVisible) {
+                        this.log('success', `  ✓ Element ${targetVisible ? 'visible' : 'hidden'}: ${sel?.value || 'scope element'} (after ${Date.now() - startMs}ms)`);
+                        return;
+                    }
+                }
+                await this.delay(250);
+            }
+            this.log('error', `  ❌ Timeout after ${checkCount} checks (${timeout}ms)`);
+            throw new Error(`Timeout waiting for ${sel?.value || 'scope element'} to be ${targetVisible ? 'visible' : 'hidden'}`);
+        } else if (config.type === 'dom_content_loaded') {
+            this.log('info', `  ⏳ Waiting for DOM content loaded (${config.timeout || 2000}ms)...`);
+            await this.delay(config.timeout || 2000);
+        } else if (config.type === 'network_idle') {
+            const timeout = config.timeout || 10000;
+            this.log('info', `  🌐 Waiting for network idle (timeout: ${timeout}ms)...`);
+
+            const response = await this.send({
+                type: 'ENV_WAIT_NETWORK_IDLE',
+                data: { timeout }
+            });
+
+            if (!response.success) {
+                this.log('warn', `⚠ Network idle wait failed: ${response.error}. Continuing...`);
+            }
+        }
+    }
+
+    private async executeScroll(block: Block, scope?: Scope) {
+        const config = block.config as any;
+
+        this.log('info', `  📜 Scroll target: ${config.target || 'window'}`);
+        this.log('info', `  📍 Behavior: ${config.behavior || 'bottom'}`);
+        if (config.behavior === 'pixels') {
+            this.log('info', `  📏 Pixels: ${config.pixels || 0}`);
+        }
+        if (config.selector?.value) {
+            this.log('info', `  🎯 Selector: ${config.selector.value}`);
+        }
+
+        const response = await this.send({
+            type: 'ENV_SCROLL',
+            data: {
+                target: config.target || 'window',
+                behavior: config.behavior || 'bottom',
+                amount: config.pixels,
+                selector: config.selector?.value,
+                selectorType: config.selector?.type || 'css',
+                scope: scope || undefined,
+            }
+        });
+
+        if (!response.success) throw new Error(response.error || 'Scroll failed');
+
+        // Log scroll position info if available
+        if (response.data) {
+            const info = response.data as any;
+            this.log('info', `  📊 Position: ${info.afterScrollTop}px / ${info.scrollHeight}px (${Math.round((info.afterScrollTop / info.scrollHeight) * 100)}%)`);
+            this.log('info', `  📏 Scrolled: ${info.scrolled}px | Remaining: ${info.remainingScroll}px`);
+        }
+
+        this.log('success', `  ✓ Scrolled ${config.behavior}`);
+
+        // Wait for scroll animation to settle
+        const settleTime = config.smooth ? 500 : 100;
+        this.log('info', `  ⏱ Waiting ${settleTime}ms for scroll to settle...`);
+        await this.delay(settleTime);
+    }
+
+    private async executeGoBack(block: Block) {
+        this.log('info', '↩ Going back...');
+        this.log('info', `  🎯 Current tab ID: ${this._targetTabId}`);
+
+        try {
+            // If we have a stored return URL (from loop), navigate to it directly
+            // This is more reliable than browser.tabs.goBack() which can fail with complex history
+            if (this._returnUrl) {
+                this.log('info', `  🔄 Navigating to stored URL: ${this._returnUrl}`);
+                await browser.tabs.update(this._targetTabId!, { url: this._returnUrl });
+            } else {
+                // Fallback to browser back button if no return URL stored
+                this.log('info', `  ⬅️ Using browser back button`);
+                await browser.tabs.goBack(this._targetTabId!);
+            }
+
+            this.log('info', `  ⏳ Waiting for page to load after going back...`);
+
+            // Wait for content script to be ready
+            await this.waitForTab(30000);
+
+            // Additional delay to ensure page is fully stabilized
+            // This is critical for loops with go_back to prevent blank page issues
+            this.log('info', `  ⏱ Waiting 1000ms for page stabilization...`);
+            await this.delay(1000);
+
+            // Get current URL for debugging
+            const tab = await browser.tabs.get(this._targetTabId!);
+            this.log('info', `  📍 Current URL after go_back: ${tab.url}`);
+
+            // Verify we're on the expected URL if we had a return URL
+            if (this._returnUrl && tab.url !== this._returnUrl) {
+                this.log('warn', `  ⚠️ URL mismatch! Expected: ${this._returnUrl}, Got: ${tab.url}`);
+            }
+
+            this.log('success', '✓ Went back');
+        } catch (err: any) {
+            this.log('error', `  ❌ Go back failed: ${err.message}`);
+            throw err;
+        }
+    }
+
+    private async executeCondition(block: Block, scope?: Scope) {
+        const config = block.config as any;
+        const sel = config.selector;
+        if (!sel?.value && !scope) throw new Error('Condition block: selector or scope is required');
+
+        this.log('info', `  🔀 Condition check: ${config.check}`);
+        this.log('info', `  🎯 Selector: ${sel?.value || 'scope element'}`);
+        this.log('info', `  📌 Selector type: ${sel?.type || 'css'}`);
+        if (config.value !== undefined) {
+            this.log('info', `  💬 Compare value: "${config.value}"`);
+        }
+        this.log('info', `  🔄 Negate: ${config.negate ? 'Yes' : 'No'}`);
+
+        let conditionMet = false;
+
+        switch (config.check) {
+            case 'exists':
+            case 'not_exists': {
+                const countResp = await this.send({
+                    type: 'ENV_COUNT',
+                    data: { selector: sel?.value || '', selectorType: sel?.type || 'css', scope: scope || undefined }
+                });
+
+                if (!countResp.success) throw new Error(countResp.error || 'Failed to count elements');
+                const count = countResp.data as number;
+                this.log('info', `  🔢 Element count: ${count}`);
+                conditionMet = config.check === 'exists' ? count > 0 : count === 0;
+                break;
+            }
+            case 'visible':
+            case 'hidden': {
+                const visResp = await this.send({
+                    type: 'ENV_IS_VISIBLE',
+                    data: { selector: sel?.value || '', selectorType: sel?.type || 'css', scope: scope || undefined }
+                });
+
+                if (!visResp.success) throw new Error(visResp.error || 'Failed to check visibility');
+                const isVisible = visResp.data as boolean;
+                conditionMet = config.check === 'visible' ? isVisible : !isVisible;
+                break;
+            }
+            case 'text_contains':
+            case 'text_equals': {
+                const textResp = await this.send({
+                    type: 'ENV_GET_TEXT',
+                    data: { selector: sel?.value || '', selectorType: sel?.type || 'css', scope: scope || undefined }
+                });
+
+                if (!textResp.success) throw new Error(textResp.error || 'Failed to get text');
+                const text = textResp.data as string;
+                this.log('info', `  📝 Element text: "${text.substring(0, 50)}${text.length > 50 ? '...' : ''}"`);
+                conditionMet = config.check === 'text_contains'
+                    ? text.includes(config.value || '')
+                    : text === (config.value || '');
+                break;
+            }
+            case 'text_regex': {
+                const textResp = await this.send({
+                    type: 'ENV_GET_TEXT',
+                    data: { selector: sel?.value || '', selectorType: sel?.type || 'css', scope: scope || undefined }
+                });
+
+                if (!textResp.success) throw new Error(textResp.error || 'Failed to get text');
+                const text = textResp.data as string;
+                try {
+                    const regex = new RegExp(config.value || '', 'i');
+                    conditionMet = regex.test(text);
+                } catch (e) {
+                    this.log('warn', `Invalid regex in condition: ${config.value}`);
+                    conditionMet = false;
+                }
+                break;
+            }
+            case 'count_equals':
+            case 'count_greater_than': {
+                const cResp = await this.send({
+                    type: 'ENV_COUNT',
+                    data: { selector: sel?.value || '', selectorType: sel?.type || 'css', scope: scope || undefined }
+                });
+
+                if (!cResp.success) throw new Error(cResp.error || 'Failed to count elements');
+                const c = cResp.data as number;
+                const v = parseInt(config.value) || 0;
+                conditionMet = config.check === 'count_equals' ? c === v : c > v;
+                break;
+            }
+        }
+
+        if (config.negate) conditionMet = !conditionMet;
+
+        this.log('info', `  ✅ Condition result: ${conditionMet ? 'TRUE' : 'FALSE'}`);
+        this.log('info', `  🔀 Condition "${config.check}" on ${sel?.value || 'scope element'}: ${conditionMet ? 'TRUE' : 'FALSE'}`);
+
+        const branch = conditionMet ? (block.children || []) : ((block as any).elseChildren || []);
+        const branchName = conditionMet ? 'THEN' : 'ELSE';
+        this.log('info', `  ➡️ Executing ${branchName} branch (${branch.length} blocks)`);
+
+        for (const child of branch) {
+            if (this._abortController?.signal.aborted) break;
+            await this.executeBlock(child, scope);
+        }
+    }
+
+    private async executeLoopElements(block: Block, scope?: Scope) {
+        const config = block.config as any;
+        const sel = config.selector;
+        if (!sel?.value) throw new Error('Loop Elements: selector is required');
+
+        this.log('info', `  🔁 Loop Elements`);
+        this.log('info', `  🎯 Selector: ${sel.value}`);
+        this.log('info', `  📌 Selector type: ${sel.type || 'css'}`);
+        this.log('info', `  🔍 Has parent scope: ${scope ? 'Yes' : 'No'}`);
+
+        // Store current URL before loop starts - for go_back to return to
+        const currentTab = await browser.tabs.get(this._targetTabId!);
+        const loopStartUrl = currentTab.url || null;
+        this.log('info', `  📍 Loop start URL: ${loopStartUrl}`);
+
+        // Count elements inside the current scope
+        const countResp = await this.send({
+            type: 'ENV_COUNT',
+            data: { selector: sel.value, selectorType: sel.type || 'css', scope: scope || undefined }
+        });
+
+        if (!countResp.success) throw new Error(countResp.error || 'Failed to count loop elements');
+        const totalItems = countResp.data as number;
+        const maxIter = config.maxIterations ? Math.min(config.maxIterations, totalItems) : totalItems;
+
+        this.log('info', `  📊 Found ${totalItems} elements`);
+        this.log('info', `  🔄 Max iterations: ${config.maxIterations || 'unlimited'}`);
+        this.log('info', `  ▶️ Will iterate: ${maxIter} times`);
+        this.log('info', `  👶 Children per iteration: ${block.children?.length || 0}`);
+
+        // Get processed items from parent context if available
+        const processedItems = scope?.context?.loopItemsProcessed || new Set<number>();
+        if (processedItems.size > 0) {
+            this.log('info', `  📊 Items already processed: ${processedItems.size}`);
+        }
+
+        for (let i = 0; i < maxIter; i++) {
+            // Set return URL for this iteration
+            this._returnUrl = loopStartUrl;
+            if (this._abortController?.signal.aborted) break;
+            await this.checkPause();
+
+            // Check if this item was already processed
+            if (processedItems.has(i)) {
+                this.log('info', `  ⏭️ Skipping item ${i + 1}/${maxIter} (already processed)`);
+                continue;
+            }
+
+            // Build the child scope for this loop iteration with context
+            const childScope: Scope = {
+                selector: sel.value,
+                selectorType: (sel.type || 'css') as 'css' | 'xpath',
+                index: i,
+                parent: scope,
+                context: {
+                    ...scope?.context,
+                    loopItemIndex: i,
+                    loopTotalItems: totalItems,
+                    loopItemsProcessed: processedItems,
+                }
+            };
+
+            this.log('info', `  ━━━ Item ${i + 1}/${maxIter} ━━━`);
+
+            // Wait for the element to exist (in case of navigation/re-render)
+            let elementExists = false;
+            const waitStart = Date.now();
+            const maxWaitTime = 15000;
+            this.log('info', `    🔍 Checking if element at index ${i} exists...`);
+            let checkAttempts = 0;
+
+            while (Date.now() - waitStart < maxWaitTime) {
+                checkAttempts++;
+                try {
+                    const checkResp = await this.send({
+                        type: 'ENV_COUNT',
+                        data: {
+                            selector: childScope.selector,
+                            selectorType: childScope.selectorType,
+                            scope: childScope.parent || undefined,
+                        }
+                    });
+
+                    if (checkResp.success) {
+                        const count = checkResp.data as number;
+                        if (count > i) {
+                            elementExists = true;
+                            this.log('info', `    ✓ Element exists (${count} total elements, check attempt ${checkAttempts})`);
+                            break;
+                        } else {
+                            this.log('info', `    ⏳ Found ${count} elements, need at least ${i + 1} (attempt ${checkAttempts})`);
+                        }
+                    }
+                } catch (err: any) {
+                    this.log('warn', `    ⚠ Check attempt ${checkAttempts} failed: ${err.message}`);
+                }
+
+                await this.delay(500);
+            }
+
+            if (!elementExists) {
+                this.log('warn', `    ⚠ Element at index ${i} not found after ${checkAttempts} attempts (${maxWaitTime}ms). Loop stopped.`);
+                break;
+            }
+
+            for (const child of (block.children || [])) {
+                if (this._abortController?.signal.aborted) break;
+                await this.executeBlock(child, childScope);
+            }
+
+            // Mark this item as processed
+            processedItems.add(i);
+
+            // Clear return URL after iteration completes
+            this._returnUrl = null;
+        }
+
+        this.log('success', `✓ Loop completed: ${maxIter} iterations`);
+    }
+
+    private async executeLoopPagination(block: Block, scope?: Scope) {
+        const config = block.config as any;
+        const paginationType = config.paginationType || 'button';
+        const maxPages = config.maxPages || 100;
+        const delayBetween = config.delayBetweenPages || 1000;
+
+        this.log('info', `  📄 Loop Pagination`);
+        this.log('info', `  🔄 Pagination type: ${paginationType}`);
+        this.log('info', `  � Max pages: ${maxPages}`);
+        this.log('info', `  ⏱ Delay between pages: ${delayBetween}ms`);
+        this.log('info', `  👶 Children per page: ${block.children?.length || 0}`);
+
+        if (paginationType === 'scroll') {
+            await this.executeScrollPagination(block, scope, maxPages, delayBetween);
+        } else {
+            await this.executeButtonPagination(block, scope, maxPages, delayBetween);
+        }
+    }
+
+    private async executeButtonPagination(block: Block, scope: Scope | undefined, maxPages: number, delayBetween: number) {
+        const config = block.config as any;
+        const sel = config.nextButtonSelector;
+        if (!sel?.value) throw new Error('Loop Pagination (button): next button selector required');
+
+        this.log('info', `  🎯 Next button selector: ${sel.value}`);
+        this.log('info', `  📌 Selector type: ${sel.type || 'css'}`);
+        this.log('info', `  ⚠ On no next button: ${config.onNoNextButton || 'stop'}`);
+
+        let page = 0;
+        while (page < maxPages) {
+            if (this._abortController?.signal.aborted) break;
+            await this.checkPause();
+
+            this.log('info', `  ━━━ Page ${page + 1} ━━━`);
+
+            // Execute children for this page
+            this.log('info', `    👶 Executing ${block.children?.length || 0} children on this page...`);
+            for (const child of (block.children || [])) {
+                if (this._abortController?.signal.aborted) break;
+                await this.executeBlock(child, scope);
+            }
+
+            page++;
+
+            // Check if we've reached max pages
+            if (page >= maxPages) {
+                this.log('info', `    🛑 Reached max pages limit (${maxPages})`);
+                break;
+            }
+
+            // Try to find and click the next button
+            this.log('info', `    🔍 Looking for next button...`);
+            const countResp = await this.send({
+                type: 'ENV_COUNT',
+                data: { selector: sel.value, selectorType: sel.type || 'css', scope: scope || undefined }
+            });
+
+            if (!countResp.success || (countResp.data as number) === 0) {
+                this.log('info', `    ❌ Next button not found`);
+                if (config.onNoNextButton === 'error') {
+                    throw new Error('Next button not found');
+                }
+                this.log('info', `    🛑 Stopping pagination (no next button)`);
+                break;
+            }
+
+            // Click next button
+            this.log('info', `    ✓ Next button found`);
+            this.log('info', `    👆 Clicking next button: ${sel.value}`);
+
+            await this.send({
+                type: 'ENV_CLICK',
+                data: { selector: sel.value, selectorType: sel.type || 'css', scope: scope || undefined }
+            });
+
+            // Wait for page to load
+            this.log('info', `    ⏱ Waiting ${delayBetween}ms for page transition...`);
+            await this.delay(delayBetween);
+            this.log('info', `    ⏳ Waiting for page to load...`);
+            await this.waitForTab(15000);
+        }
+
+        this.log('success', `✓ Button pagination completed: ${page} pages processed`);
+    }
+
+    private async executeScrollPagination(block: Block, scope: Scope | undefined, maxPages: number, delayBetween: number) {
+        const config = block.config as any;
+        const scrollStrategy = config.scrollStrategy || 'fixed_amount';
+
+        this.log('info', `  📜 Scroll strategy: ${scrollStrategy}`);
+
+        if (scrollStrategy === 'scroll_to_bottom') {
+            await this.executeScrollToBottomStrategy(block, scope, maxPages, delayBetween);
+        } else if (scrollStrategy === 'scroll_to_last_item') {
+            await this.executeScrollToLastItemStrategy(block, scope, maxPages, delayBetween);
+        } else {
+            await this.executeFixedAmountStrategy(block, scope, maxPages, delayBetween);
+        }
+    }
+
+    private async executeFixedAmountStrategy(block: Block, scope: Scope | undefined, maxPages: number, delayBetween: number) {
+        const config = block.config as any;
+        const scrollTarget = config.scrollTarget || 'window';
+        const scrollAmount = config.scrollAmount || 1000;
+        const scrollSelector = config.scrollSelector;
+
+        this.log('info', `  📜 Scroll target: ${scrollTarget}`);
+        this.log('info', `  📏 Scroll amount: ${scrollAmount}px`);
+        if (scrollSelector?.value) {
+            this.log('info', `  🎯 Scroll selector: ${scrollSelector.value}`);
+        }
+
+        let page = 0;
+        let previousItemCount = 0;
+        let noNewItemsCount = 0;
+
+        while (page < maxPages) {
+            if (this._abortController?.signal.aborted) break;
+            await this.checkPause();
+
+            this.log('info', `  ━━━ Iteration ${page + 1} ━━━`);
+
+            // Execute children for current visible items
+            this.log('info', `    👶 Executing ${block.children?.length || 0} children...`);
+            for (const child of (block.children || [])) {
+                if (this._abortController?.signal.aborted) break;
+                await this.executeBlock(child, scope);
+            }
+
+            page++;
+
+            if (page >= maxPages) {
+                this.log('info', `    🛑 Reached max iterations limit (${maxPages})`);
+                break;
+            }
+
+            // Scroll by fixed amount
+            this.log('info', `    📜 Scrolling ${scrollAmount}px...`);
+            const scrollResp = await this.send({
+                type: 'ENV_SCROLL',
+                data: {
+                    target: scrollTarget,
+                    behavior: 'pixels',
+                    amount: scrollAmount,
+                    selector: scrollSelector?.value,
+                    selectorType: scrollSelector?.type || 'css',
+                    scope: scope || undefined,
+                }
+            });
+
+            if (scrollResp.success && scrollResp.data) {
+                const info = scrollResp.data as any;
+                this.log('info', `    📊 Position: ${info.afterScrollTop}px / ${info.scrollHeight}px (${Math.round((info.afterScrollTop / info.scrollHeight) * 100)}%)`);
+                this.log('info', `    📏 Scrolled: ${info.scrolled}px | Remaining: ${info.remainingScroll}px`);
+            }
+
+            // Wait for new content
+            this.log('info', `    ⏱ Waiting ${delayBetween}ms for content to load...`);
+            await this.delay(delayBetween);
+
+            // Check for new items
+            const currentItemCount = this.extractedData.length;
+            this.log('info', `    📊 Items: ${currentItemCount} (previous: ${previousItemCount})`);
+
+            if (currentItemCount === previousItemCount) {
+                noNewItemsCount++;
+                this.log('info', `    ⚠ No new items (${noNewItemsCount}/3)`);
+                if (noNewItemsCount >= 3) {
+                    this.log('info', `    🛑 No new items after 3 attempts, stopping`);
+                    break;
+                }
+            } else {
+                noNewItemsCount = 0;
+                this.log('info', `    ✓ New items: +${currentItemCount - previousItemCount}`);
+            }
+            previousItemCount = currentItemCount;
+        }
+
+        this.log('success', `✓ Scroll pagination completed: ${page} iterations, ${this.extractedData.length} total items`);
+    }
+
+    private async executeScrollToBottomStrategy(block: Block, scope: Scope | undefined, maxPages: number, delayBetween: number) {
+        const config = block.config as any;
+        const scrollTarget = config.scrollTarget || 'window';
+        const scrollSelector = config.scrollSelector;
+
+        this.log('info', `  📜 Strategy: Scroll to bottom once, then wait for items`);
+        this.log('info', `  📜 Scroll target: ${scrollTarget}`);
+
+        let iteration = 0;
+        let previousItemCount = 0;
+        let noNewItemsCount = 0;
+
+        while (iteration < maxPages) {
+            if (this._abortController?.signal.aborted) break;
+            await this.checkPause();
+
+            this.log('info', `  ━━━ Iteration ${iteration + 1} ━━━`);
+
+            // Execute children for current visible items
+            this.log('info', `    👶 Executing ${block.children?.length || 0} children...`);
+            for (const child of (block.children || [])) {
+                if (this._abortController?.signal.aborted) break;
+                await this.executeBlock(child, scope);
+            }
+
+            iteration++;
+
+            if (iteration >= maxPages) {
+                this.log('info', `    🛑 Reached max iterations limit (${maxPages})`);
+                break;
+            }
+
+            // Scroll to bottom
+            this.log('info', `    📜 Scrolling to bottom...`);
+            const scrollResp = await this.send({
+                type: 'ENV_SCROLL',
+                data: {
+                    target: scrollTarget,
+                    behavior: 'bottom',
+                    selector: scrollSelector?.value,
+                    selectorType: scrollSelector?.type || 'css',
+                    scope: scope || undefined,
+                }
+            });
+
+            if (scrollResp.success && scrollResp.data) {
+                const info = scrollResp.data as any;
+                this.log('info', `    📊 Position: ${info.afterScrollTop}px / ${info.scrollHeight}px`);
+            }
+
+            // Wait for new content to load
+            this.log('info', `    ⏱ Waiting ${delayBetween}ms for new items...`);
+            await this.delay(delayBetween);
+
+            // Check for new items
+            const currentItemCount = this.extractedData.length;
+            this.log('info', `    📊 Items: ${currentItemCount} (previous: ${previousItemCount})`);
+
+            if (currentItemCount === previousItemCount) {
+                noNewItemsCount++;
+                this.log('info', `    ⚠ No new items (${noNewItemsCount}/3)`);
+                if (noNewItemsCount >= 3) {
+                    this.log('info', `    🛑 No new items after 3 attempts, stopping`);
+                    break;
+                }
+            } else {
+                noNewItemsCount = 0;
+                this.log('info', `    ✓ New items: +${currentItemCount - previousItemCount}`);
+            }
+            previousItemCount = currentItemCount;
+        }
+
+        this.log('success', `✓ Scroll pagination completed: ${iteration} iterations, ${this.extractedData.length} total items`);
+    }
+
+    private async executeScrollToLastItemStrategy(block: Block, scope: Scope | undefined, maxPages: number, delayBetween: number) {
+        const config = block.config as any;
+        const itemSelector = config.itemSelector;
+
+        if (!itemSelector?.value) {
+            throw new Error('Scroll to last item strategy requires item selector');
+        }
+
+        this.log('info', `  📜 Strategy: Scroll to last visible item`);
+        this.log('info', `  🎯 Item selector: ${itemSelector.value}`);
+
+        let iteration = 0;
+        let previousDOMItemCount = 0;
+        let previousExtractedCount = 0;
+        let noChangeCount = 0;
+
+        // Initialize context for tracking processed items
+        const processedItems = new Set<number>();
+
+        while (iteration < maxPages) {
+            if (this._abortController?.signal.aborted) break;
+            await this.checkPause();
+
+            this.log('info', `  ━━━ Iteration ${iteration + 1} ━━━`);
+
+            // Count items BEFORE executing children
+            const beforeCountResp = await this.send({
+                type: 'ENV_COUNT',
+                data: {
+                    selector: itemSelector.value,
+                    selectorType: itemSelector.type || 'css',
+                    scope: scope || undefined
+                }
+            });
+
+            if (!beforeCountResp.success || (beforeCountResp.data as number) === 0) {
+                this.log('warn', `    ⚠ No items found with selector: ${itemSelector.value}`);
+                break;
+            }
+
+            const beforeDOMCount = beforeCountResp.data as number;
+            this.log('info', `    📊 DOM items before: ${beforeDOMCount}`);
+            this.log('info', `    📊 Items processed: ${processedItems.size}`);
+
+            // Create enhanced scope with context
+            const scopeWithContext: Scope | undefined = scope ? {
+                ...scope,
+                context: {
+                    ...scope.context,
+                    loopIteration: iteration + 1,
+                    loopTotalItems: beforeDOMCount,
+                    loopItemsProcessed: processedItems,
+                }
+            } : undefined;
+
+            // Execute children for current visible items
+            this.log('info', `    👶 Executing ${block.children?.length || 0} children...`);
+            for (const child of (block.children || [])) {
+                if (this._abortController?.signal.aborted) break;
+                await this.executeBlock(child, scopeWithContext);
+            }
+
+            iteration++;
+
+            if (iteration >= maxPages) {
+                this.log('info', `    🛑 Reached max iterations limit (${maxPages})`);
+                break;
+            }
+
+            // Scroll last item into view using index-based selection
+            const lastItemIndex = beforeDOMCount - 1;
+            this.log('info', `    📜 Scrolling to item index ${lastItemIndex}...`);
+
+            const scrollResp = await this.send({
+                type: 'ENV_SCROLL',
+                data: {
+                    target: 'element',
+                    behavior: 'element_into_view',
+                    selector: itemSelector.value,
+                    selectorType: itemSelector.type || 'css',
+                    elementIndex: lastItemIndex,
+                    scope: scope || undefined
+                }
+            });
+
+            if (!scrollResp.success) {
+                this.log('warn', `    ⚠ Scroll failed: ${scrollResp.error}`);
+            } else {
+                this.log('info', `    ✓ Scrolled to item ${lastItemIndex}`);
+            }
+
+            // Wait for new items to load
+            this.log('info', `    ⏱ Waiting ${delayBetween}ms for new items...`);
+            await this.delay(delayBetween);
+
+            // Count items AFTER waiting
+            const afterCountResp = await this.send({
+                type: 'ENV_COUNT',
+                data: {
+                    selector: itemSelector.value,
+                    selectorType: itemSelector.type || 'css',
+                    scope: scope || undefined
+                }
+            });
+
+            const afterDOMCount = afterCountResp.success ? (afterCountResp.data as number) : beforeDOMCount;
+            const currentExtractedCount = this.extractedData.length;
+
+            this.log('info', `    📊 DOM items after: ${afterDOMCount} (was ${beforeDOMCount})`);
+            this.log('info', `    📊 Extracted: ${currentExtractedCount} (was ${previousExtractedCount})`);
+
+            // Check if anything changed
+            const domChanged = afterDOMCount > previousDOMItemCount;
+            const extractedChanged = currentExtractedCount > previousExtractedCount;
+
+            if (!domChanged && !extractedChanged) {
+                noChangeCount++;
+                this.log('info', `    ⚠ No changes detected (${noChangeCount}/3)`);
+                if (noChangeCount >= 3) {
+                    this.log('info', `    🛑 No changes after 3 attempts, stopping`);
+                    break;
+                }
+            } else {
+                noChangeCount = 0;
+                if (domChanged) {
+                    this.log('info', `    ✓ DOM items increased: +${afterDOMCount - previousDOMItemCount}`);
+                }
+                if (extractedChanged) {
+                    this.log('info', `    ✓ Extracted items increased: +${currentExtractedCount - previousExtractedCount}`);
+                }
+            }
+
+            previousDOMItemCount = afterDOMCount;
+            previousExtractedCount = currentExtractedCount;
+        }
+
+        this.log('success', `✓ Scroll pagination completed: ${iteration} iterations, ${this.extractedData.length} total items`);
+    }
+
+    private async executeExtractScope(block: Block, scope?: Scope) {
+        const config = block.config as any;
+        const fields = config.fields || [];
+
+        this.log('info', `  📦 Extract Scope`);
+        this.log('info', `  📊 Fields to extract: ${fields.length}`);
+        if (config.scopeSelector?.value) {
+            this.log('info', `  🎯 Scope selector: ${config.scopeSelector.value}`);
+        }
+        this.log('info', `  🔄 Reset scope: ${config.resetScope ? 'Yes' : 'No'}`);
+        this.log('info', `  🔍 Has parent scope: ${scope ? 'Yes' : 'No'}`);
+
+        if (fields.length === 0) {
+            this.log('warn', '  ⚠ Extract block has no fields defined');
+            return;
+        }
+
+        // Log field details
+        fields.forEach((f: any, idx: number) => {
+            this.log('info', `    ${idx + 1}. ${f.key}: selector="${f.selector?.value || 'scope'}" attr="${f.attribute}"`);
+        });
+
+        // Build extraction fields in the format env-handler expects
+        const extractionFields = fields.map((f: any) => ({
+            key: f.key,
+            selector: f.selector?.value || '',
+            selectorType: (f.selector?.type || 'css') as string,
+            attribute: f.attribute || 'text',
+            transformers: f.transformers || [],
+            required: f.required || false,
+            multiple: f.multiple || false,
+        }));
+
+        // Determine the extraction scope
+        let extractScope = scope;
+        if (config.resetScope) {
+            this.log('info', `  🔄 Resetting scope to document root`);
+            extractScope = undefined;
+        }
+
+        if (config.scopeSelector?.value) {
+            // If the extract block has its own scope selector, build a nested scope
+            this.log('info', `  🎯 Building nested scope: ${config.scopeSelector.value}`);
+            extractScope = {
+                selector: config.scopeSelector.value,
+                selectorType: (config.scopeSelector.type || 'css') as 'css' | 'xpath',
+                index: 0,
+                parent: extractScope, // Use the potentially reset scope as parent
+            };
+        }
+
+        this.log('info', `  📤 Sending extraction request...`);
+        const response = await this.send({
+            type: 'ENV_EXTRACT_RECORD',
+            data: {
+                fields: extractionFields,
+                scope: extractScope || undefined,
+            }
+        });
+
+        if (!response.success) throw new Error(response.error || 'Extraction failed');
+
+        const record = response.data as Record<string, any>;
+
+        // Check required fields
+        for (const field of fields) {
+            if (field.required && (record[field.key] === null || record[field.key] === undefined || record[field.key] === '')) {
+                this.log('warn', `  ⚠ Required field "${field.key}" is empty, skipping record`);
+                return;
+            }
+        }
+
+        // Log extracted values
+        this.log('info', `  📝 Extracted values:`);
+        Object.entries(record).forEach(([key, value]) => {
+            const valueStr = String(value || '').substring(0, 50);
+            this.log('info', `    ${key}: "${valueStr}${String(value || '').length > 50 ? '...' : ''}"`);
+        });
+
+        // Update extracted data
+        runInAction(() => {
+            this.extractedData.push(record);
+
+            // Auto-detect columns from the first record
+            const newKeys = Object.keys(record);
+            for (const key of newKeys) {
+                if (!this.extractedColumns.includes(key)) {
+                    this.extractedColumns.push(key);
+                }
+            }
+        });
+
+        this.log('success', `  ✓ Extracted row #${this.extractedData.length}`);
+        this.log('info', `  📊 Total rows collected: ${this.extractedData.length}`);
+
+        // Execute children if any (for nested extractions)
+        if (block.children?.length) {
+            this.log('info', `  👶 Executing ${block.children.length} children for nested extraction...`);
+            for (const child of (block.children || [])) {
+                if (this._abortController?.signal.aborted) break;
+                await this.executeBlock(child, extractScope);
+            }
+        }
+    }
+
+    // ─── Export ──────────────────────────────────────────────────────────────
+
+    exportAsJSON(): string {
+        return JSON.stringify(this.extractedData, null, 2);
+    }
+
+    exportAsCSV(): string {
+        if (this.extractedData.length === 0) return '';
+
+        const cols = this.extractedColumns;
+        const header = cols.map(c => `"${c.replace(/"/g, '""')}"`).join(',');
+        const rows = this.extractedData.map(row => {
+            return cols.map(col => {
+                const val = row[col] ?? '';
+                return `"${String(val).replace(/"/g, '""')}"`;
+            }).join(',');
+        });
+
+        return [header, ...rows].join('\n');
+    }
+
+    downloadJSON() {
+        const json = this.exportAsJSON();
+        this.downloadBlob(json, 'extracted-data.json', 'application/json');
+    }
+
+    downloadCSV() {
+        const csv = this.exportAsCSV();
+        this.downloadBlob(csv, 'extracted-data.csv', 'text/csv');
+    }
+
+    // ─── Helpers ────────────────────────────────────────────────────────────
+
+    private log(type: ExecutionLog['type'], message: string, blockId?: string, blockLabel?: string) {
+        console.log('log', type, message, blockId, blockLabel);
+        if (!this.enableLogs) return;
+        runInAction(() => {
+            this.logs.push({
+                timestamp: Date.now(),
+                message,
+                type,
+                blockId,
+                blockLabel,
+            });
+        });
+    }
+
+    private async delay(ms: number): Promise<void> {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    private async checkPause(): Promise<void> {
+        if (this._paused) {
+            return new Promise<void>(resolve => {
+                this._pauseResolve = resolve;
+            });
+        }
+    }
+
+    private countBlocks(blocks: Block[]): number {
+        let count = 0;
+        for (const block of blocks) {
+            count++;
+            if (block.children) count += this.countBlocks(block.children);
+            if ((block as any).elseChildren) count += this.countBlocks((block as any).elseChildren);
+        }
+        return count;
+    }
+
+    private resetState() {
+        this.status = 'idle';
+        this.currentBlock = null;
+        this.progress = { current: 0, total: 0 };
+        this.logs = [];
+        this.extractedData = [];
+        this.extractedColumns = [];
+        this.startTime = null;
+        this.endTime = null;
+        this.error = null;
+        this._paused = false;
+        this._pauseResolve = null;
+        this._targetTabId = null;
+        this.currentExecutionId = null;
+        this.canResume = false;
+        this.lastCheckpoint = null;
+        this.runningBlueprintId = null;
+        this.runningBlueprintName = null;
+    }
+
+    private downloadBlob(content: string, filename: string, mimeType: string) {
+        // Add UTF-8 BOM for CSV files to ensure proper encoding
+        const bom = mimeType.includes('csv') ? '\uFEFF' : '';
+        const blob = new Blob([bom + content], { type: `${mimeType};charset=utf-8;` });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+}
+
+// Singleton
+const blueprintExecutorStore = new BlueprintExecutorStore();
+
+export const useBlueprintExecutorStore = () => {
+    return blueprintExecutorStore;
+};

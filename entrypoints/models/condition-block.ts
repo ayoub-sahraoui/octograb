@@ -22,6 +22,9 @@ export class ConditionBlock implements BaseBlock {
     maxRetries: number;
     retryDelay: number;
     config: ConditionConfig;
+    parent?: Block | null;
+    children?: Block[];
+    index?: number;
     elseChildren?: Block[];
 
     constructor(config: ConditionConfig) {

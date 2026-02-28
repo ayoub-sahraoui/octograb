@@ -1,0 +1,199 @@
+{
+  "id": "599b98eb-ea56-4cbf-9ad7-b0aa84812b1c",
+  "name": "Marjanmall",
+  "description": "https://www.marjanemall.ma/catalogsearch/result?q=kechbook",
+  "blocks": [
+    {
+      "id": "ccaec062-ca4c-4f93-8646-11ea95fed3ae",
+      "type": "navigate",
+      "label": "Navigate",
+      "enabled": true,
+      "description": "",
+      "onError": "stop",
+      "maxRetries": 0,
+      "retryDelay": 0,
+      "config": {
+        "url": "https://www.marjanemall.ma/catalogsearch/result?q=kechbook",
+        "waitUntil": "domcontentloaded"
+      },
+      "index": 0
+    },
+    {
+      "id": "5aa28613-024f-45be-bb60-fa7438f13964",
+      "type": "wait",
+      "label": "Wait",
+      "enabled": true,
+      "description": "",
+      "onError": "stop",
+      "maxRetries": 0,
+      "retryDelay": 0,
+      "config": {
+        "type": "dom_content_loaded",
+        "timeout": 1000
+      },
+      "index": 1
+    },
+    {
+      "id": "bf0d3ffa-72b1-4de0-a70e-54c64b6aefea",
+      "type": "loop_pagination",
+      "label": "Loop Pagination",
+      "enabled": true,
+      "description": "",
+      "onError": "stop",
+      "maxRetries": 0,
+      "retryDelay": 0,
+      "config": {
+        "nextButtonSelector": {
+          "type": "css",
+          "value": "a.border-gray-200",
+          "detected": {
+            "css": "a.border-gray-200",
+            "xpath": "//*[@id=\"listing\"]/div[2]/main[1]/div[1]/div[1]/div[4]/div[1]/a[1]"
+          }
+        },
+        "maxPages": 5,
+        "delayBetweenPages": 1500,
+        "paginationType": "scroll",
+        "scrollTarget": "element",
+        "scrollStrategy": "scroll_to_last_item",
+        "itemSelector": {
+          "type": "css",
+          "value": "a.border-gray-200",
+          "detected": {
+            "css": "a.border-gray-200",
+            "xpath": "//*[@id=\"listing\"]/div[2]/main[1]/div[1]/div[1]/div[4]/div[1]/a[1]"
+          }
+        }
+      },
+      "children": [
+        {
+          "id": "31084285-9089-4d13-ab29-01ca5f992e82",
+          "type": "wait",
+          "label": "Wait",
+          "enabled": true,
+          "description": "",
+          "onError": "stop",
+          "maxRetries": 0,
+          "retryDelay": 0,
+          "config": {
+            "type": "timeout",
+            "timeout": 1500
+          }
+        },
+        {
+          "id": "acbde5b8-19c7-4a94-9eca-c50d82cb9311",
+          "type": "loop_elements",
+          "label": "Loop Elements",
+          "enabled": true,
+          "description": "",
+          "onError": "stop",
+          "maxRetries": 0,
+          "retryDelay": 0,
+          "config": {
+            "selector": {
+              "type": "css",
+              "value": "a.border-gray-200",
+              "detected": {
+                "css": "a.border-gray-200",
+                "xpath": "//*[@id=\"listing\"]/div[2]/main[1]/div[1]/div[1]/div[4]/div[1]/a[1]"
+              }
+            }
+          },
+          "children": [
+            {
+              "id": "f6a44b1e-0734-455a-8bce-d97fc65edd42",
+              "type": "wait",
+              "label": "Wait",
+              "enabled": true,
+              "description": "",
+              "onError": "stop",
+              "maxRetries": 0,
+              "retryDelay": 0,
+              "config": {
+                "type": "timeout",
+                "timeout": 1000
+              }
+            },
+            {
+              "id": "d98473b1-a431-42b3-8b38-493cefff680e",
+              "type": "click",
+              "label": "Click",
+              "enabled": true,
+              "description": "",
+              "onError": "stop",
+              "maxRetries": 0,
+              "retryDelay": 0,
+              "config": {
+                "selector": {
+                  "type": "css",
+                  "value": ".bg-white",
+                  "detected": {
+                    "css": ".bg-white",
+                    "xpath": "//*[@id=\"listing\"]/div[2]/main[1]/div[1]/div[1]/div[1]/div[1]/a[1]"
+                  }
+                },
+                "delayBefore": 500,
+                "delayAfter": 500
+              }
+            },
+            {
+              "id": "cecf4b09-2a3c-4bc2-bacb-716e7dfe8415",
+              "type": "wait",
+              "label": "Wait",
+              "enabled": true,
+              "description": "",
+              "onError": "stop",
+              "maxRetries": 0,
+              "retryDelay": 0,
+              "config": {
+                "type": "dom_content_loaded",
+                "timeout": 1000
+              }
+            },
+            {
+              "id": "6543e0ed-ecd0-4dad-bd1b-b366b99942c6",
+              "type": "extract_scope",
+              "label": "Extract Scope",
+              "enabled": true,
+              "description": "",
+              "onError": "stop",
+              "maxRetries": 0,
+              "retryDelay": 0,
+              "config": {
+                "fields": [
+                  {
+                    "key": "title",
+                    "selector": {
+                      "type": "css",
+                      "value": ".text-sm",
+                      "detected": {
+                        "css": ".text-sm",
+                        "xpath": "//h3[normalize-space()='Peterson First Guide To Butterflies And Moths']"
+                      }
+                    },
+                    "attribute": "text",
+                    "required": false,
+                    "multiple": false
+                  }
+                ],
+                "resetScope": false
+              }
+            },
+            {
+              "id": "1b21b26e-e6bb-428f-9310-5dbc63d37ab9",
+              "type": "go_back",
+              "label": "Go Back",
+              "enabled": true,
+              "description": "",
+              "onError": "stop",
+              "maxRetries": 0,
+              "retryDelay": 0,
+              "config": {}
+            }
+          ]
+        }
+      ],
+      "index": 2
+    }
+  ]
+}

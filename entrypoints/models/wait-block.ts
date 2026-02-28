@@ -23,7 +23,9 @@ export class WaitBlock implements BaseBlock {
     maxRetries?: number;
     retryDelay?: number;
     config: WaitBlockConfig;
+    parent?: Block | null;
     children?: Block[];
+    index?: number;
 
     constructor(name: string, config: WaitBlockConfig) {
         this.id = uuidv4();

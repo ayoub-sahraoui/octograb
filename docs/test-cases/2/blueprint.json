@@ -1,0 +1,170 @@
+{
+  "id": "594f25fc-7b46-4221-bbda-2f58b2dae938",
+  "name": "Jumia",
+  "description": "",
+  "blocks": [
+    {
+      "id": "836e1c2c-f9da-45e1-972a-a22fa8717e4f",
+      "type": "navigate",
+      "label": "Navigate",
+      "enabled": true,
+      "description": "",
+      "onError": "stop",
+      "maxRetries": 0,
+      "retryDelay": 0,
+      "config": {
+        "url": "https://www.jumia.ma/ar/heavenbooksma/?sort=newest#catalog-listing"
+      },
+      "index": 0
+    },
+    {
+      "id": "5eaee7c8-e4eb-49c4-95d6-02ef1e69be20",
+      "type": "loop_pagination",
+      "label": "Loop Pagination",
+      "enabled": true,
+      "description": "",
+      "onError": "stop",
+      "maxRetries": 0,
+      "retryDelay": 0,
+      "config": {
+        "nextButtonSelector": {
+          "type": "css",
+          "value": "[aria-label=\"الصفحة\\ التالية\"]",
+          "detected": {
+            "css": "[aria-label=\"الصفحة\\ التالية\"]",
+            "xpath": "//*[@id=\"jm\"]/main[1]/div[2]/div[3]/section[1]/div[3]/a[3]"
+          }
+        },
+        "delayBetweenPages": 1000,
+        "maxPages": 10
+      },
+      "children": [
+        {
+          "id": "62212cfb-ff6c-439d-b7cc-65204a40d0d0",
+          "type": "loop_elements",
+          "label": "Loop Elements",
+          "enabled": true,
+          "description": "",
+          "onError": "stop",
+          "maxRetries": 0,
+          "retryDelay": 0,
+          "config": {
+            "selector": {
+              "type": "css",
+              "value": "article.c-prd",
+              "detected": {
+                "css": "article.c-prd",
+                "xpath": "//*[@id=\"jm\"]/main[1]/div[2]/div[3]/section[1]/div[2]/article[1]"
+              }
+            }
+          }
+        },
+        {
+          "id": "5760dd0e-5bcc-4086-9e49-9d4fe088ca40",
+          "type": "click",
+          "label": "Click",
+          "enabled": true,
+          "description": "",
+          "onError": "stop",
+          "maxRetries": 0,
+          "retryDelay": 0,
+          "config": {
+            "selector": {
+              "type": "css",
+              "value": "#jm > main > div:nth-of-type(2) > div:nth-of-type(3) > section > div:nth-of-type(2) > article > a:nth-of-type(2)",
+              "detected": {
+                "css": "#jm > main > div:nth-of-type(2) > div:nth-of-type(3) > section > div:nth-of-type(2) > article > a:nth-of-type(2)",
+                "xpath": "//*[@id=\"jm\"]/main[1]/div[2]/div[3]/section[1]/div[2]/article[1]/a[2]"
+              }
+            },
+            "delayBefore": 1000,
+            "delayAfter": 5000
+          }
+        },
+        {
+          "id": "0ca0b611-8412-4d1d-b2aa-633e78aefe9e",
+          "type": "extract_scope",
+          "label": "Extract Scope",
+          "enabled": true,
+          "description": "",
+          "onError": "stop",
+          "maxRetries": 0,
+          "retryDelay": 0,
+          "config": {
+            "fields": [
+              {
+                "key": "title",
+                "selector": {
+                  "type": "css",
+                  "value": "#jm > main > div > section > div > div:nth-of-type(2) > div > div > h1",
+                  "detected": {
+                    "css": "#jm > main > div > section > div > div:nth-of-type(2) > div > div > h1",
+                    "xpath": "//*[@id=\"jm\"]/main[1]/div[1]/section[1]/div[1]/div[2]/div[1]/div[1]/h1[1]"
+                  }
+                },
+                "attribute": "text",
+                "required": false,
+                "multiple": false
+              },
+              {
+                "key": "price",
+                "selector": {
+                  "type": "css",
+                  "value": ".-fs24",
+                  "detected": {
+                    "css": ".-fs24",
+                    "xpath": "//span[normalize-space()='170.00 Dhs']"
+                  }
+                },
+                "attribute": "text",
+                "required": false,
+                "multiple": false
+              },
+              {
+                "key": "cover",
+                "selector": {
+                  "type": "css",
+                  "value": "#imgs > a > img",
+                  "detected": {
+                    "css": "#imgs > a > img",
+                    "xpath": "//*[@id=\"imgs\"]/a[1]/img[1]"
+                  }
+                },
+                "attribute": "src",
+                "required": false,
+                "multiple": false
+              }
+            ],
+            "resetScope": true
+          }
+        },
+        {
+          "id": "7f05d41d-f000-4280-ba82-91a93ddd775d",
+          "type": "wait",
+          "label": "Wait",
+          "enabled": true,
+          "description": "",
+          "onError": "stop",
+          "maxRetries": 0,
+          "retryDelay": 0,
+          "config": {
+            "type": "timeout",
+            "timeout": 1000
+          }
+        },
+        {
+          "id": "219e5931-24fc-45bd-81da-6ffbde1a9a5b",
+          "type": "go_back",
+          "label": "Go Back",
+          "enabled": true,
+          "description": "",
+          "onError": "stop",
+          "maxRetries": 0,
+          "retryDelay": 0,
+          "config": {}
+        }
+      ],
+      "index": 1
+    }
+  ]
+}

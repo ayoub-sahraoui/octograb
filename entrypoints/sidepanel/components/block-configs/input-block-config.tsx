@@ -1,16 +1,9 @@
 import { observer } from 'mobx-react-lite';
 import { InputBlock } from '@/entrypoints/models/input-block';
-import { SelectorType } from '@/entrypoints/models/selector';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select";
+import { SelectorInput } from '../selector-input';
 
 interface InputBlockConfigProps {
     block: InputBlock;
@@ -19,45 +12,15 @@ interface InputBlockConfigProps {
 export const InputBlockConfig = observer(({ block }: InputBlockConfigProps) => {
     return (
         <div className="flex flex-col gap-4">
-            <div className="flex flex-col gap-2">
-                <Label htmlFor="selectorType">Selector Type</Label>
-                <Select
-                    value={block.config.selector?.type || 'css'}
-                    onValueChange={(value: any) => {
-                        if (!block.config.selector) {
-                            block.config.selector = { type: value, value: '' };
-                        } else {
-                            block.config.selector.type = value;
-                        }
-                    }}
-                >
-                    <SelectTrigger id="selectorType">
-                        <SelectValue placeholder="Select type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="css">CSS</SelectItem>
-                        <SelectItem value="xpath">XPath</SelectItem>
-                        <SelectItem value="text">Text</SelectItem>
-                    </SelectContent>
-                </Select>
-            </div>
-
-            <div className="flex flex-col gap-2">
-                <Label htmlFor="selector">Selector</Label>
-                <Input
-                    id="selector"
-                    type="text"
-                    placeholder="input[name='email']"
-                    value={block.config.selector?.value || ''}
-                    onChange={(e) => {
-                        if (!block.config.selector) {
-                            block.config.selector = { type: SelectorType.CSS, value: e.target.value };
-                        } else {
-                            block.config.selector.value = e.target.value;
-                        }
-                    }}
-                />
-            </div>
+            <SelectorInput
+                label="Input Target"
+                id="input-selector"
+                placeholder="input[name='email']"
+                helpText="The input element to type into"
+                selector={block.config.selector}
+                onSelectorChange={(sel) => { block.config.selector = sel; }}
+                block={block}
+            />
 
             <div className="flex flex-col gap-2">
                 <Label htmlFor="value">Value</Label>

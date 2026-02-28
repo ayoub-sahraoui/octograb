@@ -23,7 +23,9 @@ export class InputBlock implements BaseBlock {
     maxRetries?: number;
     retryDelay?: number;
     config: InputBlockConfig;
+    parent?: Block | null;
     children?: Block[];
+    index?: number;
 
     constructor(name: string, config: InputBlockConfig) {
         this.id = uuidv4();

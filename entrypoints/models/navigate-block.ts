@@ -34,7 +34,9 @@ export class NavigateBlock implements BaseBlock {
   maxRetries?: number;
   retryDelay?: number;
   config: NavigateConfig;
+  parent?: Block | null;
   children?: Block[];
+  index?: number;
 
   constructor(name: string, config: NavigateConfig) {
     this.id = uuidv4();

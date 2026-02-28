@@ -21,6 +21,8 @@ export interface ExtractionField {
   detectedXpathSelector?: string;
   attribute: string;
   transformers?: Transformer[];
+  required?: boolean;
+  multiple?: boolean;
 }
 
 export interface PaginationConfig {

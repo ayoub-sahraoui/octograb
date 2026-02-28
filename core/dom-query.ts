@@ -16,63 +16,67 @@ export function resolveScope(scope?: Scope, doc: Document = document): Element {
   const selector = scope.selector;
   if (!selector) return parentEl;
 
-  // 2. Find the element within the parent using the index and selector
-  if (scope.selectorType === 'xpath') {
+  let el: Element | null = null;
+
+  // Try primary selector
+  try {
+    el = findElement(parentEl, selector, scope.selectorType, scope.index);
+  } catch (e) {
+    console.warn(`[OctoGrab] Primary selector failed: ${selector}`, e);
+  }
+
+  // Try fallbacks if not found
+  if (!el && (scope as any).detected) {
+    const detected = (scope as any).detected;
+    if (detected.css && detected.css !== selector) {
+      try {
+        el = findElement(parentEl, detected.css, 'css', scope.index);
+        console.log(`[OctoGrab] Recovered using detected CSS: ${detected.css}`);
+      } catch (e) { }
+    }
+    if (!el && detected.xpath && detected.xpath !== selector) {
+      try {
+        el = findElement(parentEl, detected.xpath, 'xpath', scope.index);
+        console.log(`[OctoGrab] Recovered using detected XPath: ${detected.xpath}`);
+      } catch (e) { }
+    }
+  }
+
+  if (!el) {
+    console.warn(`[OctoGrab] Element not found at index ${scope.index} for ${selector} in scope`, parentEl);
+    throw new Error(`Element not found: ${selector} [${scope.index}]`);
+  }
+
+  return el;
+}
+
+function findElement(parent: Element, selector: string, type: 'css' | 'xpath' = 'css', index: number = 0): Element | null {
+  if (type === 'xpath') {
     // Handle XPath
     // IMPORTANT: To query relative to parentEl, XPath must be relative (start with ./)
-    // If we have a global XPath like //div, document.evaluate on a node will still search globally unless we fix it.
     let xpath = selector;
     if (xpath.startsWith('/')) {
-        // If it looks absolute, try to make it relative to context.
-        // E.g. //div -> .//div
-        // /html/body... -> .//html/body (weird) or just ./... 
-        // Best effort: if it starts with //, prepend .
-        if (xpath.startsWith('//')) {
-            xpath = '.' + xpath;
-        } else {
-            // Begins with / but not //. E.g. /html/body/div...
-            // This is strictly absolute. But if we are in a scope, strictly absolute might be wrong 
-            // if the user intended it to be essentially "at this level".
-            // But let's assume absolute paths are absolute.
-            // However, usually we want relative search.
-            xpath = '.' + xpath;
-        }
+      if (xpath.startsWith('//')) {
+        xpath = '.' + xpath;
+      } else {
+        xpath = '.' + xpath;
+      }
     }
 
-    const result = doc.evaluate(
-      xpath, 
-      parentEl, 
-      null, 
-      XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, 
+    const result = document.evaluate(
+      xpath,
+      parent,
+      null,
+      XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
       null
     );
 
-    if (scope.index >= result.snapshotLength) {
-        // Fallback: If index 0 not found, maybe just warn? 
-        // But for scraping, strictness is usually good.
-        // We throw, and let the executor handle errors.
-        console.warn(`[OctoGrab] Element not found at index ${scope.index} for xpath ${xpath} in scope`, parentEl);
-        throw new Error(`Element not found: ${selector} [${scope.index}]`);
-    }
-    
-    const el = result.snapshotItem(scope.index) as Element;
-    return el;
-
+    if (index >= result.snapshotLength) return null;
+    return result.snapshotItem(index) as Element;
   } else {
-    // Handle CSS
-    // parentEl.querySelectorAll finds all descendants matching the selector.
-    // Use :scope pseudo-class if needed? 
-    // Usually querySelectorAll is fine for descendants.
-    
-    // Note: If selector is compound like "div > span", it works.
-    const elements = parentEl.querySelectorAll(selector);
-    
-    if (scope.index >= elements.length) {
-         console.warn(`[OctoGrab] Element not found at index ${scope.index} for css ${selector} in scope`, parentEl);
-         throw new Error(`Element not found: ${selector} [${scope.index}]`);
-    }
-    
-    return elements[scope.index];
+    const elements = parent.querySelectorAll(selector);
+    if (index >= elements.length) return null;
+    return elements[index];
   }
 }
 
@@ -81,11 +85,16 @@ export function resolveScope(scope?: Scope, doc: Document = document): Element {
  */
 export function getElement(selector: string, type: 'css' | 'xpath', scope: Element | Document = document): Element | null {
   if (type === 'xpath') {
+    // Fix absolute XPath to be relative when scoped to an element
+    let xpath = selector;
+    if (scope !== document && xpath.startsWith('/')) {
+      xpath = '.' + (xpath.startsWith('//') ? xpath : xpath);
+    }
     const result = document.evaluate(
-      selector, 
-      scope, 
-      null, 
-      XPathResult.FIRST_ORDERED_NODE_TYPE, 
+      xpath,
+      scope,
+      null,
+      XPathResult.FIRST_ORDERED_NODE_TYPE,
       null
     );
     return result.singleNodeValue as Element;
@@ -99,17 +108,22 @@ export function getElement(selector: string, type: 'css' | 'xpath', scope: Eleme
  */
 export function getElements(selector: string, type: 'css' | 'xpath', scope: Element | Document = document): Element[] {
   if (type === 'xpath') {
+    // Fix absolute XPath to be relative when scoped to an element
+    let xpath = selector;
+    if (scope !== document && xpath.startsWith('/')) {
+      xpath = '.' + (xpath.startsWith('//') ? xpath : xpath);
+    }
     const result = document.evaluate(
-      selector, 
-      scope, 
-      null, 
-      XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, 
+      xpath,
+      scope,
+      null,
+      XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
       null
     );
     const elements: Element[] = [];
     for (let i = 0; i < result.snapshotLength; i++) {
-        const item = result.snapshotItem(i);
-        if (item) elements.push(item as Element);
+      const item = result.snapshotItem(i);
+      if (item) elements.push(item as Element);
     }
     return elements;
   } else {

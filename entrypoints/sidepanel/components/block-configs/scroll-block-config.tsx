@@ -1,6 +1,5 @@
 import { observer } from 'mobx-react-lite';
 import { ScrollBlock } from '@/entrypoints/models/scroll-block';
-import { SelectorType } from '@/entrypoints/models/selector';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -11,6 +10,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import { SelectorInput } from '../selector-input';
 
 interface ScrollBlockConfigProps {
     block: ScrollBlock;
@@ -73,22 +73,15 @@ export const ScrollBlockConfig = observer(({ block }: ScrollBlockConfigProps) =>
             )}
 
             {showSelector && (
-                <div className="flex flex-col gap-2">
-                    <Label htmlFor="selector">Selector</Label>
-                    <Input
-                        id="selector"
-                        type="text"
-                        placeholder=".my-element"
-                        value={block.config.selector?.value || ''}
-                        onChange={(e) => {
-                            if (!block.config.selector) {
-                                block.config.selector = { type: SelectorType.CSS, value: e.target.value };
-                            } else {
-                                block.config.selector.value = e.target.value;
-                            }
-                        }}
-                    />
-                </div>
+                <SelectorInput
+                    label="Scroll Element"
+                    id="scroll-selector"
+                    placeholder=".my-element"
+                    helpText="The element to scroll or scroll into view"
+                    selector={block.config.selector}
+                    onSelectorChange={(sel) => { block.config.selector = sel; }}
+                    block={block}
+                />
             )}
 
             <div className="flex items-center gap-2">

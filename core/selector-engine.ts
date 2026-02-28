@@ -40,6 +40,23 @@ export class SelectorEngine {
     this.selectedElements = [];
     this.clearOverlays();
 
+    // If parentSelector is provided but no direct scopeElement, resolve it to a DOM element
+    // This is the key to scope-aware picking: the sidepanel sends the CSS selector of the parent
+    // block (e.g. ".product-card") and we restrict picking to within the first matching element.
+    if (!this.scopeElement && this.parentSelector) {
+      try {
+        const resolved = document.querySelector(this.parentSelector);
+        if (resolved) {
+          this.scopeElement = resolved;
+          console.log('[OctoGrab] Resolved parentSelector to scope element:', this.parentSelector, resolved);
+        } else {
+          console.warn('[OctoGrab] parentSelector did not match any element:', this.parentSelector);
+        }
+      } catch (e) {
+        console.warn('[OctoGrab] Invalid parentSelector:', this.parentSelector, e);
+      }
+    }
+
     if (this.scopeElement) {
       const rect = this.scopeElement.getBoundingClientRect();
       this.maskOverlay = document.createElement('div');
@@ -51,10 +68,14 @@ export class SelectorEngine {
         borderRadius: '2px', transition: 'all 0.2s ease'
       });
       const scopeLabel = document.createElement('span');
-      scopeLabel.textContent = "Extraction Scope";
+      scopeLabel.textContent = this.parentSelector
+        ? `Scope: ${this.parentSelector}`
+        : "Extraction Scope";
       Object.assign(scopeLabel.style, {
         position: 'absolute', top: '-24px', left: '0', backgroundColor: '#f59e0b', color: 'black',
-        padding: '2px 6px', fontSize: '10px', fontWeight: 'bold', borderRadius: '2px'
+        padding: '2px 6px', fontSize: '10px', fontWeight: 'bold', borderRadius: '2px',
+        fontFamily: 'monospace', maxWidth: '300px', overflow: 'hidden', textOverflow: 'ellipsis',
+        whiteSpace: 'nowrap'
       });
       this.maskOverlay.appendChild(scopeLabel);
       document.body.appendChild(this.maskOverlay);

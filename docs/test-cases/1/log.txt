@@ -1,0 +1,288 @@
+log info ▶ Starting blueprint: New Blueprint (tab 1836965875) undefined undefined
+blueprint-executor-store.ts:1065 log block ▶ Executing: Navigate [No Scope] 75ac3727-f0bf-4a5f-81f2-23e2c58f661f Navigate
+blueprint-executor-store.ts:1065 log info   📋 Config: {"url":"https://www.jumia.ma/ar/heavenbooksma/?sort=newest#catalog-listing"} undefined undefined
+blueprint-executor-store.ts:1065 log info 🌐 Navigating to: https://www.jumia.ma/ar/heavenbooksma/?sort=newest#catalog-listing undefined undefined
+blueprint-executor-store.ts:1065 log info   📍 Behavior: same_tab undefined undefined
+blueprint-executor-store.ts:1065 log info   ⏱ Timeout: 30000ms undefined undefined
+blueprint-executor-store.ts:1065 log info   🎯 Current tab ID: 1836965875 undefined undefined
+blueprint-executor-store.ts:1065 log info   🔄 Navigating in current tab 1836965875... undefined undefined
+blueprint-executor-store.ts:1065 log info   ⏳ Waiting for content script to be ready... undefined undefined
+blueprint-executor-store.ts:1065 log success ✓ Navigated to: https://www.jumia.ma/ar/heavenbooksma/?sort=newest#catalog-listing undefined undefined
+blueprint-executor-store.ts:1065 log info   ⏱ Execution time: 43ms undefined undefined
+blueprint-executor-store.ts:1065 log block ▶ Executing: Loop Elements [No Scope] 42b54a57-d7e1-4c23-9227-3219d9ae9dc9 Loop Elements
+blueprint-executor-store.ts:1065 log info   📋 Config: {"selector":{"type":"css","value":"article.c-prd","detected":{"css":"article.c-prd","xpath":"//*[@id... undefined undefined
+blueprint-executor-store.ts:1065 log info   🔁 Loop Elements undefined undefined
+blueprint-executor-store.ts:1065 log info   🎯 Selector: article.c-prd undefined undefined
+blueprint-executor-store.ts:1065 log info   📌 Selector type: css undefined undefined
+blueprint-executor-store.ts:1065 log info   🔍 Has parent scope: No undefined undefined
+blueprint-executor-store.ts:1065 log info   � Found 40 elements undefined undefined
+blueprint-executor-store.ts:1065 log info   🔄 Max iterations: unlimited undefined undefined
+blueprint-executor-store.ts:1065 log info   ▶️ Will iterate: 40 times undefined undefined
+blueprint-executor-store.ts:1065 log info   👶 Children per iteration: 4 undefined undefined
+blueprint-executor-store.ts:1065 log info   ━━━ Iteration 1/40 ━━━ undefined undefined
+blueprint-executor-store.ts:1065 log info     🔍 Checking if element at index 0 exists... undefined undefined
+blueprint-executor-store.ts:1065 log info     ✓ Element exists (40 total elements, check attempt 1) undefined undefined
+blueprint-executor-store.ts:1065 log block ▶ Executing: Wait [Scope: article.c-prd[0]] 6fd5b9a9-90aa-4b20-a0f0-9aaaaa586c4a Wait
+blueprint-executor-store.ts:1065 log info   📋 Config: {"type":"timeout","timeout":3000} undefined undefined
+blueprint-executor-store.ts:1065 log info   ⏱ Wait type: timeout undefined undefined
+blueprint-executor-store.ts:1065 log info   ⏳ Waiting 3000ms... undefined undefined
+blueprint-executor-store.ts:1065 log info   ⏱ Execution time: 3003ms undefined undefined
+blueprint-executor-store.ts:1065 log block ▶ Executing: Click [Scope: article.c-prd[0]] 86c257ae-9dc3-493a-846a-89870003f6f6 Click
+blueprint-executor-store.ts:1065 log info   📋 Config: {"selector":{"type":"css","value":".core","detected":{"css":".core","xpath":"//*[@id=\"jm\"]/main[1]... undefined undefined
+blueprint-executor-store.ts:1065 log info   ⏱ Delay before: 1000ms undefined undefined
+blueprint-executor-store.ts:1065 log info   🖱 Normal click undefined undefined
+blueprint-executor-store.ts:1065 log info   🎯 Selector: .core undefined undefined
+blueprint-executor-store.ts:1065 log info   📌 Selector type: css undefined undefined
+blueprint-executor-store.ts:1065 log info   🔍 Has scope: Yes undefined undefined
+blueprint-executor-store.ts:1065 log success ✓ Clicked: .core undefined undefined
+blueprint-executor-store.ts:1065 log info   ⏱ Delay after: 1000ms undefined undefined
+blueprint-executor-store.ts:1065 log info   ⏱ Execution time: 2019ms undefined undefined
+blueprint-executor-store.ts:1065 log block ▶ Executing: Wait [Scope: article.c-prd[0]] 158f4d76-cca5-43b0-b4e0-c36f093ea9f8 Wait
+blueprint-executor-store.ts:1065 log info   📋 Config: {"type":"timeout","timeout":1000} undefined undefined
+blueprint-executor-store.ts:1065 log info   ⏱ Wait type: timeout undefined undefined
+blueprint-executor-store.ts:1065 log info   ⏳ Waiting 1000ms... undefined undefined
+blueprint-executor-store.ts:1065 log info   ⏱ Execution time: 1003ms undefined undefined
+blueprint-executor-store.ts:1065 log block ▶ Executing: Go Back [Scope: article.c-prd[0]] b1b2107a-c1c4-420e-97f3-4bbf2f7b7f0e Go Back
+blueprint-executor-store.ts:1065 log info   📋 Config: {} undefined undefined
+blueprint-executor-store.ts:1065 log info ↩ Going back... undefined undefined
+blueprint-executor-store.ts:1065 log info   🎯 Current tab ID: 1836965875 undefined undefined
+blueprint-executor-store.ts:1065 log info   ⏳ Waiting for page to load after going back... undefined undefined
+blueprint-executor-store.ts:1065 log info   ⏱ Waiting 1000ms for page stabilization... undefined undefined
+blueprint-executor-store.ts:1065 log info   📍 Current URL after go_back: https://www.jumia.ma/ar/heavenbooksma/?sort=newest#catalog-listing undefined undefined
+blueprint-executor-store.ts:1065 log success ✓ Went back undefined undefined
+blueprint-executor-store.ts:1065 log info   ⏱ Execution time: 1082ms undefined undefined
+blueprint-executor-store.ts:1065 log info   ━━━ Iteration 2/40 ━━━ undefined undefined
+blueprint-executor-store.ts:1065 log info     🔍 Checking if element at index 1 exists... undefined undefined
+blueprint-executor-store.ts:1065 log info     ✓ Element exists (40 total elements, check attempt 1) undefined undefined
+blueprint-executor-store.ts:1065 log block ▶ Executing: Wait [Scope: article.c-prd[1]] 6fd5b9a9-90aa-4b20-a0f0-9aaaaa586c4a Wait
+blueprint-executor-store.ts:1065 log info   📋 Config: {"type":"timeout","timeout":3000} undefined undefined
+blueprint-executor-store.ts:1065 log info   ⏱ Wait type: timeout undefined undefined
+blueprint-executor-store.ts:1065 log info   ⏳ Waiting 3000ms... undefined undefined
+blueprint-executor-store.ts:1065 log info   ⏱ Execution time: 3001ms undefined undefined
+blueprint-executor-store.ts:1065 log block ▶ Executing: Click [Scope: article.c-prd[1]] 86c257ae-9dc3-493a-846a-89870003f6f6 Click
+blueprint-executor-store.ts:1065 log info   📋 Config: {"selector":{"type":"css","value":".core","detected":{"css":".core","xpath":"//*[@id=\"jm\"]/main[1]... undefined undefined
+blueprint-executor-store.ts:1065 log info   ⏱ Delay before: 1000ms undefined undefined
+blueprint-executor-store.ts:1065 log info   🖱 Normal click undefined undefined
+blueprint-executor-store.ts:1065 log info   🎯 Selector: .core undefined undefined
+blueprint-executor-store.ts:1065 log info   📌 Selector type: css undefined undefined
+blueprint-executor-store.ts:1065 log info   🔍 Has scope: Yes undefined undefined
+blueprint-executor-store.ts:1065 log success ✓ Clicked: .core undefined undefined
+blueprint-executor-store.ts:1065 log info   ⏱ Delay after: 1000ms undefined undefined
+blueprint-executor-store.ts:1065 log info   ⏱ Execution time: 2032ms undefined undefined
+blueprint-executor-store.ts:1065 log block ▶ Executing: Wait [Scope: article.c-prd[1]] 158f4d76-cca5-43b0-b4e0-c36f093ea9f8 Wait
+blueprint-executor-store.ts:1065 log info   📋 Config: {"type":"timeout","timeout":1000} undefined undefined
+blueprint-executor-store.ts:1065 log info   ⏱ Wait type: timeout undefined undefined
+blueprint-executor-store.ts:1065 log info   ⏳ Waiting 1000ms... undefined undefined
+blueprint-executor-store.ts:1065 log info   ⏱ Execution time: 1001ms undefined undefined
+blueprint-executor-store.ts:1065 log block ▶ Executing: Go Back [Scope: article.c-prd[1]] b1b2107a-c1c4-420e-97f3-4bbf2f7b7f0e Go Back
+blueprint-executor-store.ts:1065 log info   📋 Config: {} undefined undefined
+blueprint-executor-store.ts:1065 log info ↩ Going back... undefined undefined
+blueprint-executor-store.ts:1065 log info   🎯 Current tab ID: 1836965875 undefined undefined
+blueprint-executor-store.ts:1065 log info   ⏳ Waiting for page to load after going back... undefined undefined
+messaging.ts:83 [OctoGrab] Connection to tab 1836965875 failed (attempt 1/8), retrying...
+messaging.ts:83 [OctoGrab] Connection to tab 1836965875 failed (attempt 2/8), retrying...
+messaging.ts:83 [OctoGrab] Connection to tab 1836965875 failed (attempt 3/8), retrying...
+messaging.ts:83 [OctoGrab] Connection to tab 1836965875 failed (attempt 4/8), retrying...
+messaging.ts:83 [OctoGrab] Connection to tab 1836965875 failed (attempt 5/8), retrying...
+messaging.ts:83 [OctoGrab] Connection to tab 1836965875 failed (attempt 6/8), retrying...
+messaging.ts:83 [OctoGrab] Connection to tab 1836965875 failed (attempt 7/8), retrying...
+messaging.ts:88 [OctoGrab] Error sending message to tab: Error: Could not establish connection. Receiving end does not exist.
+sendToTab @ messaging.ts:88Understand this error
+messaging.ts:83 [OctoGrab] Connection to tab 1836965875 failed (attempt 1/8), retrying...
+messaging.ts:83 [OctoGrab] Connection to tab 1836965875 failed (attempt 2/8), retrying...
+messaging.ts:83 [OctoGrab] Connection to tab 1836965875 failed (attempt 3/8), retrying...
+messaging.ts:83 [OctoGrab] Connection to tab 1836965875 failed (attempt 4/8), retrying...
+messaging.ts:83 [OctoGrab] Connection to tab 1836965875 failed (attempt 5/8), retrying...
+messaging.ts:83 [OctoGrab] Connection to tab 1836965875 failed (attempt 6/8), retrying...
+messaging.ts:83 [OctoGrab] Connection to tab 1836965875 failed (attempt 7/8), retrying...
+messaging.ts:88 [OctoGrab] Error sending message to tab: Error: Could not establish connection. Receiving end does not exist.
+sendToTab @ messaging.ts:88Understand this error
+messaging.ts:83 [OctoGrab] Connection to tab 1836965875 failed (attempt 1/8), retrying...
+messaging.ts:83 [OctoGrab] Connection to tab 1836965875 failed (attempt 2/8), retrying...
+messaging.ts:83 [OctoGrab] Connection to tab 1836965875 failed (attempt 3/8), retrying...
+messaging.ts:83 [OctoGrab] Connection to tab 1836965875 failed (attempt 4/8), retrying...
+messaging.ts:83 [OctoGrab] Connection to tab 1836965875 failed (attempt 5/8), retrying...
+messaging.ts:83 [OctoGrab] Connection to tab 1836965875 failed (attempt 6/8), retrying...
+messaging.ts:83 [OctoGrab] Connection to tab 1836965875 failed (attempt 7/8), retrying...
+messaging.ts:88 [OctoGrab] Error sending message to tab: Error: Could not establish connection. Receiving end does not exist.
+sendToTab @ messaging.ts:88Understand this error
+messaging.ts:83 [OctoGrab] Connection to tab 1836965875 failed (attempt 1/8), retrying...
+messaging.ts:83 [OctoGrab] Connection to tab 1836965875 failed (attempt 2/8), retrying...
+messaging.ts:83 [OctoGrab] Connection to tab 1836965875 failed (attempt 3/8), retrying...
+messaging.ts:83 [OctoGrab] Connection to tab 1836965875 failed (attempt 4/8), retrying...
+messaging.ts:83 [OctoGrab] Connection to tab 1836965875 failed (attempt 5/8), retrying...
+messaging.ts:83 [OctoGrab] Connection to tab 1836965875 failed (attempt 6/8), retrying...
+messaging.ts:83 [OctoGrab] Connection to tab 1836965875 failed (attempt 7/8), retrying...
+messaging.ts:88 [OctoGrab] Error sending message to tab: Error: Could not establish connection. Receiving end does not exist.
+sendToTab @ messaging.ts:88Understand this error
+messaging.ts:83 [OctoGrab] Connection to tab 1836965875 failed (attempt 1/8), retrying...
+messaging.ts:83 [OctoGrab] Connection to tab 1836965875 failed (attempt 2/8), retrying...
+messaging.ts:83 [OctoGrab] Connection to tab 1836965875 failed (attempt 3/8), retrying...
+messaging.ts:83 [OctoGrab] Connection to tab 1836965875 failed (attempt 4/8), retrying...
+messaging.ts:83 [OctoGrab] Connection to tab 1836965875 failed (attempt 5/8), retrying...
+messaging.ts:83 [OctoGrab] Connection to tab 1836965875 failed (attempt 6/8), retrying...
+messaging.ts:83 [OctoGrab] Connection to tab 1836965875 failed (attempt 7/8), retrying...
+messaging.ts:88 [OctoGrab] Error sending message to tab: Error: Could not establish connection. Receiving end does not exist.
+sendToTab @ messaging.ts:88Understand this error
+messaging.ts:83 [OctoGrab] Connection to tab 1836965875 failed (attempt 1/8), retrying...
+messaging.ts:83 [OctoGrab] Connection to tab 1836965875 failed (attempt 2/8), retrying...
+messaging.ts:83 [OctoGrab] Connection to tab 1836965875 failed (attempt 3/8), retrying...
+messaging.ts:83 [OctoGrab] Connection to tab 1836965875 failed (attempt 4/8), retrying...
+messaging.ts:83 [OctoGrab] Connection to tab 1836965875 failed (attempt 5/8), retrying...
+messaging.ts:83 [OctoGrab] Connection to tab 1836965875 failed (attempt 6/8), retrying...
+messaging.ts:83 [OctoGrab] Connection to tab 1836965875 failed (attempt 7/8), retrying...
+messaging.ts:88 [OctoGrab] Error sending message to tab: Error: Could not establish connection. Receiving end does not exist.
+sendToTab @ messaging.ts:88Understand this error
+blueprint-executor-store.ts:1065 log error   ❌ Go back failed: Content script not ready after navigation undefined undefined
+blueprint-executor-store.ts:1065 log error   ❌ Error on attempt 1: Content script not ready after navigation undefined undefined
+blueprint-executor-store.ts:1065 log info   📍 Error stack: Error: Content script not ready after navigation undefined undefined
+blueprint-executor-store.ts:1065 log error   💥 All 1 attempts failed. Stopping execution. undefined undefined
+blueprint-executor-store.ts:1065 log error   ❌ Error on attempt 1: Content script not ready after navigation undefined undefined
+blueprint-executor-store.ts:1065 log info   📍 Error stack: Error: Content script not ready after navigation undefined undefined
+blueprint-executor-store.ts:1065 log error   💥 All 1 attempts failed. Stopping execution. undefined undefined
+blueprint-executor-store.ts:1065 log error ❌ Execution failed: Content script not ready after navigation undefined undefined
+blueprint-executor-store.ts:1065 log info ▶ Starting blueprint: New Blueprint (tab 1836965875) undefined undefined
+blueprint-executor-store.ts:1065 log block ▶ Executing: Navigate [No Scope] 75ac3727-f0bf-4a5f-81f2-23e2c58f661f Navigate
+blueprint-executor-store.ts:1065 log info   📋 Config: {"url":"https://www.jumia.ma/ar/heavenbooksma/?sort=newest#catalog-listing"} undefined undefined
+blueprint-executor-store.ts:1065 log info 🌐 Navigating to: https://www.jumia.ma/ar/heavenbooksma/?sort=newest#catalog-listing undefined undefined
+blueprint-executor-store.ts:1065 log info   📍 Behavior: same_tab undefined undefined
+blueprint-executor-store.ts:1065 log info   ⏱ Timeout: 30000ms undefined undefined
+blueprint-executor-store.ts:1065 log info   🎯 Current tab ID: 1836965875 undefined undefined
+blueprint-executor-store.ts:1065 log info   🔄 Navigating in current tab 1836965875... undefined undefined
+blueprint-executor-store.ts:1065 log info   ⏳ Waiting for content script to be ready... undefined undefined
+blueprint-executor-store.ts:1065 log success ✓ Navigated to: https://www.jumia.ma/ar/heavenbooksma/?sort=newest#catalog-listing undefined undefined
+blueprint-executor-store.ts:1065 log info   ⏱ Execution time: 55ms undefined undefined
+blueprint-executor-store.ts:1065 log block ▶ Executing: Loop Elements [No Scope] 42b54a57-d7e1-4c23-9227-3219d9ae9dc9 Loop Elements
+blueprint-executor-store.ts:1065 log info   📋 Config: {"selector":{"type":"css","value":"article.c-prd","detected":{"css":"article.c-prd","xpath":"//*[@id... undefined undefined
+blueprint-executor-store.ts:1065 log info   🔁 Loop Elements undefined undefined
+blueprint-executor-store.ts:1065 log info   🎯 Selector: article.c-prd undefined undefined
+blueprint-executor-store.ts:1065 log info   📌 Selector type: css undefined undefined
+blueprint-executor-store.ts:1065 log info   🔍 Has parent scope: No undefined undefined
+blueprint-executor-store.ts:1065 log info   � Found 0 elements undefined undefined
+blueprint-executor-store.ts:1065 log info   🔄 Max iterations: unlimited undefined undefined
+blueprint-executor-store.ts:1065 log info   ▶️ Will iterate: 0 times undefined undefined
+blueprint-executor-store.ts:1065 log info   👶 Children per iteration: 4 undefined undefined
+blueprint-executor-store.ts:1065 log success ✓ Loop completed: 0 iterations undefined undefined
+blueprint-executor-store.ts:1065 log info   ⏱ Execution time: 57ms undefined undefined
+blueprint-executor-store.ts:1065 log success ✅ Blueprint completed. 0 rows extracted in 339ms undefined undefined
+blueprint-executor-store.ts:1065 log info ▶ Starting blueprint: New Blueprint (tab 1836965875) undefined undefined
+blueprint-executor-store.ts:1065 log block ▶ Executing: Navigate [No Scope] 75ac3727-f0bf-4a5f-81f2-23e2c58f661f Navigate
+blueprint-executor-store.ts:1065 log info   📋 Config: {"url":"https://www.jumia.ma/ar/heavenbooksma/?sort=newest#catalog-listing"} undefined undefined
+blueprint-executor-store.ts:1065 log info 🌐 Navigating to: https://www.jumia.ma/ar/heavenbooksma/?sort=newest#catalog-listing undefined undefined
+blueprint-executor-store.ts:1065 log info   📍 Behavior: same_tab undefined undefined
+blueprint-executor-store.ts:1065 log info   ⏱ Timeout: 30000ms undefined undefined
+blueprint-executor-store.ts:1065 log info   🎯 Current tab ID: 1836965875 undefined undefined
+blueprint-executor-store.ts:1065 log info   🔄 Navigating in current tab 1836965875... undefined undefined
+blueprint-executor-store.ts:1065 log info   ⏳ Waiting for content script to be ready... undefined undefined
+blueprint-executor-store.ts:1065 log success ✓ Navigated to: https://www.jumia.ma/ar/heavenbooksma/?sort=newest#catalog-listing undefined undefined
+blueprint-executor-store.ts:1065 log info   ⏱ Execution time: 48ms undefined undefined
+blueprint-executor-store.ts:1065 log block ▶ Executing: Loop Elements [No Scope] 42b54a57-d7e1-4c23-9227-3219d9ae9dc9 Loop Elements
+blueprint-executor-store.ts:1065 log info   📋 Config: {"selector":{"type":"css","value":"article.c-prd","detected":{"css":"article.c-prd","xpath":"//*[@id... undefined undefined
+blueprint-executor-store.ts:1065 log info   🔁 Loop Elements undefined undefined
+blueprint-executor-store.ts:1065 log info   🎯 Selector: article.c-prd undefined undefined
+blueprint-executor-store.ts:1065 log info   📌 Selector type: css undefined undefined
+blueprint-executor-store.ts:1065 log info   🔍 Has parent scope: No undefined undefined
+blueprint-executor-store.ts:1065 log info   � Found 40 elements undefined undefined
+blueprint-executor-store.ts:1065 log info   🔄 Max iterations: unlimited undefined undefined
+blueprint-executor-store.ts:1065 log info   ▶️ Will iterate: 40 times undefined undefined
+blueprint-executor-store.ts:1065 log info   👶 Children per iteration: 4 undefined undefined
+blueprint-executor-store.ts:1065 log info   ━━━ Iteration 1/40 ━━━ undefined undefined
+blueprint-executor-store.ts:1065 log info     🔍 Checking if element at index 0 exists... undefined undefined
+blueprint-executor-store.ts:1065 log info     ✓ Element exists (40 total elements, check attempt 1) undefined undefined
+blueprint-executor-store.ts:1065 log block ▶ Executing: Wait [Scope: article.c-prd[0]] 6fd5b9a9-90aa-4b20-a0f0-9aaaaa586c4a Wait
+blueprint-executor-store.ts:1065 log info   📋 Config: {"type":"timeout","timeout":3000} undefined undefined
+blueprint-executor-store.ts:1065 log info   ⏱ Wait type: timeout undefined undefined
+blueprint-executor-store.ts:1065 log info   ⏳ Waiting 3000ms... undefined undefined
+blueprint-executor-store.ts:1065 log info   ⏱ Execution time: 3001ms undefined undefined
+blueprint-executor-store.ts:1065 log block ▶ Executing: Click [Scope: article.c-prd[0]] 86c257ae-9dc3-493a-846a-89870003f6f6 Click
+blueprint-executor-store.ts:1065 log info   📋 Config: {"selector":{"type":"css","value":".core","detected":{"css":".core","xpath":"//*[@id=\"jm\"]/main[1]... undefined undefined
+blueprint-executor-store.ts:1065 log info   ⏱ Delay before: 1000ms undefined undefined
+blueprint-executor-store.ts:1065 log info   🖱 Normal click undefined undefined
+blueprint-executor-store.ts:1065 log info   🎯 Selector: .core undefined undefined
+blueprint-executor-store.ts:1065 log info   📌 Selector type: css undefined undefined
+blueprint-executor-store.ts:1065 log info   🔍 Has scope: Yes undefined undefined
+blueprint-executor-store.ts:1065 log success ✓ Clicked: .core undefined undefined
+blueprint-executor-store.ts:1065 log info   ⏱ Delay after: 1000ms undefined undefined
+blueprint-executor-store.ts:1065 log info   ⏱ Execution time: 2029ms undefined undefined
+blueprint-executor-store.ts:1065 log block ▶ Executing: Wait [Scope: article.c-prd[0]] 158f4d76-cca5-43b0-b4e0-c36f093ea9f8 Wait
+blueprint-executor-store.ts:1065 log info   📋 Config: {"type":"timeout","timeout":1000} undefined undefined
+blueprint-executor-store.ts:1065 log info   ⏱ Wait type: timeout undefined undefined
+blueprint-executor-store.ts:1065 log info   ⏳ Waiting 1000ms... undefined undefined
+blueprint-executor-store.ts:1065 log info   ⏱ Execution time: 1002ms undefined undefined
+blueprint-executor-store.ts:1065 log block ▶ Executing: Go Back [Scope: article.c-prd[0]] b1b2107a-c1c4-420e-97f3-4bbf2f7b7f0e Go Back
+blueprint-executor-store.ts:1065 log info   📋 Config: {} undefined undefined
+blueprint-executor-store.ts:1065 log info ↩ Going back... undefined undefined
+blueprint-executor-store.ts:1065 log info   🎯 Current tab ID: 1836965875 undefined undefined
+blueprint-executor-store.ts:1065 log info   ⏳ Waiting for page to load after going back... undefined undefined
+blueprint-executor-store.ts:1065 log info   ⏱ Waiting 1000ms for page stabilization... undefined undefined
+blueprint-executor-store.ts:1065 log info   📍 Current URL after go_back: https://www.jumia.ma/ar/heavenbooksma/?sort=newest#catalog-listing undefined undefined
+blueprint-executor-store.ts:1065 log success ✓ Went back undefined undefined
+blueprint-executor-store.ts:1065 log info   ⏱ Execution time: 1047ms undefined undefined
+blueprint-executor-store.ts:1065 log info   ━━━ Iteration 2/40 ━━━ undefined undefined
+blueprint-executor-store.ts:1065 log info     🔍 Checking if element at index 1 exists... undefined undefined
+blueprint-executor-store.ts:1065 log info     ✓ Element exists (40 total elements, check attempt 1) undefined undefined
+blueprint-executor-store.ts:1065 log block ▶ Executing: Wait [Scope: article.c-prd[1]] 6fd5b9a9-90aa-4b20-a0f0-9aaaaa586c4a Wait
+blueprint-executor-store.ts:1065 log info   📋 Config: {"type":"timeout","timeout":3000} undefined undefined
+blueprint-executor-store.ts:1065 log info   ⏱ Wait type: timeout undefined undefined
+blueprint-executor-store.ts:1065 log info   ⏳ Waiting 3000ms... undefined undefined
+blueprint-executor-store.ts:1065 log info   ⏱ Execution time: 3003ms undefined undefined
+blueprint-executor-store.ts:1065 log block ▶ Executing: Click [Scope: article.c-prd[1]] 86c257ae-9dc3-493a-846a-89870003f6f6 Click
+blueprint-executor-store.ts:1065 log info   📋 Config: {"selector":{"type":"css","value":".core","detected":{"css":".core","xpath":"//*[@id=\"jm\"]/main[1]... undefined undefined
+blueprint-executor-store.ts:1065 log info   ⏱ Delay before: 1000ms undefined undefined
+blueprint-executor-store.ts:1065 log info   🖱 Normal click undefined undefined
+blueprint-executor-store.ts:1065 log info   🎯 Selector: .core undefined undefined
+blueprint-executor-store.ts:1065 log info   📌 Selector type: css undefined undefined
+blueprint-executor-store.ts:1065 log info   🔍 Has scope: Yes undefined undefined
+blueprint-executor-store.ts:1065 log success ✓ Clicked: .core undefined undefined
+blueprint-executor-store.ts:1065 log info   ⏱ Delay after: 1000ms undefined undefined
+blueprint-executor-store.ts:1065 log info   ⏱ Execution time: 2018ms undefined undefined
+blueprint-executor-store.ts:1065 log block ▶ Executing: Wait [Scope: article.c-prd[1]] 158f4d76-cca5-43b0-b4e0-c36f093ea9f8 Wait
+blueprint-executor-store.ts:1065 log info   📋 Config: {"type":"timeout","timeout":1000} undefined undefined
+blueprint-executor-store.ts:1065 log info   ⏱ Wait type: timeout undefined undefined
+blueprint-executor-store.ts:1065 log info   ⏳ Waiting 1000ms... undefined undefined
+blueprint-executor-store.ts:1065 log info   ⏱ Execution time: 1002ms undefined undefined
+blueprint-executor-store.ts:1065 log block ▶ Executing: Go Back [Scope: article.c-prd[1]] b1b2107a-c1c4-420e-97f3-4bbf2f7b7f0e Go Back
+blueprint-executor-store.ts:1065 log info   📋 Config: {} undefined undefined
+blueprint-executor-store.ts:1065 log info ↩ Going back... undefined undefined
+blueprint-executor-store.ts:1065 log info   🎯 Current tab ID: 1836965875 undefined undefined
+blueprint-executor-store.ts:1065 log info   ⏳ Waiting for page to load after going back... undefined undefined
+blueprint-executor-store.ts:1065 log info   ⏱ Waiting 1000ms for page stabilization... undefined undefined
+blueprint-executor-store.ts:1065 log info   📍 Current URL after go_back: https://www.jumia.ma/ar/everybodys-favorite-tales-from-the-worlds-worst-perfectionist-ouri-shop-mpg1555687.html undefined undefined
+blueprint-executor-store.ts:1065 log success ✓ Went back undefined undefined
+blueprint-executor-store.ts:1065 log info   ⏱ Execution time: 1040ms undefined undefined
+blueprint-executor-store.ts:1065 log info   ━━━ Iteration 3/40 ━━━ undefined undefined
+blueprint-executor-store.ts:1065 log info     🔍 Checking if element at index 2 exists... undefined undefined
+blueprint-executor-store.ts:1065 log info     ⏳ Found 0 elements, need at least 3 (attempt 1) undefined undefined
+blueprint-executor-store.ts:1065 log info     ⏳ Found 0 elements, need at least 3 (attempt 2) undefined undefined
+blueprint-executor-store.ts:1065 log info     ⏳ Found 0 elements, need at least 3 (attempt 3) undefined undefined
+blueprint-executor-store.ts:1065 log info     ⏳ Found 0 elements, need at least 3 (attempt 4) undefined undefined
+blueprint-executor-store.ts:1065 log info     ⏳ Found 0 elements, need at least 3 (attempt 5) undefined undefined
+blueprint-executor-store.ts:1065 log info     ⏳ Found 0 elements, need at least 3 (attempt 6) undefined undefined
+blueprint-executor-store.ts:1065 log info     ⏳ Found 0 elements, need at least 3 (attempt 7) undefined undefined
+blueprint-executor-store.ts:1065 log info     ⏳ Found 0 elements, need at least 3 (attempt 8) undefined undefined
+blueprint-executor-store.ts:1065 log info     ⏳ Found 0 elements, need at least 3 (attempt 9) undefined undefined
+blueprint-executor-store.ts:1065 log info     ⏳ Found 0 elements, need at least 3 (attempt 10) undefined undefined
+blueprint-executor-store.ts:1065 log info     ⏳ Found 0 elements, need at least 3 (attempt 11) undefined undefined
+blueprint-executor-store.ts:1065 log info     ⏳ Found 0 elements, need at least 3 (attempt 12) undefined undefined
+blueprint-executor-store.ts:1065 log info     ⏳ Found 0 elements, need at least 3 (attempt 13) undefined undefined
+blueprint-executor-store.ts:1065 log info     ⏳ Found 0 elements, need at least 3 (attempt 14) undefined undefined
+blueprint-executor-store.ts:1065 log info     ⏳ Found 0 elements, need at least 3 (attempt 15) undefined undefined
+blueprint-executor-store.ts:1065 log info     ⏳ Found 0 elements, need at least 3 (attempt 16) undefined undefined
+blueprint-executor-store.ts:1065 log info     ⏳ Found 0 elements, need at least 3 (attempt 17) undefined undefined
+blueprint-executor-store.ts:1065 log info     ⏳ Found 0 elements, need at least 3 (attempt 18) undefined undefined
+blueprint-executor-store.ts:1065 log info     ⏳ Found 0 elements, need at least 3 (attempt 19) undefined undefined
+blueprint-executor-store.ts:1065 log info     ⏳ Found 0 elements, need at least 3 (attempt 20) undefined undefined
+blueprint-executor-store.ts:1065 log info     ⏳ Found 0 elements, need at least 3 (attempt 21) undefined undefined
+blueprint-executor-store.ts:1065 log info     ⏳ Found 0 elements, need at least 3 (attempt 22) undefined undefined
+blueprint-executor-store.ts:1065 log info     ⏳ Found 0 elements, need at least 3 (attempt 23) undefined undefined
+blueprint-executor-store.ts:1065 log info     ⏳ Found 0 elements, need at least 3 (attempt 24) undefined undefined
+blueprint-executor-store.ts:1065 log info     ⏳ Found 0 elements, need at least 3 (attempt 25) undefined undefined
+blueprint-executor-store.ts:1065 log info     ⏳ Found 0 elements, need at least 3 (attempt 26) undefined undefined
+blueprint-executor-store.ts:1065 log info     ⏳ Found 0 elements, need at least 3 (attempt 27) undefined undefined
+blueprint-executor-store.ts:1065 log info     ⏳ Found 0 elements, need at least 3 (attempt 28) undefined undefined
+blueprint-executor-store.ts:1065 log info     ⏳ Found 0 elements, need at least 3 (attempt 29) undefined undefined
+blueprint-executor-store.ts:1065 log info     ⏳ Found 0 elements, need at least 3 (attempt 30) undefined undefined
+blueprint-executor-store.ts:1065 log warn     ⚠ Element at index 2 not found after 30 attempts (15000ms). Loop stopped. undefined undefined
+blueprint-executor-store.ts:1065 log success ✓ Loop completed: 40 iterations undefined undefined
+blueprint-executor-store.ts:1065 log info   ⏱ Execution time: 29731ms undefined undefined
+blueprint-executor-store.ts:1065 log success ✅ Blueprint completed. 0 rows extracted in 29.9s undefined undefined

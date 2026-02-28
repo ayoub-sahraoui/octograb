@@ -22,6 +22,7 @@ export interface ExtractionField {
 export interface ExtractScopeBlockConfig {
     fields: ExtractionField[];
     scopeSelector?: Selector;
+    resetScope?: boolean;
 }
 
 export class ExtractScopeBlock implements BaseBlock {
@@ -34,7 +35,9 @@ export class ExtractScopeBlock implements BaseBlock {
     maxRetries: number;
     retryDelay: number;
     config: ExtractScopeBlockConfig;
+    parent?: Block | null;
     children?: Block[];
+    index?: number;
 
     constructor(name: string, config: ExtractScopeBlockConfig) {
         this.id = uuidv4();

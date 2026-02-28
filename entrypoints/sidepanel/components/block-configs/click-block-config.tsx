@@ -1,15 +1,8 @@
 import { observer } from 'mobx-react-lite';
 import { ClickBlock } from '@/entrypoints/models/click-block';
-import { SelectorType } from '@/entrypoints/models/selector';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select";
+import { SelectorInput } from '../selector-input';
 
 interface ClickBlockConfigProps {
     block: ClickBlock;
@@ -18,45 +11,15 @@ interface ClickBlockConfigProps {
 export const ClickBlockConfig = observer(({ block }: ClickBlockConfigProps) => {
     return (
         <div className="flex flex-col gap-4">
-            <div className="flex flex-col gap-2">
-                <Label htmlFor="selectorType">Selector Type</Label>
-                <Select
-                    value={block.config.selector?.type || 'css'}
-                    onValueChange={(value: any) => {
-                        if (!block.config.selector) {
-                            block.config.selector = { type: value, value: '' };
-                        } else {
-                            block.config.selector.type = value;
-                        }
-                    }}
-                >
-                    <SelectTrigger id="selectorType">
-                        <SelectValue placeholder="Select type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="css">CSS</SelectItem>
-                        <SelectItem value="xpath">XPath</SelectItem>
-                        <SelectItem value="text">Text</SelectItem>
-                    </SelectContent>
-                </Select>
-            </div>
-
-            <div className="flex flex-col gap-2">
-                <Label htmlFor="selector">Selector</Label>
-                <Input
-                    id="selector"
-                    type="text"
-                    placeholder="button.submit"
-                    value={block.config.selector?.value || ''}
-                    onChange={(e) => {
-                        if (!block.config.selector) {
-                            block.config.selector = { type: SelectorType.CSS, value: e.target.value };
-                        } else {
-                            block.config.selector.value = e.target.value;
-                        }
-                    }}
-                />
-            </div>
+            <SelectorInput
+                label="Click Target"
+                id="click-selector"
+                placeholder="button.submit"
+                helpText="The element to click on"
+                selector={block.config.selector}
+                onSelectorChange={(sel) => { block.config.selector = sel; }}
+                block={block}
+            />
 
             <div className="flex flex-col gap-2">
                 <Label htmlFor="delayBefore">Delay Before (ms)</Label>
