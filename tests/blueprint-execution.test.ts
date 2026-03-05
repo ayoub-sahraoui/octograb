@@ -38,7 +38,7 @@ describe('Blueprint Execution Logic', () => {
                         type: 'extract_scope',
                         label: 'Extract',
                         config: {
-                            fields: [{ key: 'title', selector: { value: '.title', type: 'css' }, attribute: 'text' }]
+                            fields: [{ key: 'title', selector: { value: '.title', type: SelectorType.CSS }, attribute: 'text' }]
                         }
                     }
                 ]
@@ -56,9 +56,9 @@ describe('Blueprint Execution Logic', () => {
                 id: 'cond-1',
                 type: 'condition',
                 label: 'Condition',
-                config: { selector: { value: '.element', type: 'css' }, check: 'exists' },
+                config: { selector: { value: '.element', type: SelectorType.CSS }, check: 'exists' },
                 children: [
-                    { id: 'click-1', type: 'click', label: 'Click', config: { selector: { value: '.btn', type: 'css' } } }
+                    { id: 'click-1', type: 'click', label: 'Click', config: { selector: { value: '.btn', type: SelectorType.CSS } } }
                 ],
                 elseChildren: [
                     { id: 'wait-1', type: 'wait', label: 'Wait', config: { type: 'timeout', timeout: 1000 } }
@@ -74,15 +74,15 @@ describe('Blueprint Execution Logic', () => {
         it('should handle all block types', () => {
             const types = [
                 { type: 'navigate', config: { url: 'https://example.com' } },
-                { type: 'click', config: { selector: { value: '.btn', type: 'css' } } },
-                { type: 'input', config: { selector: { value: '#input', type: 'css' }, value: 'test' } },
+                { type: 'click', config: { selector: { value: '.btn', type: SelectorType.CSS } } },
+                { type: 'input', config: { selector: { value: '#input', type: SelectorType.CSS }, value: 'test' } },
                 { type: 'wait', config: { type: 'timeout', timeout: 1000 } },
                 { type: 'scroll', config: { behavior: 'bottom' } },
                 { type: 'go_back', config: {} },
-                { type: 'condition', config: { selector: { value: '.el', type: 'css' }, check: 'exists' } },
-                { type: 'loop_elements', config: { selector: { value: '.item', type: 'css' } } },
-                { type: 'loop_pagination', config: { nextButtonSelector: { value: '.next', type: 'css' } } },
-                { type: 'extract_scope', config: { fields: [{ key: 'k', selector: { value: '.s', type: 'css' }, attribute: 'text' }] } }
+                { type: 'condition', config: { selector: { value: '.el', type: SelectorType.CSS }, check: 'exists' } },
+                { type: 'loop_elements', config: { selector: { value: '.item', type: SelectorType.CSS } } },
+                { type: 'loop_pagination', config: { nextButtonSelector: { value: '.next', type: SelectorType.CSS } } },
+                { type: 'extract_scope', config: { fields: [{ key: 'k', selector: { value: '.s', type: SelectorType.CSS }, attribute: 'text' }] } }
             ];
 
             types.forEach(({ type, config }) => {
@@ -108,9 +108,9 @@ describe('Blueprint Execution Logic', () => {
         it('should serialize and deserialize blueprint', () => {
             const blueprint = new Blueprint('Test', 'Description');
             const nav = new NavigateBlock('Nav', { url: 'https://example.com' });
-            const loop = new LoopElementsBlock('Loop', { selector: { value: '.item', type: 'css' } });
+            const loop = new LoopElementsBlock('Loop', { selector: { value: '.item', type: SelectorType.CSS } });
             const extract = new ExtractScopeBlock('Extract', {
-                fields: [{ key: 'title', selector: { value: '.title', type: 'css' }, attribute: 'text' }]
+                fields: [{ key: 'title', selector: { value: '.title', type: SelectorType.CSS }, attribute: 'text' }]
             });
 
             loop.children = [extract];
@@ -131,9 +131,9 @@ describe('Blueprint Execution Logic', () => {
 
         it('should handle circular parent references', () => {
             const blueprint = new Blueprint('Test', 'Description');
-            const loop = new LoopElementsBlock('Loop', { selector: { value: '.item', type: 'css' } });
+            const loop = new LoopElementsBlock('Loop', { selector: { value: '.item', type: SelectorType.CSS } });
             const extract = new ExtractScopeBlock('Extract', {
-                fields: [{ key: 'title', selector: { value: '.title', type: 'css' }, attribute: 'text' }]
+                fields: [{ key: 'title', selector: { value: '.title', type: SelectorType.CSS }, attribute: 'text' }]
             });
 
             loop.children = [extract];
@@ -152,9 +152,9 @@ describe('Blueprint Execution Logic', () => {
 
     describe('Block Relationships', () => {
         it('should maintain parent-child relationships', () => {
-            const parent = new LoopElementsBlock('Loop', { selector: { value: '.item', type: 'css' } });
+            const parent = new LoopElementsBlock('Loop', { selector: { value: '.item', type: SelectorType.CSS } });
             const child = new ExtractScopeBlock('Extract', {
-                fields: [{ key: 'title', selector: { value: '.title', type: 'css' }, attribute: 'text' }]
+                fields: [{ key: 'title', selector: { value: '.title', type: SelectorType.CSS }, attribute: 'text' }]
             });
 
             parent.children = [child];
@@ -165,11 +165,11 @@ describe('Blueprint Execution Logic', () => {
         });
 
         it('should handle multiple children', () => {
-            const parent = new LoopElementsBlock('Loop', { selector: { value: '.item', type: 'css' } });
-            const child1 = new ClickBlock('Click', { selector: { value: '.btn1', type: 'css' } });
+            const parent = new LoopElementsBlock('Loop', { selector: { value: '.item', type: SelectorType.CSS } });
+            const child1 = new ClickBlock('Click', { selector: { value: '.btn1', type: SelectorType.CSS } });
             const child2 = new WaitBlock('Wait', { type: 'timeout', timeout: 1000 });
             const child3 = new ExtractScopeBlock('Extract', {
-                fields: [{ key: 'title', selector: { value: '.title', type: 'css' }, attribute: 'text' }]
+                fields: [{ key: 'title', selector: { value: '.title', type: SelectorType.CSS }, attribute: 'text' }]
             });
 
             parent.children = [child1, child2, child3];
@@ -182,10 +182,10 @@ describe('Blueprint Execution Logic', () => {
         });
 
         it('should handle nested hierarchies', () => {
-            const root = new LoopElementsBlock('Root Loop', { selector: { value: '.root', type: 'css' } });
-            const nested = new LoopElementsBlock('Nested Loop', { selector: { value: '.nested', type: 'css' } });
+            const root = new LoopElementsBlock('Root Loop', { selector: { value: '.root', type: SelectorType.CSS } });
+            const nested = new LoopElementsBlock('Nested Loop', { selector: { value: '.nested', type: SelectorType.CSS } });
             const extract = new ExtractScopeBlock('Extract', {
-                fields: [{ key: 'data', selector: { value: '.data', type: 'css' }, attribute: 'text' }]
+                fields: [{ key: 'data', selector: { value: '.data', type: SelectorType.CSS }, attribute: 'text' }]
             });
 
             root.children = [nested];
@@ -292,7 +292,7 @@ describe('Blueprint Execution Logic', () => {
     describe('Block Configuration Validation', () => {
         it('should validate click block config', () => {
             const config = {
-                selector: { value: '.btn', type: 'css' as const },
+                selector: { value: '.btn', type: SelectorType.CSS },
                 openInNewTab: false,
                 waitAfterClick: 1000
             };
@@ -304,10 +304,10 @@ describe('Blueprint Execution Logic', () => {
         it('should validate extract block config', () => {
             const config = {
                 fields: [
-                    { key: 'title', selector: { value: '.title', type: 'css' as const }, attribute: 'text' },
-                    { key: 'price', selector: { value: '.price', type: 'css' as const }, attribute: 'text' }
+                    { key: 'title', selector: { value: '.title', type: SelectorType.CSS }, attribute: 'text' },
+                    { key: 'price', selector: { value: '.price', type: SelectorType.CSS }, attribute: 'text' }
                 ],
-                scopeSelector: { value: '.product', type: 'css' as const }
+                scopeSelector: { value: '.product', type: SelectorType.CSS }
             };
 
             expect(config.fields.length).toBe(2);
@@ -316,7 +316,7 @@ describe('Blueprint Execution Logic', () => {
 
         it('should validate loop config', () => {
             const config = {
-                selector: { value: '.item', type: 'css' as const },
+                selector: { value: '.item', type: SelectorType.CSS },
                 maxIterations: 10
             };
 

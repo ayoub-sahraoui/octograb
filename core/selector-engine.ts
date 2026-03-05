@@ -312,17 +312,9 @@ export class SelectorEngine {
         this.updateMatchVisuals(finalSelector);
 
         // Generate XPath from the common CSS selector
-        if (finalSelector.startsWith('.')) {
-          const className = finalSelector.substring(1);
-          finalXPath = `//*[contains(concat(" ", @class, " "), " ${className} ")]`;
-        } else if (finalSelector.includes('>')) {
-          // Handle child selector like "parent > child"
-          const parts = finalSelector.split('>').map(s => s.trim());
-          finalXPath = '//' + parts.join('/');
-        } else if (finalSelector.match(/^[a-z0-9]+$/i)) {
-          finalXPath = `//${finalSelector.toLowerCase()}`;
-        } else {
-          // Fallback: use first element's xpath if conversion fails
+        finalXPath = this.cssToXPath(finalSelector);
+        if (!finalXPath) {
+          // Fallback: use first element's xpath
           finalXPath = this.getXPath(this.selectedElements[0]);
         }
       } else {
@@ -435,19 +427,102 @@ export class SelectorEngine {
     this.label.textContent = displayText;
   }
 
+  /**
+   * Find a common CSS selector that matches all selected elements.
+   * Supports 2+ elements with structural pattern matching — finds common tag,
+   * classes, attributes, and parent structure across all selections.
+   */
   getCommonSelector(el1: Element, el2: Element): string | null {
-    if (!el1 || !el2 || el1.tagName !== el2.tagName) return null;
-    const tag = el1.tagName.toLowerCase();
-    const classes1 = Array.from(el1.classList);
-    const classes2 = Array.from(el2.classList);
-    const commonClasses = classes1.filter(c => classes2.includes(c));
+    const elements = this.selectedElements.length >= 2 ? this.selectedElements : [el1, el2];
+    return this.getCommonSelectorForElements(elements);
+  }
+
+  private getCommonSelectorForElements(elements: Element[]): string | null {
+    if (elements.length < 2) return null;
+
+    // All must share the same tag
+    const tag = elements[0].tagName.toLowerCase();
+    if (!elements.every(el => el.tagName === elements[0].tagName)) return null;
+
+    // Find classes common to ALL elements
+    let commonClasses = Array.from(elements[0].classList);
+    for (let i = 1; i < elements.length; i++) {
+      const elClasses = Array.from(elements[i].classList);
+      commonClasses = commonClasses.filter(c => elClasses.includes(c));
+    }
+
+    // Strategy 1: Common class selector — prefer the most specific (longest) class
     if (commonClasses.length > 0) {
       const bestClass = commonClasses.sort((a, b) => b.length - a.length)[0];
-      return `${tag}.${CSS.escape(bestClass)}`;
+      const sel = `${tag}.${CSS.escape(bestClass)}`;
+      // Verify the selector actually matches all selected elements
+      const root = this.scopeElement || document;
+      const matches = root.querySelectorAll(sel);
+      const matchesAll = elements.every(el => Array.from(matches).includes(el));
+      if (matchesAll) return sel;
     }
-    if (el1.parentElement && el2.parentElement && el1.parentElement.tagName === el2.parentElement.tagName) {
-      return `${el1.parentElement.tagName.toLowerCase()} > ${tag}`;
+
+    // Strategy 2: Common attribute selector (data-*, role, etc.)
+    const testAttrs = ['data-testid', 'data-type', 'role', 'itemprop', 'itemtype'];
+    for (const attr of testAttrs) {
+      if (elements.every(el => el.hasAttribute(attr))) {
+        const values = elements.map(el => el.getAttribute(attr));
+        // If all share the same attribute value, use exact match
+        if (values.every(v => v === values[0])) {
+          const sel = `${tag}[${attr}="${CSS.escape(values[0]!)}"]`;
+          return sel;
+        }
+        // If they all have the attribute but different values, use attribute presence
+        const sel = `${tag}[${attr}]`;
+        const root = this.scopeElement || document;
+        const matches = root.querySelectorAll(sel);
+        if (elements.every(el => Array.from(matches).includes(el))) return sel;
+      }
     }
+
+    // Strategy 3: Structural pattern — same parent tag + nth-child pattern
+    const parents = elements.map(el => el.parentElement);
+    if (parents.every(p => p !== null)) {
+      // Check if all parents are the same element (siblings)
+      if (parents.every(p => p === parents[0])) {
+        const parentTag = parents[0]!.tagName.toLowerCase();
+        const sel = `${parentTag} > ${tag}`;
+        const root = this.scopeElement || document;
+        const matches = root.querySelectorAll(sel);
+        if (elements.every(el => Array.from(matches).includes(el))) return sel;
+      }
+
+      // Check if parents share a common class (cousin elements)
+      const parentTags = parents.map(p => p!.tagName);
+      if (parentTags.every(t => t === parentTags[0])) {
+        let parentCommonClasses = Array.from(parents[0]!.classList);
+        for (let i = 1; i < parents.length; i++) {
+          const pc = Array.from(parents[i]!.classList);
+          parentCommonClasses = parentCommonClasses.filter(c => pc.includes(c));
+        }
+        if (parentCommonClasses.length > 0) {
+          const bestParentClass = parentCommonClasses.sort((a, b) => b.length - a.length)[0];
+          const sel = `.${CSS.escape(bestParentClass)} > ${tag}`;
+          const root = this.scopeElement || document;
+          const matches = root.querySelectorAll(sel);
+          if (elements.every(el => Array.from(matches).includes(el))) return sel;
+
+          // Also try without direct child
+          const sel2 = `.${CSS.escape(bestParentClass)} ${tag}`;
+          const matches2 = root.querySelectorAll(sel2);
+          if (elements.every(el => Array.from(matches2).includes(el))) return sel2;
+        }
+      }
+    }
+
+    // Strategy 4: Multiple common classes combined
+    if (commonClasses.length >= 2) {
+      const sel = tag + commonClasses.slice(0, 3).map(c => `.${CSS.escape(c)}`).join('');
+      const root = this.scopeElement || document;
+      const matches = root.querySelectorAll(sel);
+      if (elements.every(el => Array.from(matches).includes(el))) return sel;
+    }
+
     return null;
   }
 
@@ -510,6 +585,72 @@ export class SelectorEngine {
       curr = curr.parentElement;
     }
     return path.join(' > ');
+  }
+
+  /**
+   * Convert a simple CSS selector to an equivalent XPath expression.
+   * Handles: tag, .class, tag.class, parent > child, .parent .descendant, tag[attr], tag[attr="val"]
+   */
+  cssToXPath(css: string): string {
+    if (!css) return '';
+    try {
+      // Split by descendant combinator (space) and child combinator (>)
+      const parts = css.split(/\s+/).map(s => s.trim()).filter(Boolean);
+      const xpathParts: string[] = [];
+
+      for (const part of parts) {
+        if (part === '>') {
+          // Replace descendant with child axis
+          const last = xpathParts.pop();
+          if (last) xpathParts.push(last.replace('//', './'));
+          continue;
+        }
+
+        let xp = '';
+        // Check for child combinator attached to part (e.g. from split on >)
+        const subParts = part.split('>').map(s => s.trim()).filter(Boolean);
+        if (subParts.length > 1) {
+          // e.g. ".parent > div"
+          const converted = subParts.map(sp => this.cssSingleToXPath(sp));
+          xp = converted.join('/');
+        } else {
+          xp = this.cssSingleToXPath(part);
+        }
+        xpathParts.push(xp);
+      }
+
+      return '//' + xpathParts.join('//');
+    } catch (e) {
+      return '';
+    }
+  }
+
+  private cssSingleToXPath(part: string): string {
+    // Parse tag.class1.class2[attr="val"] patterns
+    const tagMatch = part.match(/^([a-z][a-z0-9]*)?/i);
+    const tag = tagMatch && tagMatch[1] ? tagMatch[1].toLowerCase() : '*';
+    const conditions: string[] = [];
+
+    // Extract classes
+    const classMatches = part.matchAll(/\.([a-zA-Z0-9_-]+)/g);
+    for (const m of classMatches) {
+      conditions.push(`contains(concat(" ", @class, " "), " ${m[1]} ")`);
+    }
+
+    // Extract attribute selectors [attr="val"] or [attr]
+    const attrMatches = part.matchAll(/\[([a-zA-Z0-9_-]+)(?:="([^"]*)")?\]/g);
+    for (const m of attrMatches) {
+      if (m[2] !== undefined) {
+        conditions.push(`@${m[1]}="${m[2]}"`);
+      } else {
+        conditions.push(`@${m[1]}`);
+      }
+    }
+
+    if (conditions.length > 0) {
+      return `${tag}[${conditions.join(' and ')}]`;
+    }
+    return tag;
   }
 
   getXPath(el: Element): string {

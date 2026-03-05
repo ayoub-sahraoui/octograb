@@ -1,6 +1,7 @@
 import { observer } from 'mobx-react-lite';
 import { runInAction } from 'mobx';
 import { LoopPaginationBlock } from '@/entrypoints/models/loop-pagination-block';
+import { SelectorType } from '@/entrypoints/models/selector';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -122,7 +123,7 @@ export const LoopPaginationBlockConfig = observer(({ block }: LoopPaginationBloc
                             id="item-selector"
                             placeholder=".product-item"
                             helpText="Selector for the items to scroll through"
-                            selector={block.config.itemSelector || { type: 'css' as const, value: '' }}
+                            selector={block.config.itemSelector || { type: SelectorType.CSS, value: '' }}
                             onSelectorChange={(sel) => runInAction(() => { block.config.itemSelector = sel; })}
                             block={block}
                         />
@@ -155,7 +156,7 @@ export const LoopPaginationBlockConfig = observer(({ block }: LoopPaginationBloc
                             id="scroll-selector"
                             placeholder=".scrollable-container"
                             helpText="Selector for the scrollable element"
-                            selector={block.config.scrollSelector || { type: 'css' as const, value: '' }}
+                            selector={block.config.scrollSelector || { type: SelectorType.CSS, value: '' }}
                             onSelectorChange={(sel) => runInAction(() => { block.config.scrollSelector = sel; })}
                             block={block}
                         />

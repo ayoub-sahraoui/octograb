@@ -1,0 +1,228 @@
+{
+  "id": "b65fb3a4-33f0-4470-81ad-ca3f9b4331f4",
+  "name": "ebooks",
+  "description": "",
+  "blocks": [
+    {
+      "id": "b02f64a2-69d8-4476-a835-731efcac31ef",
+      "type": "navigate",
+      "label": "Navigate",
+      "enabled": true,
+      "description": "",
+      "onError": "stop",
+      "maxRetries": 0,
+      "retryDelay": 0,
+      "config": {
+        "url": "https://www.ebooks.com/en-ma/category/computers/5204/"
+      },
+      "index": 0
+    },
+    {
+      "id": "75fda996-6a47-4dd2-83f9-f4aa92819561",
+      "type": "wait",
+      "label": "Wait",
+      "enabled": true,
+      "description": "",
+      "onError": "stop",
+      "maxRetries": 0,
+      "retryDelay": 0,
+      "config": {
+        "type": "dom_content_loaded",
+        "timeout": 1500
+      },
+      "index": 1
+    },
+    {
+      "id": "cbba897c-3eeb-4c07-a9c9-37071f21ce03",
+      "type": "loop_pagination",
+      "label": "Loop Pagination",
+      "enabled": true,
+      "description": "",
+      "onError": "stop",
+      "maxRetries": 0,
+      "retryDelay": 0,
+      "config": {
+        "nextButtonSelector": {
+          "type": "xpath",
+          "value": "//span[normalize-space()='Next']",
+          "detected": {
+            "css": "div:nth-of-type(3) > div:nth-of-type(4) > div:nth-of-type(2) > div:nth-of-type(2) > div:nth-of-type(6) > div:nth-of-type(2) > div:nth-of-type(4) > div > div > div > nav > ul > li:nth-of-type(11) > a > span > span",
+            "xpath": "//span[normalize-space()='Next']"
+          }
+        },
+        "maxPages": 10,
+        "delayBetweenPages": 1000
+      },
+      "children": [
+        {
+          "id": "c4273390-89a3-41f9-b68c-b9229c78b946",
+          "type": "loop_elements",
+          "label": "Loop Elements",
+          "enabled": true,
+          "description": "",
+          "onError": "stop",
+          "maxRetries": 0,
+          "retryDelay": 0,
+          "config": {
+            "selector": {
+              "type": "css",
+              "value": "h2.title",
+              "detected": {
+                "css": "h2.title",
+                "xpath": "//*[@id=\"search-347138887\"]/div[2]/div[1]/div[1]/div[2]/h2[1]"
+              }
+            }
+          },
+          "children": [
+            {
+              "id": "f2c5a333-1262-4400-b0e0-7b2e0a807bbe",
+              "type": "click",
+              "label": "Click",
+              "enabled": true,
+              "description": "",
+              "onError": "stop",
+              "maxRetries": 0,
+              "retryDelay": 0,
+              "config": {
+                "selector": {
+                  "type": "css",
+                  "value": "a",
+                  "detected": {
+                    "css": "a",
+                    "xpath": "//a[normalize-space()='Fundamentals of Software Architecture']"
+                  }
+                }
+              }
+            },
+            {
+              "id": "1e77589d-88eb-4f0b-8cff-078c6ec5d3f1",
+              "type": "wait",
+              "label": "Wait",
+              "enabled": true,
+              "description": "",
+              "onError": "stop",
+              "maxRetries": 0,
+              "retryDelay": 0,
+              "config": {
+                "type": "dom_content_loaded",
+                "timeout": 3000
+              }
+            },
+            {
+              "id": "3ba211ce-94ba-4e07-8400-98067fbaa866",
+              "type": "extract_scope",
+              "label": "Extract Scope",
+              "enabled": true,
+              "description": "",
+              "onError": "stop",
+              "maxRetries": 0,
+              "retryDelay": 0,
+              "config": {
+                "fields": [
+                  {
+                    "key": "Titre",
+                    "selector": {
+                      "type": "css",
+                      "value": "#main-content",
+                      "detected": {
+                        "css": "#main-content",
+                        "xpath": "//h1[normalize-space()='Designing Data-Intensive Applications (2nd ed.)']"
+                      }
+                    },
+                    "attribute": "text",
+                    "required": false,
+                    "multiple": false
+                  },
+                  {
+                    "key": "PRIX",
+                    "selector": {
+                      "type": "css",
+                      "value": "#price > div > span",
+                      "detected": {
+                        "css": "#price > div > span",
+                        "xpath": "//span[normalize-space()='US$59.99']"
+                      }
+                    },
+                    "attribute": "text",
+                    "required": false,
+                    "multiple": false,
+                    "transformers": [
+                      {
+                        "type": "replace",
+                        "searchValue": "US$",
+                        "replaceValue": "",
+                        "global": true
+                      },
+                      {
+                        "type": "currency_convert",
+                        "fromCurrency": "USD",
+                        "toCurrency": "MAD",
+                        "fixedRate": 9.31
+                      }
+                    ]
+                  },
+                  {
+                    "key": "URL image 1",
+                    "selector": {
+                      "type": "css",
+                      "value": ".cover-xl",
+                      "detected": {
+                        "css": ".cover-xl",
+                        "xpath": "//*[@id=\"book-cover\"]/div[1]/div[1]/div[1]/img[1]"
+                      }
+                    },
+                    "attribute": "src",
+                    "required": false,
+                    "multiple": false
+                  },
+                  {
+                    "key": "Description",
+                    "selector": {
+                      "type": "css",
+                      "value": ".description-content",
+                      "detected": {
+                        "css": ".description-content",
+                        "xpath": "//*[@id=\"description\"]/div[1]"
+                      }
+                    },
+                    "attribute": "text",
+                    "required": false,
+                    "multiple": false,
+                    "transformers": []
+                  }
+                ],
+                "resetScope": true
+              }
+            },
+            {
+              "id": "d0ff9eb5-c185-4f56-ad73-739411423f70",
+              "type": "wait",
+              "label": "Wait",
+              "enabled": true,
+              "description": "",
+              "onError": "stop",
+              "maxRetries": 0,
+              "retryDelay": 0,
+              "config": {
+                "type": "timeout",
+                "timeout": 1500
+              }
+            },
+            {
+              "id": "4cf04250-5982-498f-ae04-e245d175fc94",
+              "type": "go_back",
+              "label": "Go Back",
+              "enabled": true,
+              "description": "",
+              "onError": "stop",
+              "maxRetries": 0,
+              "retryDelay": 0,
+              "config": {}
+            }
+          ]
+        }
+      ],
+      "index": 2
+    }
+  ]
+}

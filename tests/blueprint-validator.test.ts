@@ -105,7 +105,7 @@ describe('BlueprintValidator', () => {
 
     describe('Input Block Validation', () => {
         it('should require selector outside loop', () => {
-            const block = new InputBlock('Input', { selector: { value: '', type: 'css' }, value: 'test' });
+            const block = new InputBlock('Input', { selector: { value: '', type: SelectorType.CSS }, value: 'test' });
             blueprint.addBlock(block);
 
             const result = validateBlueprint(blueprint);
@@ -113,7 +113,7 @@ describe('BlueprintValidator', () => {
         });
 
         it('should warn about empty value', () => {
-            const block = new InputBlock('Input', { selector: { value: '#input', type: 'css' }, value: '' });
+            const block = new InputBlock('Input', { selector: { value: '#input', type: SelectorType.CSS }, value: '' });
             blueprint.addBlock(block);
 
             const result = validateBlueprint(blueprint);
@@ -143,7 +143,7 @@ describe('BlueprintValidator', () => {
         it('should require selector for visibility wait', () => {
             const block = new WaitBlock('Wait', {
                 type: 'selector_visible',
-                selector: { value: '', type: 'css' },
+                selector: { value: '', type: SelectorType.CSS },
                 timeout: 5000
             });
             blueprint.addBlock(block);
@@ -156,7 +156,7 @@ describe('BlueprintValidator', () => {
 
     describe('Loop Elements Validation', () => {
         it('should require selector', () => {
-            const block = new LoopElementsBlock('Loop', { selector: { value: '', type: 'css' } });
+            const block = new LoopElementsBlock('Loop', { selector: { value: '', type: SelectorType.CSS } });
             blueprint.addBlock(block);
 
             const result = validateBlueprint(blueprint);
@@ -165,7 +165,7 @@ describe('BlueprintValidator', () => {
         });
 
         it('should warn about loop with no children', () => {
-            const block = new LoopElementsBlock('Loop', { selector: { value: '.item', type: 'css' } });
+            const block = new LoopElementsBlock('Loop', { selector: { value: '.item', type: SelectorType.CSS } });
             blueprint.addBlock(block);
 
             const result = validateBlueprint(blueprint);
@@ -174,7 +174,7 @@ describe('BlueprintValidator', () => {
 
         it('should require positive maxIterations', () => {
             const block = new LoopElementsBlock('Loop', {
-                selector: { value: '.item', type: 'css' },
+                selector: { value: '.item', type: SelectorType.CSS },
                 maxIterations: 0
             });
             blueprint.addBlock(block);
@@ -187,7 +187,7 @@ describe('BlueprintValidator', () => {
     describe('Loop Pagination Validation', () => {
         it('should require next button selector', () => {
             const block = new LoopPaginationBlock('Pagination', {
-                nextButtonSelector: { value: '', type: 'css' }
+                nextButtonSelector: { value: '', type: SelectorType.CSS }
             });
             blueprint.addBlock(block);
 
@@ -198,7 +198,7 @@ describe('BlueprintValidator', () => {
 
         it('should warn about pagination with no children', () => {
             const block = new LoopPaginationBlock('Pagination', {
-                nextButtonSelector: { value: '.next', type: 'css' }
+                nextButtonSelector: { value: '.next', type: SelectorType.CSS }
             });
             blueprint.addBlock(block);
 
@@ -221,7 +221,7 @@ describe('BlueprintValidator', () => {
             const block = new ExtractScopeBlock('Extract', {
                 fields: [{
                     key: '',
-                    selector: { value: '.title', type: 'css' },
+                    selector: { value: '.title', type: SelectorType.CSS },
                     attribute: 'text'
                 }]
             });
@@ -236,7 +236,7 @@ describe('BlueprintValidator', () => {
             const block = new ExtractScopeBlock('Extract', {
                 fields: [{
                     key: 'title',
-                    selector: { value: '.title', type: 'css' },
+                    selector: { value: '.title', type: SelectorType.CSS },
                     attribute: undefined as any
                 }]
             });
@@ -251,7 +251,7 @@ describe('BlueprintValidator', () => {
             const block = new ExtractScopeBlock('Extract', {
                 fields: [{
                     key: 'title',
-                    selector: { value: '.title', type: 'css' },
+                    selector: { value: '.title', type: SelectorType.CSS },
                     attribute: 'text'
                 }]
             });
@@ -265,7 +265,7 @@ describe('BlueprintValidator', () => {
     describe('Condition Block Validation', () => {
         it('should require check type', () => {
             const block = new ConditionBlock({
-                selector: { value: '.element', type: 'css' },
+                selector: { value: '.element', type: SelectorType.CSS },
                 check: undefined as any
             });
             blueprint.addBlock(block);
@@ -277,7 +277,7 @@ describe('BlueprintValidator', () => {
 
         it('should require value for text_contains check', () => {
             const block = new ConditionBlock({
-                selector: { value: '.element', type: 'css' },
+                selector: { value: '.element', type: SelectorType.CSS },
                 check: 'text_contains'
             });
             blueprint.addBlock(block);
@@ -289,7 +289,7 @@ describe('BlueprintValidator', () => {
 
         it('should allow exists check without value', () => {
             const block = new ConditionBlock({
-                selector: { value: '.element', type: 'css' },
+                selector: { value: '.element', type: SelectorType.CSS },
                 check: 'exists'
             });
             blueprint.addBlock(block);
@@ -304,7 +304,7 @@ describe('BlueprintValidator', () => {
             let parent: any = blueprint;
             for (let i = 0; i < 12; i++) {
                 const loop = new LoopElementsBlock(`Loop ${i}`, {
-                    selector: { value: '.item', type: 'css' }
+                    selector: { value: '.item', type: SelectorType.CSS }
                 });
                 if (parent.addBlock) {
                     parent.addBlock(loop);
@@ -321,7 +321,7 @@ describe('BlueprintValidator', () => {
         });
 
         it('should warn about navigate inside loop', () => {
-            const loop = new LoopElementsBlock('Loop', { selector: { value: '.item', type: 'css' } });
+            const loop = new LoopElementsBlock('Loop', { selector: { value: '.item', type: SelectorType.CSS } });
             const nav = new NavigateBlock('Nav', { url: 'https://example.com' });
             loop.children = [nav];
             nav.parent = loop;
@@ -332,11 +332,11 @@ describe('BlueprintValidator', () => {
         });
 
         it('should validate parent references', () => {
-            const loop = new LoopElementsBlock('Loop', { selector: { value: '.item', type: 'css' } });
+            const loop = new LoopElementsBlock('Loop', { selector: { value: '.item', type: SelectorType.CSS } });
             const extract = new ExtractScopeBlock('Extract', {
                 fields: [{
                     key: 'title',
-                    selector: { value: '.title', type: 'css' },
+                    selector: { value: '.title', type: SelectorType.CSS },
                     attribute: 'text'
                 }]
             });
@@ -353,11 +353,11 @@ describe('BlueprintValidator', () => {
         it('should validate complete scraping blueprint', () => {
             const nav = new NavigateBlock('Navigate', { url: 'https://example.com' });
             const wait = new WaitBlock('Wait', { type: 'timeout', timeout: 2000 });
-            const loop = new LoopElementsBlock('Loop Items', { selector: { value: '.item', type: 'css' } });
+            const loop = new LoopElementsBlock('Loop Items', { selector: { value: '.item', type: SelectorType.CSS } });
             const extract = new ExtractScopeBlock('Extract', {
                 fields: [
-                    { key: 'title', selector: { value: '.title', type: 'css' }, attribute: 'text' },
-                    { key: 'price', selector: { value: '.price', type: 'css' }, attribute: 'text' }
+                    { key: 'title', selector: { value: '.title', type: SelectorType.CSS }, attribute: 'text' },
+                    { key: 'price', selector: { value: '.price', type: SelectorType.CSS }, attribute: 'text' }
                 ]
             });
 
@@ -375,12 +375,12 @@ describe('BlueprintValidator', () => {
 
         it('should validate pagination with extraction', () => {
             const pagination = new LoopPaginationBlock('Pagination', {
-                nextButtonSelector: { value: '.next', type: 'css' },
+                nextButtonSelector: { value: '.next', type: SelectorType.CSS },
                 maxPages: 5
             });
-            const loop = new LoopElementsBlock('Loop Items', { selector: { value: '.item', type: 'css' } });
+            const loop = new LoopElementsBlock('Loop Items', { selector: { value: '.item', type: SelectorType.CSS } });
             const extract = new ExtractScopeBlock('Extract', {
-                fields: [{ key: 'data', selector: { value: '.data', type: 'css' }, attribute: 'text' }]
+                fields: [{ key: 'data', selector: { value: '.data', type: SelectorType.CSS }, attribute: 'text' }]
             });
 
             loop.children = [extract];

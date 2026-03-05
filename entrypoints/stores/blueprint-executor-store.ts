@@ -55,7 +55,9 @@ export class BlueprintExecutorStore {
     // Resume functionality
     currentExecutionId: number | null = null;
     canResume: boolean = false;
-    lastCheckpoint: { blockId: string; loopIndex?: number; url: string } | null = null;
+    lastCheckpoint: { blockId: string; loopIndex?: number; loopState?: Record<string, number>; url: string } | null = null;
+    // Persisted map of blueprint IDs that have resumable checkpoints (survives extension restart)
+    resumableBlueprints: Record<string, { executionId: number; itemsScraped: number; stoppedAt: string }> = {};
 
     // Track which blueprint is running
     runningBlueprintId: string | null = null;
@@ -68,10 +70,13 @@ export class BlueprintExecutorStore {
     private _returnUrl: string | null = null; // Store URL to return to after go_back
     // Tab ID tracking — locked to a specific tab during execution
     private _targetTabId: number | null = null;
+    // Loop state tracking for resume - maps blockId to current iteration index
+    private _loopState: Record<string, number> = {};
 
     constructor() {
         makeAutoObservable(this);
         this.loadSettings();
+        this.loadResumableBlueprints();
     }
 
     async loadSettings() {
@@ -152,6 +157,8 @@ export class BlueprintExecutorStore {
 
         if (!resumeFromCheckpoint) {
             this.resetState();
+            // Clear any old resumable checkpoint for this blueprint
+            this.clearResumableCheckpoint(blueprint.id);
         }
         this.status = 'running';
         this.runningBlueprintId = blueprint.id;
@@ -246,6 +253,10 @@ export class BlueprintExecutorStore {
                         this.canResume = false;
                         this.lastCheckpoint = null;
                     });
+                    // Clear resumable entry on successful completion
+                    if (blueprint.id) {
+                        this.clearResumableCheckpoint(blueprint.id);
+                    }
                 } catch (e) {
                     console.error('Failed to save execution history', e);
                 }
@@ -330,6 +341,7 @@ export class BlueprintExecutorStore {
                         planId: this.runningBlueprintId,
                         executionId: this.currentExecutionId,
                         blockId: this.currentBlock.id,
+                        loopState: Object.keys(this._loopState).length > 0 ? this._loopState : undefined,
                         timestamp: Date.now(),
                         url: currentUrl,
                         completed: false
@@ -338,10 +350,20 @@ export class BlueprintExecutorStore {
                         this.canResume = true;
                         this.lastCheckpoint = {
                             blockId: this.currentBlock!.id,
+                            loopState: this._loopState,
                             url: currentUrl
                         };
+                        // Add to resumable blueprints map (persists across restart)
+                        if (this.runningBlueprintId) {
+                            this.resumableBlueprints[this.runningBlueprintId] = {
+                                executionId: this.currentExecutionId!,
+                                itemsScraped: this.extractedData.length,
+                                stoppedAt: new Date().toISOString()
+                            };
+                        }
                     });
                     this.log('info', '💾 Checkpoint saved for resume');
+                    this.log('info', `  📊 Loop state: ${JSON.stringify(this._loopState)}`);
                 }
             } catch (e) {
                 console.error('Failed to save execution state', e);
@@ -351,6 +373,66 @@ export class BlueprintExecutorStore {
 
     clearResults() {
         this.resetState();
+    }
+
+    async loadResumableBlueprints() {
+        try {
+            // Find all stopped executions that have checkpoints
+            const allExecutions = await db.getAllExecutions();
+            const stoppedExecutions = allExecutions.filter(e => e.status === 'stopped');
+            const resumable: Record<string, { executionId: number; itemsScraped: number; stoppedAt: string }> = {};
+
+            for (const exec of stoppedExecutions) {
+                if (!exec.id) continue;
+                const checkpoint = await db.getLastCheckpoint(exec.planId);
+                if (checkpoint && checkpoint.executionId === exec.id) {
+                    // Only keep the most recent stopped execution per blueprint
+                    if (!resumable[exec.planId] || new Date(exec.startedAt) > new Date(resumable[exec.planId].stoppedAt)) {
+                        resumable[exec.planId] = {
+                            executionId: exec.id,
+                            itemsScraped: exec.itemsScraped,
+                            stoppedAt: exec.completedAt || exec.startedAt
+                        };
+                    }
+                }
+            }
+
+            runInAction(() => {
+                this.resumableBlueprints = resumable;
+            });
+        } catch (e) {
+            console.error('Failed to load resumable blueprints', e);
+        }
+    }
+
+    hasResumableCheckpoint(blueprintId: string): boolean {
+        return !!this.resumableBlueprints[blueprintId];
+    }
+
+    async clearResumableCheckpoint(blueprintId: string) {
+        try {
+            const entry = this.resumableBlueprints[blueprintId];
+            if (entry) {
+                await db.clearProgressByExecution(entry.executionId);
+            }
+            runInAction(() => {
+                delete this.resumableBlueprints[blueprintId];
+            });
+        } catch (e) {
+            console.error('Failed to clear resumable checkpoint', e);
+        }
+    }
+
+    async resumeBlueprint(blueprint: Blueprint) {
+        // Load checkpoint from DB first
+        const checkpoint = await this.loadLastCheckpoint(blueprint.id);
+        if (!checkpoint) {
+            // No checkpoint found, start fresh
+            await this.execute(blueprint);
+            return;
+        }
+        // Execute with resume flag
+        await this.execute(blueprint, true);
     }
 
     async loadLastCheckpoint(blueprintId: string) {
@@ -364,9 +446,14 @@ export class BlueprintExecutorStore {
                     this.lastCheckpoint = {
                         blockId: checkpoint.blockId,
                         loopIndex: checkpoint.loopIndex,
+                        loopState: checkpoint.loopState,
                         url: checkpoint.url
                     };
                     this.currentExecutionId = checkpoint.executionId;
+                    // Restore loop state for resume
+                    if (checkpoint.loopState) {
+                        this._loopState = { ...checkpoint.loopState };
+                    }
                     // Restore previously extracted data
                     if (execution?.results && execution.results.length > 0) {
                         this.extractedData = execution.results as Record<string, any>[];
@@ -872,35 +959,49 @@ export class BlueprintExecutorStore {
         this.log('info', '↩ Going back...');
         this.log('info', `  🎯 Current tab ID: ${this._targetTabId}`);
 
+        const maxRetries = 3;
+
         try {
-            // If we have a stored return URL (from loop), navigate to it directly
-            // This is more reliable than browser.tabs.goBack() which can fail with complex history
-            if (this._returnUrl) {
-                this.log('info', `  🔄 Navigating to stored URL: ${this._returnUrl}`);
-                await browser.tabs.update(this._targetTabId!, { url: this._returnUrl });
-            } else {
-                // Fallback to browser back button if no return URL stored
-                this.log('info', `  ⬅️ Using browser back button`);
-                await browser.tabs.goBack(this._targetTabId!);
-            }
+            for (let attempt = 1; attempt <= maxRetries; attempt++) {
+                // If we have a stored return URL (from loop), navigate to it directly
+                // This is more reliable than browser.tabs.goBack() which can fail with complex history
+                if (this._returnUrl) {
+                    this.log('info', `  🔄 Navigating to stored URL${attempt > 1 ? ` (attempt ${attempt})` : ''}: ${this._returnUrl}`);
+                    await browser.tabs.update(this._targetTabId!, { url: this._returnUrl });
+                } else {
+                    // Fallback to browser back button if no return URL stored
+                    this.log('info', `  ⬅️ Using browser back button${attempt > 1 ? ` (attempt ${attempt})` : ''}`);
+                    await browser.tabs.goBack(this._targetTabId!);
+                }
 
-            this.log('info', `  ⏳ Waiting for page to load after going back...`);
+                this.log('info', `  ⏳ Waiting for page to load after going back...`);
 
-            // Wait for content script to be ready
-            await this.waitForTab(30000);
+                // Wait for content script to be ready
+                await this.waitForTab(30000);
 
-            // Additional delay to ensure page is fully stabilized
-            // This is critical for loops with go_back to prevent blank page issues
-            this.log('info', `  ⏱ Waiting 1000ms for page stabilization...`);
-            await this.delay(1000);
+                // Additional delay to ensure page is fully stabilized
+                // This is critical for loops with go_back to prevent blank page issues
+                this.log('info', `  ⏱ Waiting 1000ms for page stabilization...`);
+                await this.delay(1000);
 
-            // Get current URL for debugging
-            const tab = await browser.tabs.get(this._targetTabId!);
-            this.log('info', `  📍 Current URL after go_back: ${tab.url}`);
+                // Get current URL for debugging
+                const tab = await browser.tabs.get(this._targetTabId!);
+                this.log('info', `  📍 Current URL after go_back: ${tab.url}`);
 
-            // Verify we're on the expected URL if we had a return URL
-            if (this._returnUrl && tab.url !== this._returnUrl) {
-                this.log('warn', `  ⚠️ URL mismatch! Expected: ${this._returnUrl}, Got: ${tab.url}`);
+                // Verify we're on the expected URL if we had a return URL
+                if (this._returnUrl && tab.url !== this._returnUrl) {
+                    if (attempt < maxRetries) {
+                        this.log('warn', `  ⚠️ URL mismatch (attempt ${attempt}/${maxRetries}). Retrying...`);
+                        this.log('info', `    Expected: ${this._returnUrl}`);
+                        this.log('info', `    Got: ${tab.url}`);
+                        await this.delay(1000);
+                        continue;
+                    }
+                    this.log('warn', `  ⚠️ URL mismatch after ${maxRetries} attempts. Expected: ${this._returnUrl}, Got: ${tab.url}`);
+                }
+
+                // Navigation succeeded (or we exhausted retries)
+                break;
             }
 
             this.log('success', '✓ Went back');
@@ -1043,17 +1144,26 @@ export class BlueprintExecutorStore {
         this.log('info', `  ▶️ Will iterate: ${maxIter} times`);
         this.log('info', `  👶 Children per iteration: ${block.children?.length || 0}`);
 
+        // Check if we're resuming from a checkpoint
+        const startIndex = this._loopState[block.id] || 0;
+        if (startIndex > 0) {
+            this.log('info', `  🔄 Resuming from element ${startIndex + 1}`);
+        }
+
         // Get processed items from parent context if available
         const processedItems = scope?.context?.loopItemsProcessed || new Set<number>();
         if (processedItems.size > 0) {
             this.log('info', `  📊 Items already processed: ${processedItems.size}`);
         }
 
-        for (let i = 0; i < maxIter; i++) {
+        for (let i = startIndex; i < maxIter; i++) {
             // Set return URL for this iteration
             this._returnUrl = loopStartUrl;
             if (this._abortController?.signal.aborted) break;
             await this.checkPause();
+
+            // Update loop state for checkpoint
+            this._loopState[block.id] = i;
 
             // Check if this item was already processed
             if (processedItems.has(i)) {
@@ -1118,19 +1228,53 @@ export class BlueprintExecutorStore {
                 break;
             }
 
-            for (const child of (block.children || [])) {
-                if (this._abortController?.signal.aborted) break;
-                await this.executeBlock(child, childScope);
+            let iterationFailed = false;
+            try {
+                for (const child of (block.children || [])) {
+                    if (this._abortController?.signal.aborted) break;
+                    await this.executeBlock(child, childScope);
+                }
+            } catch (iterErr: any) {
+                iterationFailed = true;
+                this.log('warn', `    ⚠ Item ${i + 1} failed: ${iterErr.message}`);
+                this.log('info', `    🔄 Attempting recovery for next iteration...`);
+
+                // Try to recover by navigating back to loop start URL
+                if (loopStartUrl) {
+                    try {
+                        await browser.tabs.update(this._targetTabId!, { url: loopStartUrl });
+                        await this.waitForTab(30000);
+                        await this.delay(1000);
+                        this.log('info', `    ✓ Recovered — navigated back to loop URL`);
+                    } catch (recoveryErr: any) {
+                        this.log('error', `    ❌ Recovery failed: ${recoveryErr.message}. Stopping loop.`);
+                        break;
+                    }
+                }
             }
 
-            // Mark this item as processed
-            processedItems.add(i);
+            // Mark this item as processed (even if failed, to avoid re-processing)
+            if (!iterationFailed) {
+                processedItems.add(i);
+            }
 
             // Clear return URL after iteration completes
             this._returnUrl = null;
         }
 
+        // Ensure return URL is cleared even if loop breaks early (element not found, abort, etc.)
+        this._returnUrl = null;
+
         this.log('success', `✓ Loop completed: ${maxIter} iterations`);
+    }
+
+    private clearChildLoopStates(block: Block) {
+        for (const child of (block.children || [])) {
+            delete this._loopState[child.id];
+            if (child.children) {
+                this.clearChildLoopStates(child);
+            }
+        }
     }
 
     private async executeLoopPagination(block: Block, scope?: Scope) {
@@ -1161,12 +1305,26 @@ export class BlueprintExecutorStore {
         this.log('info', `  📌 Selector type: ${sel.type || 'css'}`);
         this.log('info', `  ⚠ On no next button: ${config.onNoNextButton || 'stop'}`);
 
-        let page = 0;
+        // Check if we're resuming from a checkpoint
+        const startPage = this._loopState[block.id] || 0;
+        if (startPage > 0) {
+            this.log('info', `  🔄 Resuming from page ${startPage + 1}`);
+        }
+
+        let page = startPage;
         while (page < maxPages) {
             if (this._abortController?.signal.aborted) break;
             await this.checkPause();
 
+            // Update loop state for checkpoint
+            this._loopState[block.id] = page;
+
             this.log('info', `  ━━━ Page ${page + 1} ━━━`);
+
+            // Reset child loop states for new pages so loop_elements starts fresh
+            if (page > startPage) {
+                this.clearChildLoopStates(block);
+            }
 
             // Execute children for this page
             this.log('info', `    👶 Executing ${block.children?.length || 0} children on this page...`);
@@ -1255,6 +1413,11 @@ export class BlueprintExecutorStore {
 
             this.log('info', `  ━━━ Iteration ${page + 1} ━━━`);
 
+            // Reset child loop states for new iterations so loop_elements starts fresh
+            if (page > 0) {
+                this.clearChildLoopStates(block);
+            }
+
             // Execute children for current visible items
             this.log('info', `    👶 Executing ${block.children?.length || 0} children...`);
             for (const child of (block.children || [])) {
@@ -1331,6 +1494,11 @@ export class BlueprintExecutorStore {
             await this.checkPause();
 
             this.log('info', `  ━━━ Iteration ${iteration + 1} ━━━`);
+
+            // Reset child loop states for new iterations so loop_elements starts fresh
+            if (iteration > 0) {
+                this.clearChildLoopStates(block);
+            }
 
             // Execute children for current visible items
             this.log('info', `    👶 Executing ${block.children?.length || 0} children...`);
@@ -1444,6 +1612,11 @@ export class BlueprintExecutorStore {
                 }
             } : undefined;
 
+            // Reset child loop states for new iterations so loop_elements starts fresh
+            if (iteration > 0) {
+                this.clearChildLoopStates(block);
+            }
+
             // Execute children for current visible items
             this.log('info', `    👶 Executing ${block.children?.length || 0} children...`);
             for (const child of (block.children || [])) {
@@ -1548,18 +1721,31 @@ export class BlueprintExecutorStore {
         // Log field details
         fields.forEach((f: any, idx: number) => {
             this.log('info', `    ${idx + 1}. ${f.key}: selector="${f.selector?.value || 'scope'}" attr="${f.attribute}"`);
+            if (f.transformers && f.transformers.length > 0) {
+                this.log('info', `       🔧 Transformers (${f.transformers.length}):`, f.transformers);
+            }
         });
 
         // Build extraction fields in the format env-handler expects
+        // IMPORTANT: Convert MobX Proxy objects to plain JS objects for Chrome messaging
         const extractionFields = fields.map((f: any) => ({
             key: f.key,
             selector: f.selector?.value || '',
             selectorType: (f.selector?.type || 'css') as string,
             attribute: f.attribute || 'text',
-            transformers: f.transformers || [],
+            transformers: f.transformers ? JSON.parse(JSON.stringify(f.transformers)) : [],
             required: f.required || false,
             multiple: f.multiple || false,
         }));
+
+        this.log('info', `  📤 Extraction fields being sent:`, extractionFields);
+
+        // Log transformers for debugging
+        extractionFields.forEach((field: any) => {
+            if (field.transformers && field.transformers.length > 0) {
+                this.log('info', `     Field "${field.key}" transformers:`, JSON.stringify(field.transformers));
+            }
+        });
 
         // Determine the extraction scope
         let extractScope = scope;
@@ -1571,15 +1757,21 @@ export class BlueprintExecutorStore {
         if (config.scopeSelector?.value) {
             // If the extract block has its own scope selector, build a nested scope
             this.log('info', `  🎯 Building nested scope: ${config.scopeSelector.value}`);
-            extractScope = {
-                selector: config.scopeSelector.value,
-                selectorType: (config.scopeSelector.type || 'css') as 'css' | 'xpath',
-                index: 0,
-                parent: extractScope, // Use the potentially reset scope as parent
-            };
+            const scopeResponse = await this.send({
+                type: 'ENV_GET_SCOPE',
+                data: {
+                    selector: config.scopeSelector.value,
+                    selectorType: config.scopeSelector.type || 'css',
+                    scope: extractScope || undefined,
+                }
+            });
+            if (!scopeResponse.success) throw new Error('Failed to build nested scope');
+            extractScope = scopeResponse.data;
         }
 
         this.log('info', `  📤 Sending extraction request...`);
+        this.log('info', `  📤 Message payload:`, JSON.stringify({ fields: extractionFields, scope: extractScope }).substring(0, 500));
+
         const response = await this.send({
             type: 'ENV_EXTRACT_RECORD',
             data: {
@@ -1720,6 +1912,7 @@ export class BlueprintExecutorStore {
         this.lastCheckpoint = null;
         this.runningBlueprintId = null;
         this.runningBlueprintName = null;
+        this._loopState = {};
     }
 
     private downloadBlob(content: string, filename: string, mimeType: string) {

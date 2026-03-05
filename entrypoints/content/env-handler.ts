@@ -82,38 +82,230 @@ function extractValueFromElement(el: Element, attribute: string): string | null 
 
 function applyTransformers(value: any, transformers: any[]): any {
     if (!value || !transformers) return value;
+    console.log('[applyTransformers] Starting with value:', String(value).substring(0, 100));
+    console.log('[applyTransformers] Transformers:', transformers);
+
     for (const transform of transformers) {
         if (typeof value !== 'string') value = String(value);
+        const beforeValue = value;
 
-        switch (transform.type) {
-            case 'trim':
-                value = value.trim();
-                break;
-            case 'uppercase':
-                value = value.toUpperCase();
-                break;
-            case 'lowercase':
-                value = value.toLowerCase();
-                break;
-            case 'replace':
-                if (transform.config?.searchValue) {
-                    value = value.replaceAll(transform.config.searchValue, transform.config.replaceValue || '');
-                }
-                break;
-            case 'regex':
-                if (transform.config?.regexPattern) {
-                    try {
-                        const regex = new RegExp(transform.config.regexPattern, transform.config.regexFlags || 'g');
-                        const match = value.match(regex);
-                        value = match ? match[0] : '';
-                    } catch (e) {
-                        console.warn('Invalid Regex', e);
+        try {
+            console.log(`[applyTransformers] Applying transformer type: ${transform.type}`);
+            switch (transform.type) {
+                case 'trim':
+                    value = value.trim();
+                    break;
+                case 'uppercase':
+                    value = value.toUpperCase();
+                    break;
+                case 'lowercase':
+                    value = value.toLowerCase();
+                    break;
+                case 'capitalize':
+                    value = value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
+                    break;
+                case 'title_case':
+                    value = value.split(' ').map((word: string) =>
+                        word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+                    ).join(' ');
+                    break;
+                case 'replace':
+                    if (transform.searchValue) {
+                        value = value.replaceAll(transform.searchValue, transform.replaceValue || '');
                     }
-                }
-                break;
+                    break;
+                case 'regex':
+                    console.log('[applyTransformers] Regex transformer:', { pattern: transform.pattern, flags: transform.flags, replacement: transform.replacement });
+                    if (transform.pattern) {
+                        const pattern = transform.pattern;
+                        const flags = transform.flags || '';
+                        const regex = new RegExp(pattern, flags);
+                        console.log('[applyTransformers] Created regex:', regex);
+
+                        // If replacement is provided, use replace mode
+                        if (transform.replacement !== undefined) {
+                            console.log('[applyTransformers] Using replace mode with replacement:', transform.replacement);
+                            value = value.replace(regex, transform.replacement);
+                            console.log('[applyTransformers] After replace:', String(value).substring(0, 100));
+                        } else if (transform.extractGroup !== undefined) {
+                            // Extract specific group
+                            const match = value.match(regex);
+                            if (match && match[transform.extractGroup]) {
+                                value = match[transform.extractGroup];
+                            } else {
+                                value = '';
+                            }
+                        } else {
+                            // Default: extract first match
+                            const match = value.match(regex);
+                            value = match ? match[0] : '';
+                        }
+                    }
+                    break;
+                case 'split':
+                    if (transform.delimiter) {
+                        const parts = value.split(transform.delimiter);
+                        if (transform.index !== undefined) {
+                            value = parts[transform.index] || '';
+                        } else {
+                            value = parts.join(transform.delimiter);
+                        }
+                    }
+                    break;
+                case 'parse_number':
+                    // Remove non-numeric characters except decimal point and minus
+                    const cleaned = value.replace(/[^0-9.-]/g, '');
+                    const num = parseFloat(cleaned);
+                    value = isNaN(num) ? '' : String(num);
+                    break;
+                case 'currency_convert':
+                    // Convert currency using fixed rate
+                    const numValue = parseFloat(value);
+                    if (!isNaN(numValue) && transform.fixedRate) {
+                        const converted = numValue * transform.fixedRate;
+                        // Round to 2 decimal places
+                        value = converted.toFixed(2);
+                    }
+                    break;
+                case 'parse_json':
+                    // Parse JSON string and optionally extract a path
+                    try {
+                        const parsed = JSON.parse(value);
+                        if (transform.path) {
+                            // Extract value from path like "user.name" or "items[0].id"
+                            const pathParts = transform.path.split('.');
+                            let result = parsed;
+                            for (const part of pathParts) {
+                                const arrayMatch = part.match(/^(\w+)\[(\d+)\]$/);
+                                if (arrayMatch) {
+                                    result = result[arrayMatch[1]][parseInt(arrayMatch[2])];
+                                } else {
+                                    result = result[part];
+                                }
+                                if (result === undefined) break;
+                            }
+                            value = result !== undefined ? String(result) : '';
+                        } else {
+                            value = JSON.stringify(parsed);
+                        }
+                    } catch (e) {
+                        console.warn('JSON parse failed:', e);
+                        value = '';
+                    }
+                    break;
+                case 'join':
+                    // Join array values with delimiter
+                    if (Array.isArray(value)) {
+                        value = value.join(transform.delimiter || ', ');
+                    }
+                    break;
+                case 'parse_date':
+                    // Parse and format dates
+                    try {
+                        const date = new Date(value);
+                        if (!isNaN(date.getTime())) {
+                            if (transform.outputFormat) {
+                                // Simple format support: YYYY-MM-DD, DD/MM/YYYY, etc.
+                                const year = date.getFullYear();
+                                const month = String(date.getMonth() + 1).padStart(2, '0');
+                                const day = String(date.getDate()).padStart(2, '0');
+                                const hours = String(date.getHours()).padStart(2, '0');
+                                const minutes = String(date.getMinutes()).padStart(2, '0');
+                                const seconds = String(date.getSeconds()).padStart(2, '0');
+
+                                value = transform.outputFormat
+                                    .replace('YYYY', String(year))
+                                    .replace('MM', month)
+                                    .replace('DD', day)
+                                    .replace('HH', hours)
+                                    .replace('mm', minutes)
+                                    .replace('ss', seconds);
+                            } else {
+                                value = date.toISOString();
+                            }
+                        }
+                    } catch (e) {
+                        console.warn('Date parse failed:', e);
+                    }
+                    break;
+                case 'custom':
+                    // Execute custom JavaScript function
+                    try {
+                        if (transform.functionBody) {
+                            // Create function from string and execute
+                            const customFn = new Function('value', transform.functionBody);
+                            value = customFn(value);
+                        }
+                    } catch (e) {
+                        console.warn('Custom transformer failed:', e);
+                    }
+                    break;
+            }
+            console.log(`[applyTransformers] ${transform.type} result:`, { before: String(beforeValue).substring(0, 50), after: String(value).substring(0, 50) });
+        } catch (e) {
+            console.warn(`Transformer ${transform.type} failed:`, e);
+            if (!transform.skipOnError) {
+                // Continue with original value if skipOnError is not set
+            }
         }
     }
+    console.log('[applyTransformers] Final value:', String(value).substring(0, 100));
     return value;
+}
+
+/**
+ * Walk up from the given element to find the nearest natively clickable ancestor.
+ * Checks for: <a>, <button>, <input type="submit/button">, [role="button"],
+ * elements with onclick handlers, or cursor:pointer style.
+ * Returns the original element if it is already clickable or no better target is found.
+ */
+function findClickableElement(el: Element): Element {
+    const clickableTags = new Set(['A', 'BUTTON', 'SUMMARY', 'DETAILS']);
+    const clickableInputTypes = new Set(['submit', 'button', 'reset']);
+    const maxDepth = 5; // Don't walk too far up
+
+    // Check if element itself is clickable
+    if (isClickable(el)) return el;
+
+    // Walk up to find a clickable ancestor
+    let current: Element | null = el.parentElement;
+    let depth = 0;
+    while (current && depth < maxDepth && current !== document.body) {
+        if (isClickable(current)) return current;
+        current = current.parentElement;
+        depth++;
+    }
+
+    // No clickable ancestor found — return original element (it might still work via event bubbling)
+    return el;
+
+    function isClickable(target: Element): boolean {
+        // Native clickable tags
+        if (clickableTags.has(target.tagName)) return true;
+
+        // Input types that are clickable
+        if (target.tagName === 'INPUT') {
+            const type = (target as HTMLInputElement).type?.toLowerCase();
+            if (clickableInputTypes.has(type)) return true;
+        }
+
+        // ARIA role
+        if (target.getAttribute('role') === 'button' || target.getAttribute('role') === 'link') return true;
+
+        // Has onclick attribute
+        if (target.hasAttribute('onclick')) return true;
+
+        // Has tabindex (intentionally interactive)
+        if (target.hasAttribute('tabindex') && target.getAttribute('tabindex') !== '-1') return true;
+
+        // Check computed style for cursor:pointer
+        try {
+            const style = window.getComputedStyle(target);
+            if (style.cursor === 'pointer') return true;
+        } catch (e) { /* ignore */ }
+
+        return false;
+    }
 }
 
 export function initEnvHandler() {
@@ -147,21 +339,30 @@ export function initEnvHandler() {
                         console.log('[ENV_CLICK] Using scope element as target');
                     }
 
-                    // Scroll into view
+                    // Find the best clickable element — if target isn't natively clickable,
+                    // walk up to find the nearest <a>, <button>, or element with cursor:pointer/onclick
+                    const clickableTarget = findClickableElement(target);
+                    if (clickableTarget !== target) {
+                        console.log('[ENV_CLICK] Found clickable ancestor:', clickableTarget.tagName, clickableTarget.className);
+                    }
+
+                    // Scroll into view and wait for it to settle
                     console.log('[ENV_CLICK] Scrolling element into view');
-                    target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    clickableTarget.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    await new Promise(r => setTimeout(r, 150));
 
                     // Click logic
                     if (openInNewTab) {
                         console.log('[ENV_CLICK] Opening in new tab');
-                        // Attempt to open in new tab
-                        if (target.tagName === 'A') {
-                            const href = (target as HTMLAnchorElement).href;
+                        // Attempt to open in new tab — check target and clickable ancestor for href
+                        const anchor = clickableTarget.tagName === 'A' ? clickableTarget
+                            : clickableTarget.closest('a') || (target.tagName === 'A' ? target : target.closest('a'));
+                        if (anchor) {
+                            const href = (anchor as HTMLAnchorElement).href;
                             console.log('[ENV_CLICK] Link element, opening URL:', href);
                             window.open(href, '_blank');
                         } else {
                             console.log('[ENV_CLICK] Non-link element, simulating Ctrl+Click');
-                            // Try simulating click with modifier
                             const mouseEvent = new MouseEvent('click', {
                                 bubbles: true,
                                 cancelable: true,
@@ -169,16 +370,15 @@ export function initEnvHandler() {
                                 ctrlKey: true,
                                 metaKey: true
                             });
-                            target.dispatchEvent(mouseEvent);
+                            clickableTarget.dispatchEvent(mouseEvent);
                         }
                     } else {
                         console.log('[ENV_CLICK] Normal click');
-                        if (target instanceof HTMLElement) {
-                            target.click();
+                        if (clickableTarget instanceof HTMLElement) {
+                            clickableTarget.click();
                         } else {
                             console.log('[ENV_CLICK] Non-HTMLElement, using fallback click');
-                            // fallback for SVG etc
-                            (target as any).click?.() || target.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+                            (clickableTarget as any).click?.() || clickableTarget.dispatchEvent(new MouseEvent('click', { bubbles: true }));
                         }
                     }
                     console.log('[ENV_CLICK] Click completed successfully');
@@ -414,8 +614,14 @@ export function initEnvHandler() {
                                 }
 
                                 // Apply Transformers
-                                if (value && field.transformers) {
+                                console.log(`[ENV_EXTRACT_RECORD] Field "${key}" - value exists: ${!!value}, transformers exists: ${!!field.transformers}, transformers type: ${typeof field.transformers}, transformers length: ${field.transformers?.length}`);
+                                if (value && field.transformers && field.transformers.length > 0) {
+                                    console.log(`[ENV_EXTRACT_RECORD] ✅ Applying ${field.transformers.length} transformers to "${key}"`, field.transformers);
+                                    const beforeTransform = value;
                                     value = applyTransformers(value, field.transformers);
+                                    console.log(`[ENV_EXTRACT_RECORD] Transform result for "${key}":`, { before: String(beforeTransform).substring(0, 100), after: String(value).substring(0, 100) });
+                                } else {
+                                    console.log(`[ENV_EXTRACT_RECORD] ❌ NOT applying transformers to "${key}" - condition failed`);
                                 }
                             }
 

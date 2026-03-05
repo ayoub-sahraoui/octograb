@@ -64,7 +64,9 @@ export default observer(function BlueprintBuilder() {
             // Only cleanup when leaving if nothing is running and no data to preserve
             if (executorStore.status !== 'running' && executorStore.status !== 'paused') {
                 // Don't clear if there's data from a stopped execution (user might want to resume)
-                if (!executorStore.canResume && executorStore.extractedData.length === 0) {
+                const bpId = blueprintBuilderStore.selectedBlueprint?.id;
+                const hasCheckpoint = bpId ? executorStore.hasResumableCheckpoint(bpId) : false;
+                if (!executorStore.canResume && !hasCheckpoint && executorStore.extractedData.length === 0) {
                     executorStore.clearResults();
                 }
             }
@@ -160,7 +162,7 @@ export default observer(function BlueprintBuilder() {
         if (!blueprint) return;
 
         setIsResultsDrawerOpen(true);
-        await executorStore.execute(blueprint, true);
+        await executorStore.resumeBlueprint(blueprint);
     };
 
     const handleStop = async () => {
@@ -575,7 +577,7 @@ export default observer(function BlueprintBuilder() {
                             <Square className="text-white" />
                         </Button>
                     )}
-                    {executorStore.canResume && !executorStore.isRunning && (
+                    {(executorStore.canResume || (blueprintBuilderStore.selectedBlueprint && executorStore.hasResumableCheckpoint(blueprintBuilderStore.selectedBlueprint.id))) && !executorStore.isRunning && (
                         <Button
                             size={"icon"}
                             variant={'outline'}

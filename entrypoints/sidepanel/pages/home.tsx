@@ -62,7 +62,7 @@ export default observer(function Home() {
     const handleResume = async (blueprintId: string) => {
         const blueprint = blueprintBuilderStore.blueprints.find(b => b.id === blueprintId);
         if (!blueprint) return;
-        await executorStore.execute(blueprint, true);
+        await executorStore.resumeBlueprint(blueprint);
     };
 
     const handleViewExecution = (blueprintId: string) => {
@@ -180,8 +180,8 @@ export default observer(function Home() {
                             <div
                                 key={blueprint.id}
                                 className={`bg-white p-4 border rounded-lg flex flex-col gap-2 transition-all ${isThisRunning ? 'border-blue-400 ring-2 ring-blue-200' :
-                                        isThisPaused ? 'border-amber-400 ring-2 ring-amber-200' :
-                                            'border-gray-300 hover:ring-2'
+                                    isThisPaused ? 'border-amber-400 ring-2 ring-amber-200' :
+                                        'border-gray-300 hover:ring-2'
                                     }`}
                             >
                                 <div className="flex justify-between items-start">
@@ -242,13 +242,13 @@ export default observer(function Home() {
                                                 <Eye className="w-4 h-4" />
                                             </Button>
                                         )}
-                                        {/* Resume button - when stopped with checkpoint */}
-                                        {!isThisActive && !isOtherRunning && executorStore.canResume && executorStore.runningBlueprintId === blueprint.id && (
+                                        {/* Resume button - when stopped with checkpoint (persisted across restart) */}
+                                        {!isThisActive && !isOtherRunning && executorStore.hasResumableCheckpoint(blueprint.id) && (
                                             <Button
                                                 size="icon"
                                                 variant="outline"
                                                 onClick={() => handleResume(blueprint.id)}
-                                                title="Resume from last checkpoint"
+                                                title={`Resume from last checkpoint (${executorStore.resumableBlueprints[blueprint.id]?.itemsScraped || 0} rows)`}
                                                 className="border-blue-500 text-blue-500 hover:bg-blue-50"
                                             >
                                                 <RotateCcw className="w-4 h-4" />
@@ -301,15 +301,23 @@ export default observer(function Home() {
                                     </div>
                                 )}
 
-                                {/* Stopped with data indicator */}
+                                {/* Stopped with data indicator - from current session */}
                                 {!isThisActive && executorStore.runningBlueprintId === blueprint.id && executorStore.extractedData.length > 0 && (
                                     <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
                                         <Database className="w-3 h-3" />
                                         <span>{executorStore.extractedData.length} rows extracted</span>
-                                        {executorStore.canResume && (
+                                        {executorStore.hasResumableCheckpoint(blueprint.id) && (
                                             <span className="text-blue-600 font-medium">• Can resume</span>
                                         )}
                                         <span className="ml-auto">{executorStore.durationFormatted}</span>
+                                    </div>
+                                )}
+                                {/* Resumable checkpoint indicator - from previous session */}
+                                {!isThisActive && executorStore.runningBlueprintId !== blueprint.id && executorStore.hasResumableCheckpoint(blueprint.id) && (
+                                    <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
+                                        <Database className="w-3 h-3" />
+                                        <span>{executorStore.resumableBlueprints[blueprint.id]?.itemsScraped || 0} rows extracted</span>
+                                        <span className="text-blue-600 font-medium">• Can resume</span>
                                     </div>
                                 )}
                             </div>

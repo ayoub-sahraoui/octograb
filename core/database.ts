@@ -30,7 +30,8 @@ export interface ScraperProgress {
     planId: string;
     executionId: number;
     blockId: string;
-    loopIndex?: number;
+    loopIndex?: number; // Deprecated - kept for backward compatibility
+    loopState?: Record<string, number>; // New: track multiple loop levels by blockId
     timestamp: number;
     url: string;
     completed: boolean;
