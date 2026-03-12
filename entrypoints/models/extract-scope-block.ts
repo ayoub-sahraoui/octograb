@@ -8,6 +8,8 @@ import { TransformerConfig } from "./transformer";
 import { OnErrorStrategy } from "./enums";
 import { Block } from "./types";
 
+export type StaticFieldType = 'constant' | 'uuid' | 'random_number' | 'date' | 'auto_increment';
+
 export interface ExtractionField {
     key: string;
     label?: string;
@@ -17,6 +19,22 @@ export interface ExtractionField {
     required?: boolean;
     defaultValue?: any;
     multiple?: boolean;
+    /** Field mode: 'extracted' (default) uses selector, 'static' uses static config */
+    mode?: 'extracted' | 'static';
+    /** Post-processing formula using {{fieldKey}} references, e.g. "{{price}} * 1.2" */
+    formula?: string;
+    /** Static field type */
+    staticType?: StaticFieldType;
+    /** Static value for 'constant' type */
+    staticValue?: string;
+    /** Min value for 'random_number' type */
+    staticMin?: number;
+    /** Max value for 'random_number' type */
+    staticMax?: number;
+    /** Date format string for 'date' type (e.g. "YYYY-MM-DD HH:mm:ss") */
+    staticDateFormat?: string;
+    /** Starting value for 'auto_increment' type */
+    staticStartFrom?: number;
 }
 
 export interface ExtractScopeBlockConfig {

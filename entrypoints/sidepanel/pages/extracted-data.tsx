@@ -39,28 +39,32 @@ export default observer(function ExtractedData() {
     const hasCurrentData = executorStore.extractedData.length > 0;
 
     return (
-        <div className="h-full flex-1 flex flex-col gap-2">
-            <div className='flex justify-between items-center'>
-                <div className="flex items-center gap-2">
+        <div className="h-full flex-1 flex flex-col gap-2 min-h-0 overflow-hidden">
+            <div className='flex justify-between items-center shrink-0'>
+                <div className="flex items-center gap-1 shrink-0">
                     {blueprintBuilderStore.selectedBlueprint && (
-                        <Button size="icon" variant="outline" onClick={() => navigate('/blueprint-builder')} title="Back to Builder">
+                        <Button size="icon" variant="outline" onClick={() => navigate('/blueprint-builder')} title="Back to Builder" className="h-8 w-8">
                             <ArrowLeft className="w-4 h-4" />
                         </Button>
                     )}
-                    <h1 className="text-xl font-semibold ml-2">Extracted Data</h1>
+                    <h1 className="text-lg font-semibold ml-1">Extracted Data</h1>
                 </div>
-                <div className='flex gap-2'>
+                <div className='flex gap-1'>
                     {hasCurrentData && (
                         <>
-                            <Button size="sm" variant="outline" onClick={() => executorStore.downloadCSV()} className="gap-1.5">
-                                <FileSpreadsheet className="w-4 h-4" />
+                            <Button size="sm" variant="outline" onClick={() => executorStore.downloadCSV()} className="gap-1 h-8 px-2 text-xs">
+                                <FileSpreadsheet className="w-3.5 h-3.5" />
                                 CSV
                             </Button>
-                            <Button size="sm" variant="outline" onClick={() => executorStore.downloadJSON()} className="gap-1.5">
-                                <FileJson className="w-4 h-4" />
+                            <Button size="sm" variant="outline" onClick={() => executorStore.downloadExcel()} className="gap-1 h-8 px-2 text-xs">
+                                <FileSpreadsheet className="w-3.5 h-3.5" />
+                                Excel
+                            </Button>
+                            <Button size="sm" variant="outline" onClick={() => executorStore.downloadJSON()} className="gap-1 h-8 px-2 text-xs">
+                                <FileJson className="w-3.5 h-3.5" />
                                 JSON
                             </Button>
-                            <Button size="sm" variant="ghost" onClick={() => { executorStore.clearResults(); loadHistory(); }} className="text-destructive hover:text-destructive">
+                            <Button size="sm" variant="ghost" onClick={() => { executorStore.clearResults(); loadHistory(); }} className="text-destructive hover:text-destructive h-8 w-8 p-0">
                                 <Trash2 className="w-4 h-4" />
                             </Button>
                         </>
@@ -68,11 +72,11 @@ export default observer(function ExtractedData() {
                 </div>
             </div>
 
-            <div className="flex-1 bg-gray-100 p-4 border border-gray-300 rounded-lg flex flex-col overflow-hidden">
+            <div className="flex-1 bg-gray-100 p-3 border border-gray-300 rounded-lg flex flex-col overflow-hidden min-h-0">
                 {hasCurrentData ? (
                     <>
                         {/* Summary */}
-                        <div className="flex items-center gap-4 mb-3 text-sm text-muted-foreground">
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mb-2 text-xs text-muted-foreground">
                             <span>{executorStore.extractedData.length} rows</span>
                             <span>{executorStore.extractedColumns.length} columns</span>
                             {executorStore.duration !== null && (
@@ -82,9 +86,9 @@ export default observer(function ExtractedData() {
                                 <span className="font-medium text-gray-700">{executorStore.runningBlueprintName}</span>
                             )}
                             <span className={`ml-auto px-2 py-0.5 rounded text-xs font-medium ${executorStore.status === 'completed' ? 'bg-green-100 text-green-700' :
-                                    executorStore.status === 'error' ? 'bg-red-100 text-red-700' :
-                                        executorStore.status === 'running' ? 'bg-blue-100 text-blue-700' :
-                                            'bg-gray-100 text-gray-700'
+                                executorStore.status === 'error' ? 'bg-red-100 text-red-700' :
+                                    executorStore.status === 'running' ? 'bg-blue-100 text-blue-700' :
+                                        'bg-gray-100 text-gray-700'
                                 }`}>
                                 {executorStore.status}
                             </span>
@@ -106,7 +110,7 @@ export default observer(function ExtractedData() {
                                         <TableRow key={idx}>
                                             <TableCell className="text-muted-foreground text-xs font-mono">{idx + 1}</TableCell>
                                             {executorStore.extractedColumns.map(col => (
-                                                <TableCell key={col} className="max-w-[250px] truncate text-sm" title={String(row[col] ?? '')}>
+                                                <TableCell key={col} className="max-w-[150px] truncate text-xs whitespace-nowrap" title={String(row[col] ?? '')}>
                                                     {String(row[col] ?? '')}
                                                 </TableCell>
                                             ))}
@@ -130,9 +134,9 @@ export default observer(function ExtractedData() {
                                     <div className="flex items-center gap-2">
                                         <span className="font-medium text-sm truncate">{exec.planName}</span>
                                         <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${exec.status === 'completed' ? 'bg-green-100 text-green-700' :
-                                                exec.status === 'failed' ? 'bg-red-100 text-red-700' :
-                                                    exec.status === 'stopped' ? 'bg-amber-100 text-amber-700' :
-                                                        'bg-gray-100 text-gray-700'
+                                            exec.status === 'failed' ? 'bg-red-100 text-red-700' :
+                                                exec.status === 'stopped' ? 'bg-amber-100 text-amber-700' :
+                                                    'bg-gray-100 text-gray-700'
                                             }`}>
                                             {exec.status}
                                         </span>

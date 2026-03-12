@@ -135,17 +135,17 @@ export default observer(function Home() {
     };
 
     return (
-        <div className="h-full flex-1 flex flex-col gap-2">
-            <div className="flex justify-between items-center">
-                <h1 className="text-xl font-semibold ml-2">Blueprints</h1>
-                <div className="flex gap-2">
-                    <Button onClick={handleImportClick} variant="outline" className="flex items-center gap-2">
-                        <Upload className="w-4 h-4" />
+        <div className="h-full flex-1 flex flex-col gap-2 min-h-0 overflow-hidden">
+            <div className="flex justify-between items-center shrink-0">
+                <h1 className="text-lg font-semibold ml-1">Blueprints</h1>
+                <div className="flex gap-1">
+                    <Button size="sm" onClick={handleImportClick} variant="outline" className="flex items-center gap-1 h-8 px-2 text-xs">
+                        <Upload className="w-3.5 h-3.5" />
                         Import
                     </Button>
-                    <Button onClick={handleCreateNew} className="flex items-center gap-2">
-                        <Plus className="w-4 h-4" />
-                        New Blueprint
+                    <Button size="sm" onClick={handleCreateNew} className="flex items-center gap-1 h-8 px-2 text-xs">
+                        <Plus className="w-3.5 h-3.5" />
+                        New
                     </Button>
                 </div>
             </div>
@@ -156,7 +156,7 @@ export default observer(function Home() {
                 onChange={handleFileImport}
                 className="hidden"
             />
-            <div className="flex flex-col gap-2 overflow-auto flex-1 p-2">
+            <div className="flex flex-col gap-2 overflow-auto flex-1 min-h-0 p-2">
                 {blueprintBuilderStore.blueprints.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-full gap-4">
                         <div className="text-center">

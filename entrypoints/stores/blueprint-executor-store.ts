@@ -7,6 +7,7 @@ import { browser } from "wxt/browser";
 import { toJS } from "mobx";
 import { db } from "@/core/database";
 import { v4 as uuidv4 } from 'uuid';
+import * as XLSX from 'xlsx';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -72,6 +73,8 @@ export class BlueprintExecutorStore {
     private _targetTabId: number | null = null;
     // Loop state tracking for resume - maps blockId to current iteration index
     private _loopState: Record<string, number> = {};
+    // Auto-increment counters for static fields: maps "blockId:fieldKey" to current value
+    private _autoIncrementCounters: Record<string, number> = {};
 
     constructor() {
         makeAutoObservable(this);
@@ -955,6 +958,30 @@ export class BlueprintExecutorStore {
         await this.delay(settleTime);
     }
 
+    /**
+     * Wait for a tab to finish navigating (status === 'complete') with a timeout.
+     * This is critical because browser.tabs.update() resolves immediately before
+     * the navigation actually starts, so waitForTab() can ping the OLD content script.
+     */
+    private waitForNavigation(tabId: number, timeout: number = 30000): Promise<void> {
+        return new Promise((resolve, reject) => {
+            const timer = setTimeout(() => {
+                browser.tabs.onUpdated.removeListener(listener);
+                reject(new Error(`Navigation timeout after ${timeout}ms`));
+            }, timeout);
+
+            const listener = (updatedTabId: number, changeInfo: any) => {
+                if (updatedTabId === tabId && changeInfo.status === 'complete') {
+                    clearTimeout(timer);
+                    browser.tabs.onUpdated.removeListener(listener);
+                    resolve();
+                }
+            };
+
+            browser.tabs.onUpdated.addListener(listener);
+        });
+    }
+
     private async executeGoBack(block: Block) {
         this.log('info', '↩ Going back...');
         this.log('info', `  🎯 Current tab ID: ${this._targetTabId}`);
@@ -963,32 +990,37 @@ export class BlueprintExecutorStore {
 
         try {
             for (let attempt = 1; attempt <= maxRetries; attempt++) {
-                // If we have a stored return URL (from loop), navigate to it directly
-                // This is more reliable than browser.tabs.goBack() which can fail with complex history
                 if (this._returnUrl) {
                     this.log('info', `  🔄 Navigating to stored URL${attempt > 1 ? ` (attempt ${attempt})` : ''}: ${this._returnUrl}`);
+
+                    // Start listening for navigation BEFORE triggering it
+                    const navPromise = this.waitForNavigation(this._targetTabId!, 30000);
                     await browser.tabs.update(this._targetTabId!, { url: this._returnUrl });
+
+                    this.log('info', `  ⏳ Waiting for navigation to complete...`);
+                    await navPromise;
                 } else {
-                    // Fallback to browser back button if no return URL stored
                     this.log('info', `  ⬅️ Using browser back button${attempt > 1 ? ` (attempt ${attempt})` : ''}`);
+
+                    const navPromise = this.waitForNavigation(this._targetTabId!, 30000);
                     await browser.tabs.goBack(this._targetTabId!);
+
+                    this.log('info', `  ⏳ Waiting for navigation to complete...`);
+                    await navPromise;
                 }
 
-                this.log('info', `  ⏳ Waiting for page to load after going back...`);
-
-                // Wait for content script to be ready
+                // Wait for content script to be ready on the NEW page
+                this.log('info', `  ⏳ Waiting for content script to be ready...`);
                 await this.waitForTab(30000);
 
-                // Additional delay to ensure page is fully stabilized
-                // This is critical for loops with go_back to prevent blank page issues
-                this.log('info', `  ⏱ Waiting 1000ms for page stabilization...`);
-                await this.delay(1000);
+                // Additional stabilization delay
+                this.log('info', `  ⏱ Waiting 500ms for page stabilization...`);
+                await this.delay(500);
 
-                // Get current URL for debugging
+                // Verify URL
                 const tab = await browser.tabs.get(this._targetTabId!);
                 this.log('info', `  📍 Current URL after go_back: ${tab.url}`);
 
-                // Verify we're on the expected URL if we had a return URL
                 if (this._returnUrl && tab.url !== this._returnUrl) {
                     if (attempt < maxRetries) {
                         this.log('warn', `  ⚠️ URL mismatch (attempt ${attempt}/${maxRetries}). Retrying...`);
@@ -1718,71 +1750,168 @@ export class BlueprintExecutorStore {
             return;
         }
 
-        // Log field details
-        fields.forEach((f: any, idx: number) => {
-            this.log('info', `    ${idx + 1}. ${f.key}: selector="${f.selector?.value || 'scope'}" attr="${f.attribute}"`);
-            if (f.transformers && f.transformers.length > 0) {
-                this.log('info', `       🔧 Transformers (${f.transformers.length}):`, f.transformers);
+        // Separate fields into extracted (DOM) and static
+        const extractedFields: any[] = [];
+        const staticFields: any[] = [];
+        const formulaFields: any[] = [];
+
+        for (const f of fields) {
+            if (f.mode === 'static') {
+                staticFields.push(f);
+            } else {
+                extractedFields.push(f);
             }
-        });
-
-        // Build extraction fields in the format env-handler expects
-        // IMPORTANT: Convert MobX Proxy objects to plain JS objects for Chrome messaging
-        const extractionFields = fields.map((f: any) => ({
-            key: f.key,
-            selector: f.selector?.value || '',
-            selectorType: (f.selector?.type || 'css') as string,
-            attribute: f.attribute || 'text',
-            transformers: f.transformers ? JSON.parse(JSON.stringify(f.transformers)) : [],
-            required: f.required || false,
-            multiple: f.multiple || false,
-        }));
-
-        this.log('info', `  📤 Extraction fields being sent:`, extractionFields);
-
-        // Log transformers for debugging
-        extractionFields.forEach((field: any) => {
-            if (field.transformers && field.transformers.length > 0) {
-                this.log('info', `     Field "${field.key}" transformers:`, JSON.stringify(field.transformers));
+            if (f.formula) {
+                formulaFields.push(f);
             }
-        });
-
-        // Determine the extraction scope
-        let extractScope = scope;
-        if (config.resetScope) {
-            this.log('info', `  🔄 Resetting scope to document root`);
-            extractScope = undefined;
         }
 
-        if (config.scopeSelector?.value) {
-            // If the extract block has its own scope selector, build a nested scope
-            this.log('info', `  🎯 Building nested scope: ${config.scopeSelector.value}`);
-            const scopeResponse = await this.send({
-                type: 'ENV_GET_SCOPE',
+        // Log field details
+        fields.forEach((f: any, idx: number) => {
+            if (f.mode === 'static') {
+                this.log('info', `    ${idx + 1}. ${f.key}: [static] type="${f.staticType || 'constant'}"`);
+            } else {
+                this.log('info', `    ${idx + 1}. ${f.key}: selector="${f.selector?.value || 'scope'}" attr="${f.attribute}"`);
+                if (f.transformers && f.transformers.length > 0) {
+                    this.log('info', `       🔧 Transformers (${f.transformers.length}):`, f.transformers);
+                }
+            }
+            if (f.formula) {
+                this.log('info', `       📐 Formula: ${f.formula}`);
+            }
+        });
+
+        // ─── Step 1: Compute static field values ─────────────────────────
+        const record: Record<string, any> = {};
+
+        for (const f of staticFields) {
+            const key = f.key;
+            if (!key) continue;
+            try {
+                const staticType = f.staticType || 'constant';
+                let value: any = null;
+
+                switch (staticType) {
+                    case 'constant':
+                        value = f.staticValue ?? '';
+                        break;
+                    case 'uuid':
+                        value = uuidv4();
+                        break;
+                    case 'random_number': {
+                        const min = f.staticMin ?? 0;
+                        const max = f.staticMax ?? 1000;
+                        value = Math.floor(Math.random() * (max - min + 1)) + min;
+                        break;
+                    }
+                    case 'date': {
+                        const now = new Date();
+                        const fmt = f.staticDateFormat || 'YYYY-MM-DD HH:mm:ss';
+                        value = this.formatDate(now, fmt);
+                        break;
+                    }
+                    case 'auto_increment': {
+                        const counterKey = `${block.id}:${key}`;
+                        if (this._autoIncrementCounters[counterKey] === undefined) {
+                            this._autoIncrementCounters[counterKey] = f.staticStartFrom ?? 1;
+                        }
+                        value = this._autoIncrementCounters[counterKey];
+                        this._autoIncrementCounters[counterKey]++;
+                        break;
+                    }
+                }
+
+                record[key] = value;
+                this.log('info', `    🗄️ Static "${key}" = "${String(value).substring(0, 50)}"`);
+            } catch (err) {
+                this.log('warn', `  ⚠ Failed to compute static field "${key}": ${err}`);
+                record[key] = null;
+            }
+        }
+
+        // ─── Step 2: Extract DOM fields (only if there are extracted fields) ─
+        if (extractedFields.length > 0) {
+            // Build extraction fields in the format env-handler expects
+            // IMPORTANT: Convert MobX Proxy objects to plain JS objects for Chrome messaging
+            const envFields = extractedFields.map((f: any) => ({
+                key: f.key,
+                selector: f.selector?.value || '',
+                selectorType: (f.selector?.type || 'css') as string,
+                attribute: f.attribute || 'text',
+                transformers: f.transformers ? JSON.parse(JSON.stringify(f.transformers)) : [],
+                required: f.required || false,
+                multiple: f.multiple || false,
+            }));
+
+            this.log('info', `  📤 Extraction fields being sent: ${envFields.map((f: any) => f.key).join(', ')}`);
+
+            // Log transformers for debugging
+            envFields.forEach((field: any) => {
+                if (field.transformers && field.transformers.length > 0) {
+                    this.log('info', `     Field "${field.key}" transformers: ${JSON.stringify(field.transformers)}`);
+                }
+            });
+
+            // Determine the extraction scope
+            let extractScope = scope;
+            if (config.resetScope) {
+                this.log('info', `  🔄 Resetting scope to document root`);
+                extractScope = undefined;
+            }
+
+            if (config.scopeSelector?.value) {
+                this.log('info', `  🎯 Building nested scope: ${config.scopeSelector.value}`);
+                const scopeResponse = await this.send({
+                    type: 'ENV_GET_SCOPE',
+                    data: {
+                        selector: config.scopeSelector.value,
+                        selectorType: config.scopeSelector.type || 'css',
+                        scope: extractScope || undefined,
+                    }
+                });
+                if (!scopeResponse.success) throw new Error('Failed to build nested scope');
+                extractScope = scopeResponse.data;
+            }
+
+            this.log('info', `  📤 Sending extraction request...`);
+
+            const response = await this.send({
+                type: 'ENV_EXTRACT_RECORD',
                 data: {
-                    selector: config.scopeSelector.value,
-                    selectorType: config.scopeSelector.type || 'css',
+                    fields: envFields,
                     scope: extractScope || undefined,
                 }
             });
-            if (!scopeResponse.success) throw new Error('Failed to build nested scope');
-            extractScope = scopeResponse.data;
+
+            if (!response.success) throw new Error(response.error || 'Extraction failed');
+
+            // Merge extracted values into record
+            const extractedRecord = response.data as Record<string, any>;
+            for (const [key, value] of Object.entries(extractedRecord)) {
+                record[key] = value;
+            }
         }
 
-        this.log('info', `  📤 Sending extraction request...`);
-        this.log('info', `  📤 Message payload:`, JSON.stringify({ fields: extractionFields, scope: extractScope }).substring(0, 500));
-
-        const response = await this.send({
-            type: 'ENV_EXTRACT_RECORD',
-            data: {
-                fields: extractionFields,
-                scope: extractScope || undefined,
+        // ─── Step 3: Apply formulas ──────────────────────────────────────
+        for (const f of formulaFields) {
+            if (!f.key || !f.formula) continue;
+            try {
+                const result = this.evaluateFormula(f.formula, record);
+                this.log('info', `    📐 Formula "${f.key}": ${f.formula} = ${result}`);
+                record[f.key] = result;
+            } catch (err) {
+                this.log('warn', `  ⚠ Formula error for "${f.key}": ${err}`);
+                // Keep the original value if formula fails
             }
-        });
+        }
 
-        if (!response.success) throw new Error(response.error || 'Extraction failed');
-
-        const record = response.data as Record<string, any>;
+        // ─── Step 4: Apply default values for empty fields ───────────────
+        for (const f of fields) {
+            if (f.defaultValue !== undefined && f.defaultValue !== '' &&
+                (record[f.key] === null || record[f.key] === undefined || record[f.key] === '')) {
+                record[f.key] = f.defaultValue;
+            }
+        }
 
         // Check required fields
         for (const field of fields) {
@@ -1798,6 +1927,25 @@ export class BlueprintExecutorStore {
             const valueStr = String(value || '').substring(0, 50);
             this.log('info', `    ${key}: "${valueStr}${String(value || '').length > 50 ? '...' : ''}"`);
         });
+
+        // Determine extractScope for children (need to recompute since it was scoped above)
+        let childScope = scope;
+        if (config.resetScope) {
+            childScope = undefined;
+        }
+        if (config.scopeSelector?.value) {
+            const scopeResponse = await this.send({
+                type: 'ENV_GET_SCOPE',
+                data: {
+                    selector: config.scopeSelector.value,
+                    selectorType: config.scopeSelector.type || 'css',
+                    scope: childScope || undefined,
+                }
+            });
+            if (scopeResponse.success) {
+                childScope = scopeResponse.data;
+            }
+        }
 
         // Update extracted data
         runInAction(() => {
@@ -1820,9 +1968,147 @@ export class BlueprintExecutorStore {
             this.log('info', `  👶 Executing ${block.children.length} children for nested extraction...`);
             for (const child of (block.children || [])) {
                 if (this._abortController?.signal.aborted) break;
-                await this.executeBlock(child, extractScope);
+                await this.executeBlock(child, childScope);
             }
         }
+    }
+
+    /**
+     * Evaluate a formula string by substituting {{fieldKey}} references and evaluating math.
+     * Uses a safe recursive-descent parser — no eval/Function (blocked by Chrome extension CSP).
+     */
+    private evaluateFormula(formula: string, record: Record<string, any>): any {
+        // Replace {{fieldKey}} with actual values
+        const expression = formula.replace(/\{\{(\w+)\}\}/g, (_, key) => {
+            const val = record[key];
+            if (val === null || val === undefined) return '0';
+            const num = parseFloat(String(val).replace(/[^0-9.\-]/g, ''));
+            return isNaN(num) ? '0' : String(num);
+        });
+
+        const result = this.parseMathExpression(expression.trim());
+        return typeof result === 'number' && !isNaN(result) ? result : 0;
+    }
+
+    /**
+     * Safe recursive-descent math parser.
+     * Supports: +, -, *, /, (), unary minus, and Math.round/floor/ceil/abs/min/max/pow/sqrt
+     */
+    private parseMathExpression(expr: string): number {
+        let pos = 0;
+
+        const skipWhitespace = () => {
+            while (pos < expr.length && expr[pos] === ' ') pos++;
+        };
+
+        const parseNumber = (): number => {
+            skipWhitespace();
+            let numStr = '';
+            // Handle unary minus
+            if (expr[pos] === '-') {
+                numStr += '-';
+                pos++;
+            }
+            while (pos < expr.length && (expr[pos] >= '0' && expr[pos] <= '9' || expr[pos] === '.')) {
+                numStr += expr[pos++];
+            }
+            if (numStr === '' || numStr === '-') throw new Error(`Expected number at position ${pos}`);
+            return parseFloat(numStr);
+        };
+
+        const parseMathFunction = (): number | null => {
+            skipWhitespace();
+            const mathFns: Record<string, (...args: number[]) => number> = {
+                'Math.round': Math.round,
+                'Math.floor': Math.floor,
+                'Math.ceil': Math.ceil,
+                'Math.abs': Math.abs,
+                'Math.sqrt': Math.sqrt,
+                'Math.min': Math.min,
+                'Math.max': Math.max,
+                'Math.pow': Math.pow,
+            };
+            for (const [name, fn] of Object.entries(mathFns)) {
+                if (expr.substring(pos, pos + name.length) === name) {
+                    pos += name.length;
+                    skipWhitespace();
+                    if (expr[pos] !== '(') throw new Error(`Expected '(' after ${name}`);
+                    pos++; // skip (
+                    const args: number[] = [parseAddSub()];
+                    skipWhitespace();
+                    while (expr[pos] === ',') {
+                        pos++; // skip ,
+                        args.push(parseAddSub());
+                        skipWhitespace();
+                    }
+                    if (expr[pos] !== ')') throw new Error(`Expected ')' after ${name} args`);
+                    pos++; // skip )
+                    return fn(...args);
+                }
+            }
+            return null;
+        };
+
+        const parsePrimary = (): number => {
+            skipWhitespace();
+            // Try Math.xxx function first
+            const fnResult = parseMathFunction();
+            if (fnResult !== null) return fnResult;
+
+            // Parenthesized expression
+            if (expr[pos] === '(') {
+                pos++; // skip (
+                const val = parseAddSub();
+                skipWhitespace();
+                if (expr[pos] !== ')') throw new Error(`Expected ')' at position ${pos}`);
+                pos++; // skip )
+                return val;
+            }
+
+            return parseNumber();
+        };
+
+        const parseMulDiv = (): number => {
+            let left = parsePrimary();
+            skipWhitespace();
+            while (pos < expr.length && (expr[pos] === '*' || expr[pos] === '/')) {
+                const op = expr[pos++];
+                const right = parsePrimary();
+                left = op === '*' ? left * right : left / right;
+                skipWhitespace();
+            }
+            return left;
+        };
+
+        const parseAddSub = (): number => {
+            let left = parseMulDiv();
+            skipWhitespace();
+            while (pos < expr.length && (expr[pos] === '+' || expr[pos] === '-')) {
+                const op = expr[pos++];
+                const right = parseMulDiv();
+                left = op === '+' ? left + right : left - right;
+                skipWhitespace();
+            }
+            return left;
+        };
+
+        const result = parseAddSub();
+        return result;
+    }
+
+    /**
+     * Format a date using a simple pattern string.
+     * Supports: YYYY, MM, DD, HH, mm, ss
+     */
+    private formatDate(date: Date, format: string): string {
+        const pad = (n: number) => String(n).padStart(2, '0');
+        return format
+            .replace('YYYY', String(date.getFullYear()))
+            .replace('MM', pad(date.getMonth() + 1))
+            .replace('DD', pad(date.getDate()))
+            .replace('HH', pad(date.getHours()))
+            .replace('mm', pad(date.getMinutes()))
+            .replace('ss', pad(date.getSeconds()));
     }
 
     // ─── Export ──────────────────────────────────────────────────────────────
@@ -1854,6 +2140,38 @@ export class BlueprintExecutorStore {
     downloadCSV() {
         const csv = this.exportAsCSV();
         this.downloadBlob(csv, 'extracted-data.csv', 'text/csv');
+    }
+
+    downloadExcel() {
+        if (this.extractedData.length === 0) return;
+
+        const cols = this.extractedColumns;
+        const wsData = [
+            cols,
+            ...this.extractedData.map(row => cols.map(col => row[col] ?? ''))
+        ];
+
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+        // Auto-size columns based on content
+        ws['!cols'] = cols.map(col => {
+            const maxLen = Math.max(
+                col.length,
+                ...this.extractedData.map(row => String(row[col] ?? '').length)
+            );
+            return { wch: Math.min(maxLen + 2, 50) };
+        });
+
+        XLSX.utils.book_append_sheet(wb, ws, 'Extracted Data');
+        const xlsxBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+        const blob = new Blob([xlsxBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'extracted-data.xlsx';
+        a.click();
+        URL.revokeObjectURL(url);
     }
 
     // ─── Helpers ────────────────────────────────────────────────────────────
@@ -1913,6 +2231,7 @@ export class BlueprintExecutorStore {
         this.runningBlueprintId = null;
         this.runningBlueprintName = null;
         this._loopState = {};
+        this._autoIncrementCounters = {};
     }
 
     private downloadBlob(content: string, filename: string, mimeType: string) {

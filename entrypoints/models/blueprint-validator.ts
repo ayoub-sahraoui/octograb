@@ -282,7 +282,7 @@ export class BlueprintValidator {
                                 path
                             );
                         }
-                        if (!field.attribute) {
+                        if (!field.attribute && field.mode !== 'static') {
                             this.addError(
                                 `Extract field "${field.key}" missing attribute`,
                                 block.id,

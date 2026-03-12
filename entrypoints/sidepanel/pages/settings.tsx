@@ -97,7 +97,7 @@ export default observer(function Settings() {
     };
 
     return (
-        <div className="h-full flex-1 flex flex-col gap-2">
+        <div className="h-full flex-1 flex flex-col gap-2 min-h-0 overflow-hidden">
             <div className="flex items-center gap-2">
                 {blueprintBuilderStore.selectedBlueprint && (
                     <Button size="icon" variant="outline" onClick={() => navigate('/blueprint-builder')} title="Back to Builder">
@@ -261,21 +261,6 @@ export default observer(function Settings() {
                         <div className="flex justify-between">
                             <span className="text-gray-500">Database</span>
                             <span className="font-medium">Dexie.js (IndexedDB)</span>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Tips */}
-                <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-                    <div className="flex items-start gap-2">
-                        <AlertCircle className="w-5 h-5 text-blue-600 mt-0.5" />
-                        <div>
-                            <h3 className="font-semibold text-blue-900 mb-1">Tips</h3>
-                            <ul className="text-sm text-blue-800 space-y-1 list-disc list-inside">
-                                <li>Export your database regularly to avoid data loss</li>
-                                <li>Clear execution history to free up storage space</li>
-                                <li>Use the Data tab to view and export extracted data</li>
-                            </ul>
                         </div>
                     </div>
                 </div>

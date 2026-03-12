@@ -1,4 +1,4 @@
-import { CirclePlus, CopyPlus, Database, Download, FileStack, GitPullRequest, Globe, Hourglass, MousePointer, Pause, Play, RefreshCcw, Save, ScrollText, Square, Trash, Type, Undo2, GripVertical, BarChart3, List, Activity, X, RotateCcw } from 'lucide-react'
+import { CirclePlus, CopyPlus, Database, Download, FileStack, GitPullRequest, Globe, Hourglass, MousePointer, Pause, Play, RefreshCcw, Save, ScrollText, Square, Trash, Type, Undo2, GripVertical, BarChart3, List, Activity, X, RotateCcw, FileDown, FileUp, Upload } from 'lucide-react'
 import BlueprintBlock from '../components/blueprint-block'
 import { useBlueprintBuilderStore } from '@/entrypoints/stores/blueprint-builder-store';
 import { useBlueprintExecutorStore } from '@/entrypoints/stores/blueprint-executor-store';
@@ -352,10 +352,10 @@ export default observer(function BlueprintBuilder() {
     const executionResultsDrawer = (
         <Drawer open={isResultsDrawerOpen} onOpenChange={setIsResultsDrawerOpen}>
             <DrawerContent>
-                <DrawerHeader>
-                    <div className="flex items-center justify-between w-full">
-                        <div className='flex flex-col gap-1 items-start'>
-                            <DrawerTitle>Execution Results</DrawerTitle>
+                <DrawerHeader className="pb-2">
+                    <div className="flex items-center justify-between w-full gap-2">
+                        <div className='flex flex-col gap-0.5 items-start min-w-0'>
+                            <DrawerTitle className="text-base">Execution Results</DrawerTitle>
                             <DrawerDescription>
                                 {executorStore.status === 'running' && (
                                     <span className="text-blue-600">
@@ -381,19 +381,22 @@ export default observer(function BlueprintBuilder() {
                                 )}
                             </DrawerDescription>
                         </div>
-                        <div className="flex gap-1">
+                        <div className="flex gap-1 shrink-0">
                             {executorStore.extractedData.length > 0 && (
                                 <>
-                                    <Button size="sm" variant="outline" onClick={() => executorStore.downloadCSV()}>
+                                    <Button size="sm" variant="outline" onClick={() => executorStore.downloadCSV()} className="h-7 px-2 text-xs">
                                         CSV
                                     </Button>
-                                    <Button size="sm" variant="outline" onClick={() => executorStore.downloadJSON()}>
+                                    <Button size="sm" variant="outline" onClick={() => executorStore.downloadExcel()} className="h-7 px-2 text-xs">
+                                        Excel
+                                    </Button>
+                                    <Button size="sm" variant="outline" onClick={() => executorStore.downloadJSON()} className="h-7 px-2 text-xs">
                                         JSON
                                     </Button>
                                 </>
                             )}
                             {executorStore.enableLogs && executorStore.logs.length > 0 && (
-                                <Button size="sm" variant="outline" onClick={() => {
+                                <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => {
                                     const logsText = executorStore.logs.map(l =>
                                         `[${new Date(l.timestamp).toISOString()}] [${l.type.toUpperCase()}] ${l.message}`
                                     ).join('\n');
@@ -409,12 +412,12 @@ export default observer(function BlueprintBuilder() {
                                 </Button>
                             )}
                             {executorStore.enableTrace && executorStore.traces.length > 0 && (
-                                <Button size="sm" variant="outline" onClick={() => executorStore.downloadTrace()}>
+                                <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => executorStore.downloadTrace()}>
                                     Trace
                                 </Button>
                             )}
                             <DrawerClose asChild>
-                                <Button size="sm" variant="ghost" className="h-8 w-8 p-0">
+                                <Button size="sm" variant="ghost" className="h-7 w-7 p-0">
                                     <X className="h-4 w-4" />
                                 </Button>
                             </DrawerClose>
@@ -442,24 +445,24 @@ export default observer(function BlueprintBuilder() {
                         )}
                     </TabsList>
 
-                    <TabsContent value="data" className="max-h-[50vh] overflow-auto mt-4">
+                    <TabsContent value="data" className="max-h-[50vh] overflow-auto mt-2">
                         {executorStore.extractedData.length > 0 ? (
-                            <div className="border rounded-lg overflow-hidden">
+                            <div className="border rounded-lg overflow-auto">
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
-                                            <TableHead className="w-[50px]">#</TableHead>
+                                            <TableHead className="w-[40px] text-xs">#</TableHead>
                                             {executorStore.extractedColumns.map(col => (
-                                                <TableHead key={col}>{col}</TableHead>
+                                                <TableHead key={col} className="text-xs whitespace-nowrap">{col}</TableHead>
                                             ))}
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
                                         {executorStore.extractedData.map((row, idx) => (
                                             <TableRow key={idx}>
-                                                <TableCell className="text-muted-foreground text-xs">{idx + 1}</TableCell>
+                                                <TableCell className="text-muted-foreground text-xs font-mono">{idx + 1}</TableCell>
                                                 {executorStore.extractedColumns.map(col => (
-                                                    <TableCell key={col} className="max-w-[200px] truncate text-xs" title={String(row[col] ?? '')}>
+                                                    <TableCell key={col} className="max-w-[120px] truncate text-xs whitespace-nowrap" title={String(row[col] ?? '')}>
                                                         {String(row[col] ?? '')}
                                                     </TableCell>
                                                 ))}
@@ -476,7 +479,7 @@ export default observer(function BlueprintBuilder() {
                     </TabsContent>
 
                     {executorStore.enableLogs && (
-                        <TabsContent value="logs" className="max-h-[50vh] overflow-auto mt-4">
+                        <TabsContent value="logs" className="max-h-[50vh] overflow-auto mt-2">
                             <div className="space-y-1 font-mono text-xs">
                                 {executorStore.logs.length > 0 ? (
                                     executorStore.logs.map((log, idx) => (
@@ -502,7 +505,7 @@ export default observer(function BlueprintBuilder() {
                     )}
 
                     {executorStore.enableTrace && (
-                        <TabsContent value="trace" className="max-h-[50vh] overflow-auto mt-4">
+                        <TabsContent value="trace" className="max-h-[50vh] overflow-auto mt-2">
                             <div className="space-y-2">
                                 {executorStore.traces.length > 0 ? (
                                     executorStore.traces.map((trace, idx) => (
@@ -559,10 +562,10 @@ export default observer(function BlueprintBuilder() {
     };
 
     return (
-        <div className="h-full flex-1 flex flex-col gap-2">
-            <div className='flex justify-between items-center'>
-                <h1 className="text-xl font-semibold ml-2">Blueprint Builder</h1>
-                <div className='flex gap-2'>
+        <div className="h-full flex-1 flex flex-col gap-2 min-h-0 overflow-hidden">
+            <div className='flex justify-between items-center shrink-0'>
+                <h1 className="text-lg font-semibold ml-2 shrink-0">Blueprint Builder</h1>
+                <div className='flex gap-1 flex-wrap justify-end'>
                     <Button
                         size={"icon"}
                         variant={getPlayVariant()}
@@ -609,7 +612,7 @@ export default observer(function BlueprintBuilder() {
                         };
                         input.click();
                     }} title="Import Blueprint">
-                        <FileStack />
+                        <Upload />
                     </Button>
                     <Button size={"icon"} variant={'outline'} onClick={handleExport} title="Export Blueprint">
                         <Download />
@@ -639,7 +642,7 @@ export default observer(function BlueprintBuilder() {
                 </div>
             )}
 
-            <div className="flex-1 h-full bg-gray-100 p-4 border border-gray-300 rounded-lg flex flex-col justify-start items-center overflow-y-auto">
+            <div className="flex-1 bg-gray-100 p-3 border border-gray-300 rounded-lg flex flex-col justify-start items-center overflow-y-auto min-h-0">
                 <BlueprintBlocks />
                 <BlockConfigDrawer />
                 <AddNewChildBlock />

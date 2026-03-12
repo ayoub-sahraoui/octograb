@@ -1,0 +1,239 @@
+[2026-03-12T00:17:29.884Z] [INFO] ▶ Starting blueprint: amazon (tab 893339912)
+[2026-03-12T00:17:29.993Z] [BLOCK] ▶ Executing: Navigate [No Scope]
+[2026-03-12T00:17:29.993Z] [INFO]   📋 Config: {"url":"https://www.amazon.com/s?k=O%27Reilly+Media&crid=2HNCF2KNH11LV&sprefix=o%27reilly+media%2Cap...
+[2026-03-12T00:17:29.993Z] [INFO] 🌐 Navigating to: https://www.amazon.com/s?k=O%27Reilly+Media&crid=2HNCF2KNH11LV&sprefix=o%27reilly+media%2Caps%2C308&ref=nb_sb_noss_1
+[2026-03-12T00:17:29.993Z] [INFO]   📍 Behavior: same_tab
+[2026-03-12T00:17:29.994Z] [INFO]   ⏱ Timeout: 30000ms
+[2026-03-12T00:17:29.994Z] [INFO]   🎯 Current tab ID: 893339912
+[2026-03-12T00:17:29.994Z] [INFO]   🔄 Navigating in current tab 893339912...
+[2026-03-12T00:17:35.081Z] [INFO]   ⏳ Waiting for content script to be ready...
+[2026-03-12T00:17:35.260Z] [SUCCESS] ✓ Navigated to: https://www.amazon.com/s?k=O%27Reilly+Media&crid=2HNCF2KNH11LV&sprefix=o%27reilly+media%2Caps%2C308&ref=nb_sb_noss_1
+[2026-03-12T00:17:35.408Z] [INFO]   ⏱ Execution time: 5415ms
+[2026-03-12T00:17:35.533Z] [BLOCK] ▶ Executing: Wait [No Scope]
+[2026-03-12T00:17:35.533Z] [INFO]   📋 Config: {"type":"timeout","timeout":3000}
+[2026-03-12T00:17:35.533Z] [INFO]   ⏱ Wait type: timeout
+[2026-03-12T00:17:35.534Z] [INFO]   ⏳ Waiting 3000ms...
+[2026-03-12T00:17:38.547Z] [INFO]   ⏱ Execution time: 3013ms
+[2026-03-12T00:17:38.858Z] [BLOCK] ▶ Executing: Loop Pagination [No Scope]
+[2026-03-12T00:17:38.859Z] [INFO]   📋 Config: {"nextButtonSelector":{"type":"xpath","value":"//a[normalize-space()='Next']","detected":{"css":"[ar...
+[2026-03-12T00:17:38.859Z] [INFO]   📄 Loop Pagination
+[2026-03-12T00:17:38.859Z] [INFO]   🔄 Pagination type: button
+[2026-03-12T00:17:38.859Z] [INFO]   � Max pages: 10
+[2026-03-12T00:17:38.859Z] [INFO]   ⏱ Delay between pages: 1000ms
+[2026-03-12T00:17:38.859Z] [INFO]   👶 Children per page: 1
+[2026-03-12T00:17:38.860Z] [INFO]   🎯 Next button selector: //a[normalize-space()='Next']
+[2026-03-12T00:17:38.860Z] [INFO]   📌 Selector type: xpath
+[2026-03-12T00:17:38.860Z] [INFO]   ⚠ On no next button: stop
+[2026-03-12T00:17:39.114Z] [INFO]   ━━━ Page 1 ━━━
+[2026-03-12T00:17:39.114Z] [INFO]     👶 Executing 1 children on this page...
+[2026-03-12T00:17:39.236Z] [BLOCK] ▶ Executing: Loop Elements [No Scope]
+[2026-03-12T00:17:39.236Z] [INFO]   📋 Config: {"selector":{"type":"css","value":"div.desktop-grid-content-view","detected":{"css":"div.desktop-gri...
+[2026-03-12T00:17:39.236Z] [INFO]   🔁 Loop Elements
+[2026-03-12T00:17:39.236Z] [INFO]   🎯 Selector: div.desktop-grid-content-view
+[2026-03-12T00:17:39.236Z] [INFO]   📌 Selector type: css
+[2026-03-12T00:17:39.236Z] [INFO]   🔍 Has parent scope: No
+[2026-03-12T00:17:39.336Z] [INFO]   📍 Loop start URL: https://www.amazon.com/s?k=O%27Reilly+Media&crid=2HNCF2KNH11LV&sprefix=o%27reilly+media%2Caps%2C308&ref=nb_sb_noss_1
+[2026-03-12T00:17:39.403Z] [INFO]   📊 Found 48 elements
+[2026-03-12T00:17:39.403Z] [INFO]   🔄 Max iterations: unlimited
+[2026-03-12T00:17:39.404Z] [INFO]   ▶️ Will iterate: 48 times
+[2026-03-12T00:17:39.404Z] [INFO]   👶 Children per iteration: 6
+[2026-03-12T00:17:39.478Z] [INFO]   ━━━ Item 1/48 ━━━
+[2026-03-12T00:17:39.478Z] [INFO]     🔍 Checking if element at index 0 exists...
+[2026-03-12T00:17:39.545Z] [INFO]     ✓ Element exists (48 total elements, check attempt 1)
+[2026-03-12T00:17:39.623Z] [BLOCK] ▶ Executing: Wait [Scope: div.desktop-grid-content-view[0]]
+[2026-03-12T00:17:39.623Z] [INFO]   📋 Config: {"type":"timeout","timeout":1000}
+[2026-03-12T00:17:39.623Z] [INFO]   ⏱ Wait type: timeout
+[2026-03-12T00:17:39.623Z] [INFO]   ⏳ Waiting 1000ms...
+[2026-03-12T00:17:40.625Z] [INFO]   ⏱ Execution time: 1002ms
+[2026-03-12T00:17:40.781Z] [BLOCK] ▶ Executing: Click [Scope: div.desktop-grid-content-view[0]]
+[2026-03-12T00:17:40.781Z] [INFO]   📋 Config: {"selector":{"type":"css","value":".a-size-base-plus","detected":{"css":".a-size-base-plus","xpath":...
+[2026-03-12T00:17:40.781Z] [INFO]   ⏱ Delay before: 1000ms
+[2026-03-12T00:17:41.782Z] [INFO]   🖱 Normal click
+[2026-03-12T00:17:41.783Z] [INFO]   🎯 Selector: .a-size-base-plus
+[2026-03-12T00:17:41.784Z] [INFO]   📌 Selector type: css
+[2026-03-12T00:17:41.784Z] [INFO]   🔍 Has scope: Yes
+[2026-03-12T00:17:42.073Z] [SUCCESS] ✓ Clicked: .a-size-base-plus
+[2026-03-12T00:17:42.219Z] [INFO]   ⏱ Delay after: 1000ms
+[2026-03-12T00:17:43.226Z] [INFO]   ⏱ Execution time: 2445ms
+[2026-03-12T00:17:43.384Z] [BLOCK] ▶ Executing: Wait [Scope: div.desktop-grid-content-view[0]]
+[2026-03-12T00:17:43.384Z] [INFO]   📋 Config: {"type":"dom_content_loaded","timeout":2000}
+[2026-03-12T00:17:43.384Z] [INFO]   ⏱ Wait type: dom_content_loaded
+[2026-03-12T00:17:43.384Z] [INFO]   ⏳ Waiting for DOM content loaded (2000ms)...
+[2026-03-12T00:17:45.398Z] [INFO]   ⏱ Execution time: 2014ms
+[2026-03-12T00:17:45.567Z] [BLOCK] ▶ Executing: Extract Scope [Scope: div.desktop-grid-content-view[0]]
+[2026-03-12T00:17:45.568Z] [INFO]   📋 Config: {"fields":[{"key":"Titre","selector":{"type":"css","value":"#productTitle","detected":{"css":"#produ...
+[2026-03-12T00:17:45.568Z] [INFO]   📦 Extract Scope
+[2026-03-12T00:17:45.569Z] [INFO]   📊 Fields to extract: 8
+[2026-03-12T00:17:45.569Z] [INFO]   🔄 Reset scope: Yes
+[2026-03-12T00:17:45.569Z] [INFO]   🔍 Has parent scope: Yes
+[2026-03-12T00:17:45.569Z] [INFO]     1. Titre: selector="#productTitle" attr="text"
+[2026-03-12T00:17:45.570Z] [INFO]     2. PRIX: selector=".apex-core-price-identifier" attr="text"
+[2026-03-12T00:17:45.570Z] [INFO]        🔧 Transformers (3):
+[2026-03-12T00:17:45.570Z] [INFO]     3. URL image 1: selector="#landingImage" attr="src"
+[2026-03-12T00:17:45.570Z] [INFO]     4. Description: selector="#bookDescription_feature_div > div > div > p > span" attr="text"
+[2026-03-12T00:17:45.570Z] [INFO]     5. ISBN-13: selector="#rpi-attribute-book_details-isbn13 > div:nth-of-type(3) > span" attr="text"
+[2026-03-12T00:17:45.570Z] [INFO]     6. Pages: selector="#detailBulletsWrapper_feature_div > div" attr="text"
+[2026-03-12T00:17:45.570Z] [INFO]        🔧 Transformers (2):
+[2026-03-12T00:17:45.571Z] [INFO]     7. stock: [static] type="constant"
+[2026-03-12T00:17:45.571Z] [INFO]     8. PRIX_2: [static] type="constant"
+[2026-03-12T00:17:45.571Z] [INFO]        📐 Formula: {{Pages}}*0.60
+[2026-03-12T00:17:45.571Z] [INFO]     🗄️ Static "stock" = "20"
+[2026-03-12T00:17:45.571Z] [INFO]     🗄️ Static "PRIX_2" = ""
+[2026-03-12T00:17:45.572Z] [INFO]   📤 Extraction fields being sent: Titre, PRIX, URL image 1, Description, ISBN-13, Pages
+[2026-03-12T00:17:45.572Z] [INFO]      Field "PRIX" transformers: [{"type":"trim"},{"type":"regex","pattern":".*?\\$?(\\d+\\.\\d{2}).*","flags":"s","replacement":"$1"},{"type":"currency_convert","fromCurrency":"USD","toCurrency":"MAD","fixedRate":9.14}]
+[2026-03-12T00:17:45.572Z] [INFO]      Field "Pages" transformers: [{"type":"regex","pattern":"(\\d+)\\s+pages","flags":"g"},{"type":"replace","searchValue":" pages","replaceValue":"","global":true}]
+[2026-03-12T00:17:45.572Z] [INFO]   🔄 Resetting scope to document root
+[2026-03-12T00:17:45.572Z] [INFO]   📤 Sending extraction request...
+[2026-03-12T00:17:47.595Z] [WARN]   ⚠ Formula error for "PRIX_2": Error: Formula evaluation failed: EvalError: Evaluating a string as JavaScript violates the following Content Security Policy directive because 'unsafe-eval' is not an allowed source of script: script-src 'self' 'wasm-unsafe-eval' http://localhost:3000".
+
+[2026-03-12T00:17:47.595Z] [INFO]   📝 Extracted values:
+[2026-03-12T00:17:47.596Z] [INFO]     stock: "20"
+[2026-03-12T00:17:47.596Z] [INFO]     PRIX_2: ""
+[2026-03-12T00:17:47.596Z] [INFO]     Titre: "AI Systems Performance Engineering: Optimizing Mod..."
+[2026-03-12T00:17:47.596Z] [INFO]     PRIX: "651.59"
+[2026-03-12T00:17:47.596Z] [INFO]     URL image 1: "https://m.media-amazon.com/images/I/41JkI6cpOaL._S..."
+[2026-03-12T00:17:47.597Z] [INFO]     Description: "Elevate your AI system performance capabilities wi..."
+[2026-03-12T00:17:47.597Z] [INFO]     ISBN-13: "979-8341627789"
+[2026-03-12T00:17:47.597Z] [INFO]     Pages: "1060"
+[2026-03-12T00:17:47.597Z] [SUCCESS]   ✓ Extracted row #1
+[2026-03-12T00:17:47.597Z] [INFO]   📊 Total rows collected: 1
+[2026-03-12T00:17:47.793Z] [INFO]   ⏱ Execution time: 2225ms
+[2026-03-12T00:17:47.924Z] [BLOCK] ▶ Executing: Wait [Scope: div.desktop-grid-content-view[0]]
+[2026-03-12T00:17:47.925Z] [INFO]   📋 Config: {"type":"timeout","timeout":1500}
+[2026-03-12T00:17:47.925Z] [INFO]   ⏱ Wait type: timeout
+[2026-03-12T00:17:47.925Z] [INFO]   ⏳ Waiting 1500ms...
+[2026-03-12T00:17:49.428Z] [INFO]   ⏱ Execution time: 1503ms
+[2026-03-12T00:17:49.674Z] [BLOCK] ▶ Executing: Go Back [Scope: div.desktop-grid-content-view[0]]
+[2026-03-12T00:17:49.674Z] [INFO]   📋 Config: {}
+[2026-03-12T00:17:49.674Z] [INFO] ↩ Going back...
+[2026-03-12T00:17:49.675Z] [INFO]   🎯 Current tab ID: 893339912
+[2026-03-12T00:17:49.675Z] [INFO]   🔄 Navigating to stored URL: https://www.amazon.com/s?k=O%27Reilly+Media&crid=2HNCF2KNH11LV&sprefix=o%27reilly+media%2Caps%2C308&ref=nb_sb_noss_1
+[2026-03-12T00:17:49.854Z] [INFO]   ⏳ Waiting for page to load after going back...
+[2026-03-12T00:17:50.000Z] [INFO]   ⏱ Waiting 1000ms for page stabilization...
+[2026-03-12T00:17:51.003Z] [INFO]   📍 Current URL after go_back: https://www.amazon.com/Systems-Performance-Engineering-Optimizing-Inference/dp/B0F47689K8/ref=sr_1_1?crid=2HNCF2KNH11LV&dib=eyJ2IjoiMSJ9.z8O8hA9_bsJ2Xc6S2gEpVxOj87rxXMseDN-OWg4NlZvP2-VChfLzCkBPWEqy_wksjQP28Jvzo_wRH0sY6zg12hfEnWutETLPU7_Nmh5aYl8VUczZ368Z2FO5EiDYx2UqalfJxh6vrU6CZ2VxaPrWnLSpgmYXTEb5d9JeXDA-bZTz155csFJ8Rnwa8TwxtSwv7AYUYDUoYnBZUo0NKCH3iE3D0Ehl5MZXZc7M61_wHS9PDHgrvOhyeguu2iNs0GWljiKMd6PRTkNWvD4reMP8b20nHw4s1Ovnz2n5SnflwjM.FbiAn76tjh0EbDq9fgFsZlN-2DWHVcGCO8ZF4vnH53M&dib_tag=se&keywords=O%27Reilly+Media&qid=1773274652&sprefix=o%27reilly+media%2Caps%2C308&sr=8-1
+[2026-03-12T00:17:51.003Z] [WARN]   ⚠️ URL mismatch (attempt 1/3). Retrying...
+[2026-03-12T00:17:51.003Z] [INFO]     Expected: https://www.amazon.com/s?k=O%27Reilly+Media&crid=2HNCF2KNH11LV&sprefix=o%27reilly+media%2Caps%2C308&ref=nb_sb_noss_1
+[2026-03-12T00:17:51.003Z] [INFO]     Got: https://www.amazon.com/Systems-Performance-Engineering-Optimizing-Inference/dp/B0F47689K8/ref=sr_1_1?crid=2HNCF2KNH11LV&dib=eyJ2IjoiMSJ9.z8O8hA9_bsJ2Xc6S2gEpVxOj87rxXMseDN-OWg4NlZvP2-VChfLzCkBPWEqy_wksjQP28Jvzo_wRH0sY6zg12hfEnWutETLPU7_Nmh5aYl8VUczZ368Z2FO5EiDYx2UqalfJxh6vrU6CZ2VxaPrWnLSpgmYXTEb5d9JeXDA-bZTz155csFJ8Rnwa8TwxtSwv7AYUYDUoYnBZUo0NKCH3iE3D0Ehl5MZXZc7M61_wHS9PDHgrvOhyeguu2iNs0GWljiKMd6PRTkNWvD4reMP8b20nHw4s1Ovnz2n5SnflwjM.FbiAn76tjh0EbDq9fgFsZlN-2DWHVcGCO8ZF4vnH53M&dib_tag=se&keywords=O%27Reilly+Media&qid=1773274652&sprefix=o%27reilly+media%2Caps%2C308&sr=8-1
+[2026-03-12T00:17:52.014Z] [INFO]   🔄 Navigating to stored URL (attempt 2): https://www.amazon.com/s?k=O%27Reilly+Media&crid=2HNCF2KNH11LV&sprefix=o%27reilly+media%2Caps%2C308&ref=nb_sb_noss_1
+[2026-03-12T00:17:52.239Z] [INFO]   ⏳ Waiting for page to load after going back...
+[2026-03-12T00:17:52.421Z] [INFO]   ⏱ Waiting 1000ms for page stabilization...
+[2026-03-12T00:17:53.446Z] [INFO]   📍 Current URL after go_back: https://www.amazon.com/Systems-Performance-Engineering-Optimizing-Inference/dp/B0F47689K8/ref=sr_1_1?crid=2HNCF2KNH11LV&dib=eyJ2IjoiMSJ9.z8O8hA9_bsJ2Xc6S2gEpVxOj87rxXMseDN-OWg4NlZvP2-VChfLzCkBPWEqy_wksjQP28Jvzo_wRH0sY6zg12hfEnWutETLPU7_Nmh5aYl8VUczZ368Z2FO5EiDYx2UqalfJxh6vrU6CZ2VxaPrWnLSpgmYXTEb5d9JeXDA-bZTz155csFJ8Rnwa8TwxtSwv7AYUYDUoYnBZUo0NKCH3iE3D0Ehl5MZXZc7M61_wHS9PDHgrvOhyeguu2iNs0GWljiKMd6PRTkNWvD4reMP8b20nHw4s1Ovnz2n5SnflwjM.FbiAn76tjh0EbDq9fgFsZlN-2DWHVcGCO8ZF4vnH53M&dib_tag=se&keywords=O%27Reilly+Media&qid=1773274652&sprefix=o%27reilly+media%2Caps%2C308&sr=8-1
+[2026-03-12T00:17:53.446Z] [WARN]   ⚠️ URL mismatch (attempt 2/3). Retrying...
+[2026-03-12T00:17:53.447Z] [INFO]     Expected: https://www.amazon.com/s?k=O%27Reilly+Media&crid=2HNCF2KNH11LV&sprefix=o%27reilly+media%2Caps%2C308&ref=nb_sb_noss_1
+[2026-03-12T00:17:53.447Z] [INFO]     Got: https://www.amazon.com/Systems-Performance-Engineering-Optimizing-Inference/dp/B0F47689K8/ref=sr_1_1?crid=2HNCF2KNH11LV&dib=eyJ2IjoiMSJ9.z8O8hA9_bsJ2Xc6S2gEpVxOj87rxXMseDN-OWg4NlZvP2-VChfLzCkBPWEqy_wksjQP28Jvzo_wRH0sY6zg12hfEnWutETLPU7_Nmh5aYl8VUczZ368Z2FO5EiDYx2UqalfJxh6vrU6CZ2VxaPrWnLSpgmYXTEb5d9JeXDA-bZTz155csFJ8Rnwa8TwxtSwv7AYUYDUoYnBZUo0NKCH3iE3D0Ehl5MZXZc7M61_wHS9PDHgrvOhyeguu2iNs0GWljiKMd6PRTkNWvD4reMP8b20nHw4s1Ovnz2n5SnflwjM.FbiAn76tjh0EbDq9fgFsZlN-2DWHVcGCO8ZF4vnH53M&dib_tag=se&keywords=O%27Reilly+Media&qid=1773274652&sprefix=o%27reilly+media%2Caps%2C308&sr=8-1
+[2026-03-12T00:17:54.457Z] [INFO]   🔄 Navigating to stored URL (attempt 3): https://www.amazon.com/s?k=O%27Reilly+Media&crid=2HNCF2KNH11LV&sprefix=o%27reilly+media%2Caps%2C308&ref=nb_sb_noss_1
+[2026-03-12T00:17:54.757Z] [INFO]   ⏳ Waiting for page to load after going back...
+[2026-03-12T00:17:54.961Z] [INFO]   ⏱ Waiting 1000ms for page stabilization...
+[2026-03-12T00:17:55.964Z] [INFO]   📍 Current URL after go_back: https://www.amazon.com/s?k=O%27Reilly+Media&crid=2HNCF2KNH11LV&sprefix=o%27reilly+media%2Caps%2C308&ref=nb_sb_noss_1
+[2026-03-12T00:17:55.964Z] [SUCCESS] ✓ Went back
+[2026-03-12T00:17:56.153Z] [INFO]   ⏱ Execution time: 6479ms
+[2026-03-12T00:17:56.361Z] [INFO]   ━━━ Item 2/48 ━━━
+[2026-03-12T00:17:56.362Z] [INFO]     🔍 Checking if element at index 1 exists...
+[2026-03-12T00:17:57.346Z] [INFO]     ✓ Element exists (48 total elements, check attempt 1)
+[2026-03-12T00:17:57.596Z] [BLOCK] ▶ Executing: Wait [Scope: div.desktop-grid-content-view[1]]
+[2026-03-12T00:17:57.596Z] [INFO]   📋 Config: {"type":"timeout","timeout":1000}
+[2026-03-12T00:17:57.596Z] [INFO]   ⏱ Wait type: timeout
+[2026-03-12T00:17:57.596Z] [INFO]   ⏳ Waiting 1000ms...
+[2026-03-12T00:17:58.606Z] [INFO]   ⏱ Execution time: 1009ms
+[2026-03-12T00:17:58.861Z] [BLOCK] ▶ Executing: Click [Scope: div.desktop-grid-content-view[1]]
+[2026-03-12T00:17:58.861Z] [INFO]   📋 Config: {"selector":{"type":"css","value":".a-size-base-plus","detected":{"css":".a-size-base-plus","xpath":...
+[2026-03-12T00:17:58.861Z] [INFO]   ⏱ Delay before: 1000ms
+[2026-03-12T00:17:59.862Z] [INFO]   🖱 Normal click
+[2026-03-12T00:17:59.862Z] [INFO]   🎯 Selector: .a-size-base-plus
+[2026-03-12T00:17:59.862Z] [INFO]   📌 Selector type: css
+[2026-03-12T00:17:59.862Z] [INFO]   🔍 Has scope: Yes
+[2026-03-12T00:18:00.129Z] [SUCCESS] ✓ Clicked: .a-size-base-plus
+[2026-03-12T00:18:00.304Z] [INFO]   ⏱ Delay after: 1000ms
+[2026-03-12T00:18:01.315Z] [INFO]   ⏱ Execution time: 2454ms
+[2026-03-12T00:18:01.488Z] [BLOCK] ▶ Executing: Wait [Scope: div.desktop-grid-content-view[1]]
+[2026-03-12T00:18:01.488Z] [INFO]   📋 Config: {"type":"dom_content_loaded","timeout":2000}
+[2026-03-12T00:18:01.488Z] [INFO]   ⏱ Wait type: dom_content_loaded
+[2026-03-12T00:18:01.489Z] [INFO]   ⏳ Waiting for DOM content loaded (2000ms)...
+[2026-03-12T00:18:03.494Z] [INFO]   ⏱ Execution time: 2005ms
+[2026-03-12T00:18:03.655Z] [BLOCK] ▶ Executing: Extract Scope [Scope: div.desktop-grid-content-view[1]]
+[2026-03-12T00:18:03.655Z] [INFO]   📋 Config: {"fields":[{"key":"Titre","selector":{"type":"css","value":"#productTitle","detected":{"css":"#produ...
+[2026-03-12T00:18:03.656Z] [INFO]   📦 Extract Scope
+[2026-03-12T00:18:03.656Z] [INFO]   📊 Fields to extract: 8
+[2026-03-12T00:18:03.656Z] [INFO]   🔄 Reset scope: Yes
+[2026-03-12T00:18:03.656Z] [INFO]   🔍 Has parent scope: Yes
+[2026-03-12T00:18:03.657Z] [INFO]     1. Titre: selector="#productTitle" attr="text"
+[2026-03-12T00:18:03.657Z] [INFO]     2. PRIX: selector=".apex-core-price-identifier" attr="text"
+[2026-03-12T00:18:03.657Z] [INFO]        🔧 Transformers (3):
+[2026-03-12T00:18:03.657Z] [INFO]     3. URL image 1: selector="#landingImage" attr="src"
+[2026-03-12T00:18:03.657Z] [INFO]     4. Description: selector="#bookDescription_feature_div > div > div > p > span" attr="text"
+[2026-03-12T00:18:03.658Z] [INFO]     5. ISBN-13: selector="#rpi-attribute-book_details-isbn13 > div:nth-of-type(3) > span" attr="text"
+[2026-03-12T00:18:03.658Z] [INFO]     6. Pages: selector="#detailBulletsWrapper_feature_div > div" attr="text"
+[2026-03-12T00:18:03.658Z] [INFO]        🔧 Transformers (2):
+[2026-03-12T00:18:03.658Z] [INFO]     7. stock: [static] type="constant"
+[2026-03-12T00:18:03.658Z] [INFO]     8. PRIX_2: [static] type="constant"
+[2026-03-12T00:18:03.659Z] [INFO]        📐 Formula: {{Pages}}*0.60
+[2026-03-12T00:18:03.659Z] [INFO]     🗄️ Static "stock" = "20"
+[2026-03-12T00:18:03.659Z] [INFO]     🗄️ Static "PRIX_2" = ""
+[2026-03-12T00:18:03.659Z] [INFO]   📤 Extraction fields being sent: Titre, PRIX, URL image 1, Description, ISBN-13, Pages
+[2026-03-12T00:18:03.659Z] [INFO]      Field "PRIX" transformers: [{"type":"trim"},{"type":"regex","pattern":".*?\\$?(\\d+\\.\\d{2}).*","flags":"s","replacement":"$1"},{"type":"currency_convert","fromCurrency":"USD","toCurrency":"MAD","fixedRate":9.14}]
+[2026-03-12T00:18:03.660Z] [INFO]      Field "Pages" transformers: [{"type":"regex","pattern":"(\\d+)\\s+pages","flags":"g"},{"type":"replace","searchValue":" pages","replaceValue":"","global":true}]
+[2026-03-12T00:18:03.660Z] [INFO]   🔄 Resetting scope to document root
+[2026-03-12T00:18:03.660Z] [INFO]   📤 Sending extraction request...
+[2026-03-12T00:18:05.441Z] [WARN]   ⚠ Formula error for "PRIX_2": Error: Formula evaluation failed: EvalError: Evaluating a string as JavaScript violates the following Content Security Policy directive because 'unsafe-eval' is not an allowed source of script: script-src 'self' 'wasm-unsafe-eval' http://localhost:3000".
+
+[2026-03-12T00:18:05.442Z] [INFO]   📝 Extracted values:
+[2026-03-12T00:18:05.442Z] [INFO]     stock: "20"
+[2026-03-12T00:18:05.442Z] [INFO]     PRIX_2: ""
+[2026-03-12T00:18:05.442Z] [INFO]     Titre: "Engineering Leadership: The Hard Parts: Navigating..."
+[2026-03-12T00:18:05.442Z] [INFO]     PRIX: "357.01"
+[2026-03-12T00:18:05.443Z] [INFO]     URL image 1: "https://m.media-amazon.com/images/I/81-XswJ9prL._S..."
+[2026-03-12T00:18:05.443Z] [INFO]     Description: "Whether they're building a startup or scaling an e..."
+[2026-03-12T00:18:05.443Z] [INFO]     ISBN-13: "978-1098175634"
+[2026-03-12T00:18:05.443Z] [INFO]     Pages: "270"
+[2026-03-12T00:18:05.443Z] [SUCCESS]   ✓ Extracted row #2
+[2026-03-12T00:18:05.443Z] [INFO]   📊 Total rows collected: 2
+[2026-03-12T00:18:05.661Z] [INFO]   ⏱ Execution time: 2006ms
+[2026-03-12T00:18:05.901Z] [BLOCK] ▶ Executing: Wait [Scope: div.desktop-grid-content-view[1]]
+[2026-03-12T00:18:05.901Z] [INFO]   📋 Config: {"type":"timeout","timeout":1500}
+[2026-03-12T00:18:05.901Z] [INFO]   ⏱ Wait type: timeout
+[2026-03-12T00:18:05.901Z] [INFO]   ⏳ Waiting 1500ms...
+[2026-03-12T00:18:07.409Z] [INFO]   ⏱ Execution time: 1508ms
+[2026-03-12T00:18:07.612Z] [BLOCK] ▶ Executing: Go Back [Scope: div.desktop-grid-content-view[1]]
+[2026-03-12T00:18:07.612Z] [INFO]   📋 Config: {}
+[2026-03-12T00:18:07.613Z] [INFO] ↩ Going back...
+[2026-03-12T00:18:07.613Z] [INFO]   🎯 Current tab ID: 893339912
+[2026-03-12T00:18:07.613Z] [INFO]   🔄 Navigating to stored URL: https://www.amazon.com/s?k=O%27Reilly+Media&crid=2HNCF2KNH11LV&sprefix=o%27reilly+media%2Caps%2C308&ref=nb_sb_noss_1
+[2026-03-12T00:18:07.835Z] [INFO]   ⏳ Waiting for page to load after going back...
+[2026-03-12T00:18:08.024Z] [INFO]   ⏱ Waiting 1000ms for page stabilization...
+[2026-03-12T00:18:09.028Z] [INFO]   📍 Current URL after go_back: https://www.amazon.com/Engineering-Leadership-Parts-Navigating-Deliver/dp/1098175638/ref=sr_1_2?crid=2HNCF2KNH11LV&dib=eyJ2IjoiMSJ9.z8O8hA9_bsJ2Xc6S2gEpVxOj87rxXMseDN-OWg4NlZvP2-VChfLzCkBPWEqy_wksjQP28Jvzo_wRH0sY6zg12hfEnWutETLPU7_Nmh5aYl8VUczZ368Z2FO5EiDYx2UqalfJxh6vrU6CZ2VxaPrWnLSpgmYXTEb5d9JeXDA-bZTz155csFJ8Rnwa8TwxtSwv7AYUYDUoYnBZUo0NKCH3iE3D0Ehl5MZXZc7M61_wHS9PDHgrvOhyeguu2iNs0GWljiKMd6PRTkNWvD4reMP8b20nHw4s1Ovnz2n5SnflwjM.FbiAn76tjh0EbDq9fgFsZlN-2DWHVcGCO8ZF4vnH53M&dib_tag=se&keywords=O%27Reilly+Media&qid=1773274676&sprefix=o%27reilly+media%2Caps%2C308&sr=8-2
+[2026-03-12T00:18:09.029Z] [WARN]   ⚠️ URL mismatch (attempt 1/3). Retrying...
+[2026-03-12T00:18:09.029Z] [INFO]     Expected: https://www.amazon.com/s?k=O%27Reilly+Media&crid=2HNCF2KNH11LV&sprefix=o%27reilly+media%2Caps%2C308&ref=nb_sb_noss_1
+[2026-03-12T00:18:09.029Z] [INFO]     Got: https://www.amazon.com/Engineering-Leadership-Parts-Navigating-Deliver/dp/1098175638/ref=sr_1_2?crid=2HNCF2KNH11LV&dib=eyJ2IjoiMSJ9.z8O8hA9_bsJ2Xc6S2gEpVxOj87rxXMseDN-OWg4NlZvP2-VChfLzCkBPWEqy_wksjQP28Jvzo_wRH0sY6zg12hfEnWutETLPU7_Nmh5aYl8VUczZ368Z2FO5EiDYx2UqalfJxh6vrU6CZ2VxaPrWnLSpgmYXTEb5d9JeXDA-bZTz155csFJ8Rnwa8TwxtSwv7AYUYDUoYnBZUo0NKCH3iE3D0Ehl5MZXZc7M61_wHS9PDHgrvOhyeguu2iNs0GWljiKMd6PRTkNWvD4reMP8b20nHw4s1Ovnz2n5SnflwjM.FbiAn76tjh0EbDq9fgFsZlN-2DWHVcGCO8ZF4vnH53M&dib_tag=se&keywords=O%27Reilly+Media&qid=1773274676&sprefix=o%27reilly+media%2Caps%2C308&sr=8-2
+[2026-03-12T00:18:10.118Z] [INFO]   🔄 Navigating to stored URL (attempt 2): https://www.amazon.com/s?k=O%27Reilly+Media&crid=2HNCF2KNH11LV&sprefix=o%27reilly+media%2Caps%2C308&ref=nb_sb_noss_1
+[2026-03-12T00:18:10.349Z] [INFO]   ⏳ Waiting for page to load after going back...
+[2026-03-12T00:18:10.578Z] [INFO]   ⏱ Waiting 1000ms for page stabilization...
+[2026-03-12T00:18:11.586Z] [INFO]   📍 Current URL after go_back: https://www.amazon.com/Engineering-Leadership-Parts-Navigating-Deliver/dp/1098175638/ref=sr_1_2?crid=2HNCF2KNH11LV&dib=eyJ2IjoiMSJ9.z8O8hA9_bsJ2Xc6S2gEpVxOj87rxXMseDN-OWg4NlZvP2-VChfLzCkBPWEqy_wksjQP28Jvzo_wRH0sY6zg12hfEnWutETLPU7_Nmh5aYl8VUczZ368Z2FO5EiDYx2UqalfJxh6vrU6CZ2VxaPrWnLSpgmYXTEb5d9JeXDA-bZTz155csFJ8Rnwa8TwxtSwv7AYUYDUoYnBZUo0NKCH3iE3D0Ehl5MZXZc7M61_wHS9PDHgrvOhyeguu2iNs0GWljiKMd6PRTkNWvD4reMP8b20nHw4s1Ovnz2n5SnflwjM.FbiAn76tjh0EbDq9fgFsZlN-2DWHVcGCO8ZF4vnH53M&dib_tag=se&keywords=O%27Reilly+Media&qid=1773274676&sprefix=o%27reilly+media%2Caps%2C308&sr=8-2
+[2026-03-12T00:18:11.586Z] [WARN]   ⚠️ URL mismatch (attempt 2/3). Retrying...
+[2026-03-12T00:18:11.587Z] [INFO]     Expected: https://www.amazon.com/s?k=O%27Reilly+Media&crid=2HNCF2KNH11LV&sprefix=o%27reilly+media%2Caps%2C308&ref=nb_sb_noss_1
+[2026-03-12T00:18:11.587Z] [INFO]     Got: https://www.amazon.com/Engineering-Leadership-Parts-Navigating-Deliver/dp/1098175638/ref=sr_1_2?crid=2HNCF2KNH11LV&dib=eyJ2IjoiMSJ9.z8O8hA9_bsJ2Xc6S2gEpVxOj87rxXMseDN-OWg4NlZvP2-VChfLzCkBPWEqy_wksjQP28Jvzo_wRH0sY6zg12hfEnWutETLPU7_Nmh5aYl8VUczZ368Z2FO5EiDYx2UqalfJxh6vrU6CZ2VxaPrWnLSpgmYXTEb5d9JeXDA-bZTz155csFJ8Rnwa8TwxtSwv7AYUYDUoYnBZUo0NKCH3iE3D0Ehl5MZXZc7M61_wHS9PDHgrvOhyeguu2iNs0GWljiKMd6PRTkNWvD4reMP8b20nHw4s1Ovnz2n5SnflwjM.FbiAn76tjh0EbDq9fgFsZlN-2DWHVcGCO8ZF4vnH53M&dib_tag=se&keywords=O%27Reilly+Media&qid=1773274676&sprefix=o%27reilly+media%2Caps%2C308&sr=8-2
+[2026-03-12T00:18:12.595Z] [INFO]   🔄 Navigating to stored URL (attempt 3): https://www.amazon.com/s?k=O%27Reilly+Media&crid=2HNCF2KNH11LV&sprefix=o%27reilly+media%2Caps%2C308&ref=nb_sb_noss_1
+[2026-03-12T00:18:12.804Z] [INFO]   ⏳ Waiting for page to load after going back...
+[2026-03-12T00:18:13.020Z] [INFO]   ⏱ Waiting 1000ms for page stabilization...
+[2026-03-12T00:18:14.027Z] [INFO]   📍 Current URL after go_back: https://www.amazon.com/Engineering-Leadership-Parts-Navigating-Deliver/dp/1098175638/ref=sr_1_2?crid=2HNCF2KNH11LV&dib=eyJ2IjoiMSJ9.z8O8hA9_bsJ2Xc6S2gEpVxOj87rxXMseDN-OWg4NlZvP2-VChfLzCkBPWEqy_wksjQP28Jvzo_wRH0sY6zg12hfEnWutETLPU7_Nmh5aYl8VUczZ368Z2FO5EiDYx2UqalfJxh6vrU6CZ2VxaPrWnLSpgmYXTEb5d9JeXDA-bZTz155csFJ8Rnwa8TwxtSwv7AYUYDUoYnBZUo0NKCH3iE3D0Ehl5MZXZc7M61_wHS9PDHgrvOhyeguu2iNs0GWljiKMd6PRTkNWvD4reMP8b20nHw4s1Ovnz2n5SnflwjM.FbiAn76tjh0EbDq9fgFsZlN-2DWHVcGCO8ZF4vnH53M&dib_tag=se&keywords=O%27Reilly+Media&qid=1773274676&sprefix=o%27reilly+media%2Caps%2C308&sr=8-2
+[2026-03-12T00:18:14.028Z] [WARN]   ⚠️ URL mismatch after 3 attempts. Expected: https://www.amazon.com/s?k=O%27Reilly+Media&crid=2HNCF2KNH11LV&sprefix=o%27reilly+media%2Caps%2C308&ref=nb_sb_noss_1, Got: https://www.amazon.com/Engineering-Leadership-Parts-Navigating-Deliver/dp/1098175638/ref=sr_1_2?crid=2HNCF2KNH11LV&dib=eyJ2IjoiMSJ9.z8O8hA9_bsJ2Xc6S2gEpVxOj87rxXMseDN-OWg4NlZvP2-VChfLzCkBPWEqy_wksjQP28Jvzo_wRH0sY6zg12hfEnWutETLPU7_Nmh5aYl8VUczZ368Z2FO5EiDYx2UqalfJxh6vrU6CZ2VxaPrWnLSpgmYXTEb5d9JeXDA-bZTz155csFJ8Rnwa8TwxtSwv7AYUYDUoYnBZUo0NKCH3iE3D0Ehl5MZXZc7M61_wHS9PDHgrvOhyeguu2iNs0GWljiKMd6PRTkNWvD4reMP8b20nHw4s1Ovnz2n5SnflwjM.FbiAn76tjh0EbDq9fgFsZlN-2DWHVcGCO8ZF4vnH53M&dib_tag=se&keywords=O%27Reilly+Media&qid=1773274676&sprefix=o%27reilly+media%2Caps%2C308&sr=8-2
+[2026-03-12T00:18:14.028Z] [SUCCESS] ✓ Went back
+[2026-03-12T00:18:14.226Z] [INFO]   ⏱ Execution time: 6614ms
+[2026-03-12T00:18:14.418Z] [INFO]   ━━━ Item 3/48 ━━━
+[2026-03-12T00:18:14.418Z] [INFO]     🔍 Checking if element at index 2 exists...
+[2026-03-12T00:18:14.618Z] [INFO]     ⏳ Found 0 elements, need at least 3 (attempt 1)
+[2026-03-12T00:18:15.123Z] [INFO]     ⏳ Found 0 elements, need at least 3 (attempt 2)
+[2026-03-12T00:18:15.634Z] [INFO]     ⏳ Found 0 elements, need at least 3 (attempt 3)
+[2026-03-12T00:18:16.142Z] [INFO]     ⏳ Found 0 elements, need at least 3 (attempt 4)
+[2026-03-12T00:18:16.650Z] [INFO]     ⏳ Found 0 elements, need at least 3 (attempt 5)
+[2026-03-12T00:18:17.103Z] [WARN] ⏹ Execution stopped by user
+[2026-03-12T00:18:17.264Z] [INFO]     ⏳ Found 0 elements, need at least 3 (attempt 6)
+[2026-03-12T00:18:19.413Z] [INFO]     ✓ Element exists (48 total elements, check attempt 7)
+[2026-03-12T00:18:19.413Z] [SUCCESS] ✓ Loop completed: 48 iterations
+[2026-03-12T00:18:19.588Z] [INFO]   ⏱ Execution time: 40352ms
+[2026-03-12T00:18:19.744Z] [INFO]     🔍 Looking for next button...
+[2026-03-12T00:18:20.032Z] [INFO]     ✓ Next button found
+[2026-03-12T00:18:20.032Z] [INFO]     👆 Clicking next button: //a[normalize-space()='Next']
+[2026-03-12T00:18:20.267Z] [INFO]     ⏱ Waiting 1000ms for page transition...
+[2026-03-12T00:18:21.274Z] [INFO]     ⏳ Waiting for page to load...
+[2026-03-12T00:18:21.478Z] [SUCCESS] ✓ Button pagination completed: 1 pages processed
+[2026-03-12T00:18:21.660Z] [INFO]   ⏱ Execution time: 42801ms

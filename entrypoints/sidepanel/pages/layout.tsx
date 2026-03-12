@@ -15,6 +15,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import AppLogo from '@/public/octograb-logo.png';
 
 export default function Layout() {
     const blueprintBuilderStore = useBlueprintBuilderStore();
@@ -52,13 +53,16 @@ export default function Layout() {
     }
     return (
         <TooltipProvider>
-            <div className="h-full flex-1 flex flex-col gap-2">
-                <div className="bg-gray-100 w-full p-4 border border-gray-300 rounded-lg flex justify-between">
-                    <div>
-                        <span className="text-2xl font-semibold">Scrapy</span>
-                        <p className='text-xs text-gray-500'>
-                            Get data from any website
-                        </p>
+            <div className="h-full flex-1 flex flex-col gap-2 min-h-0 overflow-hidden">
+                <div className="bg-gray-100 w-full p-3 border border-gray-300 rounded-lg flex justify-between shrink-0">
+                    <div className="flex items-center gap-2">
+                        <img src={AppLogo} alt="OctoGrab Logo" className='w-12 h-12' />
+                        <div>
+                            <span className="text-2xl font-semibold">OctoGrab</span>
+                            <p className='text-xs text-gray-500'>
+                                Get data from any website
+                            </p>
+                        </div>
                     </div>
                     <div className="flex gap-2 items-center">
                         <Button size="icon" onClick={blueprintBuilderRoute}>
