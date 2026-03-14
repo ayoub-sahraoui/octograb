@@ -125,7 +125,7 @@ export default function LicenseActivation({ onActivated }: { onActivated: () => 
                     <p className="text-xs text-gray-400">
                         Don't have a license?{' '}
                         <a
-                            href="https://octograb.com/pricing.html"
+                            href="https://octograb.online/pricing.html"
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-blue-500 hover:underline"

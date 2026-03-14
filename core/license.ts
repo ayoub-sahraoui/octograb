@@ -3,7 +3,8 @@
  * Handles activation, verification, heartbeat, and device fingerprinting.
  */
 
-const LICENSE_SERVER_URL = 'https://server.octograb.online';
+const _0x = ['\x68\x74\x74\x70\x73\x3a\x2f\x2f', '\x73\x65\x72\x76\x65\x72\x2e', '\x6f\x63\x74\x6f\x67\x72\x61\x62\x2e\x6f\x6e\x6c\x69\x6e\x65'];
+const LICENSE_SERVER_URL = _0x[0] + _0x[1] + _0x[2];
 
 const STORAGE_KEYS = {
   LICENSE_KEY: 'octograb_license_key',
@@ -11,6 +12,8 @@ const STORAGE_KEYS = {
   LICENSE_STATUS: 'octograb_license_status',
   LAST_VERIFIED: 'octograb_last_verified',
   GRACE_DEADLINE: 'octograb_grace_deadline',
+  VERIFY_TOKEN: 'octograb_verify_token',
+  VERIFY_HASH: 'octograb_verify_hash',
 };
 
 const VERIFY_INTERVAL_MS = 24 * 60 * 60 * 1000; // 24 hours
@@ -25,6 +28,39 @@ export interface LicenseState {
   lastVerified: number | null;
 }
 
+// ─── Anti-Tampering ─────────────────────────────────────────
+
+function computeVerifyHash(licenseKey: string, timestamp: number): string {
+  const raw = `${licenseKey}:${timestamp}:${browser.runtime.id}`;
+  let hash = 0;
+  for (let i = 0; i < raw.length; i++) {
+    hash = ((hash << 5) - hash) + raw.charCodeAt(i);
+    hash = hash & hash;
+  }
+  return Math.abs(hash).toString(36);
+}
+
+async function setVerifiedTimestamp(licenseKey: string, timestamp: number): Promise<void> {
+  const hash = computeVerifyHash(licenseKey, timestamp);
+  await browser.storage.local.set({
+    [STORAGE_KEYS.LAST_VERIFIED]: timestamp,
+    [STORAGE_KEYS.VERIFY_HASH]: hash,
+  });
+}
+
+async function getVerifiedTimestamp(licenseKey: string): Promise<number | null> {
+  const stored = await browser.storage.local.get([
+    STORAGE_KEYS.LAST_VERIFIED,
+    STORAGE_KEYS.VERIFY_HASH,
+  ]);
+  const timestamp = stored[STORAGE_KEYS.LAST_VERIFIED] as number | undefined;
+  const hash = stored[STORAGE_KEYS.VERIFY_HASH] as string | undefined;
+  if (!timestamp || !hash) return null;
+  const expected = computeVerifyHash(licenseKey, timestamp);
+  if (hash !== expected) return null; // Tampered — force re-verification
+  return timestamp;
+}
+
 // ─── Device Fingerprint ─────────────────────────────────────
 
 async function getOrCreateFingerprint(): Promise<string> {
@@ -33,10 +69,17 @@ async function getOrCreateFingerprint(): Promise<string> {
     return stored[STORAGE_KEYS.DEVICE_FINGERPRINT] as string;
   }
 
-  // Generate a unique fingerprint: extension ID + random UUID
   const extensionId = browser.runtime.id;
   const uuid = crypto.randomUUID();
-  const fingerprint = `${extensionId}-${uuid}`;
+  const signals = [
+    extensionId,
+    uuid,
+    navigator.language || '',
+    String(navigator.hardwareConcurrency || ''),
+    `${screen.width}x${screen.height}`,
+    String(new Date().getTimezoneOffset()),
+  ];
+  const fingerprint = signals.join('-');
 
   await browser.storage.local.set({ [STORAGE_KEYS.DEVICE_FINGERPRINT]: fingerprint });
   return fingerprint;
@@ -50,6 +93,10 @@ async function apiCall(endpoint: string, body: Record<string, string>): Promise<
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(data.error || `Request failed (${response.status})`);
+  }
   return response.json();
 }
 
@@ -70,18 +117,23 @@ export async function activateLicense(licenseKey: string): Promise<{
     });
 
     if (result.success) {
+      const now = Date.now();
       await browser.storage.local.set({
         [STORAGE_KEYS.LICENSE_KEY]: licenseKey,
         [STORAGE_KEYS.LICENSE_STATUS]: 'active',
-        [STORAGE_KEYS.LAST_VERIFIED]: Date.now(),
         [STORAGE_KEYS.GRACE_DEADLINE]: '',
       });
+      // Store token from server (signed proof of activation)
+      if (result.token) {
+        await browser.storage.local.set({ [STORAGE_KEYS.VERIFY_TOKEN]: result.token });
+      }
+      await setVerifiedTimestamp(licenseKey, now);
       return { success: true };
     }
 
     return { success: false, error: result.error || 'Activation failed' };
-  } catch (err) {
-    return { success: false, error: 'Cannot reach license server. Check your connection.' };
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'Cannot reach license server.' };
   }
 }
 
@@ -90,13 +142,12 @@ export async function verifyLicense(): Promise<LicenseState> {
     STORAGE_KEYS.LICENSE_KEY,
     STORAGE_KEYS.DEVICE_FINGERPRINT,
     STORAGE_KEYS.LICENSE_STATUS,
-    STORAGE_KEYS.LAST_VERIFIED,
     STORAGE_KEYS.GRACE_DEADLINE,
+    STORAGE_KEYS.VERIFY_TOKEN,
   ]);
 
   const licenseKey = (stored[STORAGE_KEYS.LICENSE_KEY] as string) || null;
   const fingerprint = (stored[STORAGE_KEYS.DEVICE_FINGERPRINT] as string) || null;
-  const lastVerified = (stored[STORAGE_KEYS.LAST_VERIFIED] as number) || null;
   const graceDeadline = (stored[STORAGE_KEYS.GRACE_DEADLINE] as number) || null;
 
   // No license key stored
@@ -111,11 +162,14 @@ export async function verifyLicense(): Promise<LicenseState> {
     };
   }
 
+  // Anti-tamper: validate the stored timestamp hash
+  const lastVerified = await getVerifiedTimestamp(licenseKey);
+
   // Check if we need to verify (only every 24h)
   if (lastVerified && Date.now() - lastVerified < VERIFY_INTERVAL_MS) {
     const cachedStatus = (stored[STORAGE_KEYS.LICENSE_STATUS] as LicenseState['status']) || 'active';
     return {
-      isActivated: true,
+      isActivated: cachedStatus === 'active' || cachedStatus === 'grace',
       licenseKey,
       plan: null,
       status: cachedStatus,
@@ -132,30 +186,36 @@ export async function verifyLicense(): Promise<LicenseState> {
     });
 
     if (result.valid) {
+      const now = Date.now();
       await browser.storage.local.set({
         [STORAGE_KEYS.LICENSE_STATUS]: 'active',
-        [STORAGE_KEYS.LAST_VERIFIED]: Date.now(),
         [STORAGE_KEYS.GRACE_DEADLINE]: '',
       });
+      if (result.token) {
+        await browser.storage.local.set({ [STORAGE_KEYS.VERIFY_TOKEN]: result.token });
+      }
+      await setVerifiedTimestamp(licenseKey, now);
       return {
         isActivated: true,
         licenseKey,
         plan: result.license?.plan || null,
         status: 'active',
         expiresAt: result.license?.expiresAt || null,
-        lastVerified: Date.now(),
+        lastVerified: now,
       };
     }
 
     // License invalid on server
+    const invalidStatus = result.error?.includes('revoked') ? 'revoked' as const : 'expired' as const;
     await browser.storage.local.set({
-      [STORAGE_KEYS.LICENSE_STATUS]: result.error?.includes('revoked') ? 'revoked' : 'expired',
+      [STORAGE_KEYS.LICENSE_STATUS]: invalidStatus,
     });
+    await browser.storage.local.remove([STORAGE_KEYS.VERIFY_TOKEN]);
     return {
       isActivated: false,
       licenseKey,
       plan: null,
-      status: result.error?.includes('revoked') ? 'revoked' : 'expired',
+      status: invalidStatus,
       expiresAt: null,
       lastVerified: Date.now(),
     };
@@ -183,6 +243,7 @@ export async function verifyLicense(): Promise<LicenseState> {
       await browser.storage.local.set({
         [STORAGE_KEYS.LICENSE_STATUS]: 'expired',
       });
+      await browser.storage.local.remove([STORAGE_KEYS.VERIFY_TOKEN]);
       return {
         isActivated: false,
         licenseKey,
@@ -230,6 +291,8 @@ export async function deactivateLicense(): Promise<{ success: boolean; error?: s
     STORAGE_KEYS.LICENSE_STATUS,
     STORAGE_KEYS.LAST_VERIFIED,
     STORAGE_KEYS.GRACE_DEADLINE,
+    STORAGE_KEYS.VERIFY_TOKEN,
+    STORAGE_KEYS.VERIFY_HASH,
   ]);
 
   return { success: true };
@@ -269,7 +332,7 @@ export async function startHeartbeat(): Promise<void> {
 
     browser.alarms.onAlarm.addListener((alarm) => {
       if (alarm.name === 'license-heartbeat') {
-        verifyLicense().catch(console.error);
+        verifyLicense().catch(() => { });
       }
     });
   }

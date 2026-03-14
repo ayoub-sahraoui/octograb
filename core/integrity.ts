@@ -1,61 +1,40 @@
 /**
- * Runtime integrity checking to detect code tampering
- * Verifies that critical license functions haven't been modified
+ * Runtime integrity checking to detect code tampering.
+ * Verifies that critical license functions haven't been replaced with stubs.
  */
 
-import { activateLicense, verifyLicense, deactivateLicense } from './license';
-
-// Function checksums (will be auto-generated during build)
-// These are SHA-256 hashes of the function source code
-const EXPECTED_CHECKSUMS: Record<string, string> = {
-  // These will be populated by the build script
-  // Format: functionName: 'sha256-hash'
-};
+import { activateLicense, verifyLicense, deactivateLicense, getLicenseState } from './license';
 
 /**
- * Simple hash function for function source code
- * Not cryptographically secure, but good enough for basic tampering detection
- */
-function simpleHash(str: string): string {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    const char = str.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash; // Convert to 32-bit integer
-  }
-  return Math.abs(hash).toString(16).padStart(8, '0');
-}
-
-/**
- * Verify that a function hasn't been tampered with
- */
-function verifyFunction(fn: Function, expectedHash: string): boolean {
-  const fnString = fn.toString();
-  const actualHash = simpleHash(fnString);
-  return actualHash === expectedHash;
-}
-
-/**
- * Check integrity of all critical license functions
- * Returns true if all checks pass, false if tampering detected
+ * Verify that license functions are real implementations, not stubs.
+ * A cracker would typically replace these with functions that return
+ * hardcoded { success: true } or { isActivated: true } — we detect
+ * that by checking the function source contains expected patterns.
  */
 export function checkIntegrity(): boolean {
-  // If no checksums are defined, skip checks (development mode)
-  if (Object.keys(EXPECTED_CHECKSUMS).length === 0) {
-    return true;
-  }
-
-  const checks = [
-    { name: 'activateLicense', fn: activateLicense },
-    { name: 'verifyLicense', fn: verifyLicense },
-    { name: 'deactivateLicense', fn: deactivateLicense },
+  const fnSources = [
+    activateLicense.toString(),
+    verifyLicense.toString(),
+    deactivateLicense.toString(),
+    getLicenseState.toString(),
   ];
 
-  for (const check of checks) {
-    const expectedHash = EXPECTED_CHECKSUMS[check.name];
-    if (expectedHash && !verifyFunction(check.fn, expectedHash)) {
-      console.error(`[Security] Integrity check failed for ${check.name}`);
-      return false;
+  // Every real license function must reference the storage API and fetch
+  const requiredPatterns = [
+    /storage/, // Must use browser.storage
+    /fetch|apiCall/, // Must make network calls (or reference apiCall)
+  ];
+
+  for (const src of fnSources) {
+    // If a function is suspiciously short, it's likely a stub
+    if (src.length < 50) return false;
+  }
+
+  // activateLicense and verifyLicense must reference network + storage
+  const networkFns = [fnSources[0], fnSources[1]];
+  for (const src of networkFns) {
+    for (const pattern of requiredPatterns) {
+      if (!pattern.test(src)) return false;
     }
   }
 
@@ -63,12 +42,12 @@ export function checkIntegrity(): boolean {
 }
 
 /**
- * Mark extension as tampered in storage
+ * Mark extension as tampered in storage (silent flag)
  */
 export async function markTampered(): Promise<void> {
   try {
-    await browser.storage.local.set({ __integrity_failed: true });
-  } catch (e) {
+    await browser.storage.local.set({ __xt: true });
+  } catch {
     // Silently fail
   }
 }
@@ -78,34 +57,22 @@ export async function markTampered(): Promise<void> {
  */
 export async function isTampered(): Promise<boolean> {
   try {
-    const result = await browser.storage.local.get('__integrity_failed');
-    return result.__integrity_failed === true;
-  } catch (e) {
+    const result = await browser.storage.local.get('__xt');
+    return result.__xt === true;
+  } catch {
     return false;
   }
 }
 
 /**
- * Detect if DevTools is open (anti-debugging)
- * Note: This is not foolproof but adds another layer
- */
-export function detectDevTools(): boolean {
-  const threshold = 160;
-  const widthThreshold = window.outerWidth - window.innerWidth > threshold;
-  const heightThreshold = window.outerHeight - window.innerHeight > threshold;
-  return widthThreshold || heightThreshold;
-}
-
-/**
- * Periodic integrity check that runs in background
+ * Run integrity check and flag if tampered.
+ * Called from background script on startup and periodically.
  */
 export function startIntegrityMonitoring(): void {
-  // Check immediately
   if (!checkIntegrity()) {
     markTampered();
   }
 
-  // Check every 5 minutes
   setInterval(() => {
     if (!checkIntegrity()) {
       markTampered();
