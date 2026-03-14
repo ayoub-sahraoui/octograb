@@ -3,7 +3,7 @@
  * Handles activation, verification, heartbeat, and device fingerprinting.
  */
 
-const LICENSE_SERVER_URL = 'http://localhost:3000'; // TODO: Change to production URL
+const LICENSE_SERVER_URL = 'https://server.octograb.online';
 
 const STORAGE_KEYS = {
   LICENSE_KEY: 'octograb_license_key',
