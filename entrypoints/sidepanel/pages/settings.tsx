@@ -1,9 +1,10 @@
 import { Button } from "@/components/ui/button";
-import { Download, Upload, Trash2, Database, Info, AlertCircle, Activity, ArrowLeft } from "lucide-react";
+import { Download, Upload, Trash2, Database, Info, AlertCircle, Activity, ArrowLeft, KeyRound, LogOut } from "lucide-react";
 import { db } from "@/core/database";
 import { useState } from "react";
 import { useBlueprintBuilderStore } from '@/entrypoints/stores/blueprint-builder-store';
 import { useBlueprintExecutorStore } from '@/entrypoints/stores/blueprint-executor-store';
+import { useLicenseStore } from '@/entrypoints/stores/license-store';
 import { observer } from 'mobx-react-lite';
 import { useNavigate } from 'react-router-dom';
 import { Label } from "@/components/ui/label";
@@ -13,6 +14,7 @@ import { Switch } from "@/components/ui/switch";
 export default observer(function Settings() {
     const blueprintBuilderStore = useBlueprintBuilderStore();
     const executorStore = useBlueprintExecutorStore();
+    const licenseStore = useLicenseStore();
     const navigate = useNavigate();
     const [stats, setStats] = useState<any>(null);
 
@@ -239,6 +241,54 @@ export default observer(function Settings() {
                             </Button>
                         </div>
                     </div>
+                </div>
+
+                <Separator />
+
+                {/* License */}
+                <div className="bg-white p-4 rounded-lg border">
+                    <div className="flex items-center gap-2 mb-3">
+                        <KeyRound className="w-5 h-5" />
+                        <h2 className="text-lg font-semibold">License</h2>
+                    </div>
+                    <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                            <span className="text-gray-500">Status</span>
+                            <span className={`font-medium ${licenseStore.status === 'active' ? 'text-green-600' :
+                                    licenseStore.status === 'grace' ? 'text-yellow-600' : 'text-red-600'
+                                }`}>
+                                {licenseStore.status === 'active' ? '● Active' :
+                                    licenseStore.status === 'grace' ? '● Grace Period' : '● ' + licenseStore.status}
+                            </span>
+                        </div>
+                        {licenseStore.licenseKey && (
+                            <div className="flex justify-between">
+                                <span className="text-gray-500">License Key</span>
+                                <span className="font-mono text-xs">
+                                    {licenseStore.licenseKey.slice(0, 9)}...{licenseStore.licenseKey.slice(-4)}
+                                </span>
+                            </div>
+                        )}
+                        {licenseStore.plan && (
+                            <div className="flex justify-between">
+                                <span className="text-gray-500">Plan</span>
+                                <span className="font-medium capitalize">{licenseStore.plan}</span>
+                            </div>
+                        )}
+                    </div>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={async () => {
+                            if (confirm('Are you sure you want to deactivate this device? You can reactivate later with your license key.')) {
+                                await licenseStore.deactivate();
+                            }
+                        }}
+                        className="mt-4 w-full gap-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                        <LogOut className="w-4 h-4" />
+                        Deactivate License
+                    </Button>
                 </div>
 
                 <Separator />

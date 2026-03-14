@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OctoGrab Documentation</title>
+    <meta name="description" content="Complete documentation for OctoGrab Chrome extension.">
+    <link rel="icon" type="image/png" href="octograb-logo.png">
+    <link
+        href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=IBM+Plex+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="docs.css">
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+</head>
+
+<body>
+    <nav class="topnav" id="topnav">
+        <div class="topnav-inner">
+            <a href="../index.html" class="topnav-brand">
+                <img src="octograb-logo.png" alt="OctoGrab" class="topnav-logo">
+                <span>OctoGrab</span>
+                <span class="topnav-separator">/</span>
+                <span class="topnav-docs">Docs</span>
+            </a>
+            <div class="topnav-actions">
+                <a href="../pricing.html" class="topnav-link">Pricing</a>
+                <a href="../index.html" class="topnav-link">Home</a>
+                <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar">
+                    <span></span><span></span><span></span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="docs-layout">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-inner">
+                <div class="sidebar-section">
+                    <div class="sidebar-heading">Getting Started</div>
+                    <a href="#introduction" class="sidebar-link active">Introduction</a>
+                    <a href="#installation" class="sidebar-link">Installation</a>
+                    <a href="#quick-start" class="sidebar-link">Quick Start Guide</a>
+                    <a href="#ui-overview" class="sidebar-link">UI Overview</a>
+                </div>
+                <div class="sidebar-section">
+                    <div class="sidebar-heading">Core Concepts</div>
+                    <a href="#blueprints" class="sidebar-link">What Are Blueprints?</a>
+                    <a href="#blocks" class="sidebar-link">Understanding Blocks</a>
+                    <a href="#selectors" class="sidebar-link">Selectors</a>
+                    <a href="#scopes" class="sidebar-link">Scopes &amp; Context</a>
+                    <a href="#error-handling" class="sidebar-link">Error Handling</a>
+                </div>
+                <div class="sidebar-section">
+                    <div class="sidebar-heading">Block Reference</div>
+                    <a href="#block-navigate" class="sidebar-link">Navigate</a>
+                    <a href="#block-click" class="sidebar-link">Click</a>
+                    <a href="#block-input" class="sidebar-link">Input Text</a>
+                    <a href="#block-wait" class="sidebar-link">Wait</a>
+                    <a href="#block-scroll" class="sidebar-link">Scroll</a>
+                    <a href="#block-go-back" class="sidebar-link">Go Back</a>
+                    <a href="#block-loop-elements" class="sidebar-link">Loop Elements</a>
+                    <a href="#block-loop-pagination" class="sidebar-link">Loop Pagination</a>
+                    <a href="#block-extract" class="sidebar-link">Extract Data</a>
+                    <a href="#block-condition" class="sidebar-link">If / Else Condition</a>
+                </div>
+                <div class="sidebar-section">
+                    <div class="sidebar-heading">Data &amp; Fields</div>
+                    <a href="#extraction-fields" class="sidebar-link">Extraction Fields</a>
+                    <a href="#static-fields" class="sidebar-link">Static Fields</a>
+                    <a href="#formulas" class="sidebar-link">Formulas</a>
+                    <a href="#transformers" class="sidebar-link">Transformers</a>
+                    <a href="#attributes" class="sidebar-link">Attributes</a>
+                </div>
+                <div class="sidebar-section">
+                    <div class="sidebar-heading">Tutorials</div>
+                    <a href="#tut-simple" class="sidebar-link">Scrape a Product List</a>
+                    <a href="#tut-detail" class="sidebar-link">Detail Page Scraping</a>
+                    <a href="#tut-pagination" class="sidebar-link">Multi-Page Scraping</a>
+                    <a href="#tut-search" class="sidebar-link">Search &amp; Extract</a>
+                </div>
+                <div class="sidebar-section">
+                    <div class="sidebar-heading">Advanced</div>
+                    <a href="#execution" class="sidebar-link">Execution Engine</a>
+                    <a href="#pause-resume" class="sidebar-link">Pause &amp; Resume</a>
+                    <a href="#import-export" class="sidebar-link">Import / Export</a>
+                    <a href="#data-export" class="sidebar-link">Data Export Formats</a>
+                    <a href="#tips" class="sidebar-link">Tips &amp; Best Practices</a>
+                </div>
+            </div>
+        </aside>
+
+        <main class="content" id="content-placeholder">
+        </main>
+    </div>
+
+    <script src="content.js"></script>
+    <script>
+        document.querySelectorAll('a[href^="#"]').forEach(a => {
+            a.addEventListener('click', e => {
+                e.preventDefault();
+                const target = document.querySelector(a.getAttribute('href'));
+                if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                document.getElementById('sidebar').classList.remove('open');
+                document.getElementById('sidebarToggle').classList.remove('open');
+                document.querySelectorAll('.sidebar-link').forEach(l => l.classList.remove('active'));
+                a.classList.add('active');
+            });
+        });
+        document.getElementById('sidebarToggle').addEventListener('click', () => {
+            document.getElementById('sidebar').classList.toggle('open');
+            document.getElementById('sidebarToggle').classList.toggle('open');
+        });
+        window.addEventListener('scroll', () => {
+            const nav = document.getElementById('topnav');
+            nav.classList.toggle('scrolled', window.scrollY > 20);
+        });
+        // Highlight active sidebar link on scroll
+        const sections = document.querySelectorAll('main section[id]');
+        const sidebarLinks = document.querySelectorAll('.sidebar-link');
+        const obs = new IntersectionObserver(entries => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    sidebarLinks.forEach(l => l.classList.remove('active'));
+                    const link = document.querySelector(`.sidebar-link[href="#${entry.target.id}"]`);
+                    if (link) link.classList.add('active');
+                }
+            });
+        }, { rootMargin: '-80px 0px -60% 0px' });
+        sections.forEach(s => obs.observe(s));
+
+        // Initialize Lucide icons after content injection
+        lucide.createIcons();
+    </script>
+</body>
+
+</html>

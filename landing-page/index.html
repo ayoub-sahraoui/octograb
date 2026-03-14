@@ -1,19 +1,27 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>OctoGrab — Extract Data From Any Website</title>
-    <meta name="description" content="OctoGrab is a powerful Chrome extension that lets you visually build web scraping automations — no code required. Extract, transform, and export data in clicks.">
-    <meta name="keywords" content="web scraping, chrome extension, data extraction, no code, automation, csv export, json export">
+    <meta name="description"
+        content="OctoGrab is a powerful Chrome extension that lets you visually build web scraping automations — no code required. Extract, transform, and export data in clicks.">
+    <meta name="keywords"
+        content="web scraping, chrome extension, data extraction, no code, automation, csv export, json export">
     <meta property="og:title" content="OctoGrab — Extract Data From Any Website">
-    <meta property="og:description" content="Build visual web scraping blueprints. No code. No limits. Just point, click, and extract.">
+    <meta property="og:description"
+        content="Build visual web scraping blueprints. No code. No limits. Just point, click, and extract.">
     <meta property="og:image" content="octograb-logo.png">
     <meta property="og:type" content="website">
     <link rel="icon" type="image/png" href="octograb-logo.png">
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=IBM+Plex+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="style.css">
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
 </head>
+
 <body>
     <!-- ====== NAVBAR ====== -->
     <nav class="navbar" id="navbar">
@@ -28,9 +36,11 @@
                 <a href="#screenshots">Screenshots</a>
                 <a href="#use-cases">Use Cases</a>
                 <a href="#faq">FAQ</a>
+                <a href="docs/index.html">Docs</a>
+                <a href="pricing.html">Pricing</a>
             </div>
             <div class="navbar-actions">
-                <a href="#install" class="btn btn-primary btn-sm">Install Free</a>
+                <a href="pricing.html" class="btn btn-primary btn-sm">Get OctoGrab</a>
                 <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Toggle menu">
                     <span></span><span></span><span></span>
                 </button>
@@ -49,24 +59,25 @@
             <div class="hero-content">
                 <div class="hero-badge">
                     <span class="badge-dot"></span>
-                    Free &amp; Open Source Chrome Extension
+                    Visual Web Scraping Chrome Extension
                 </div>
                 <h1 class="hero-title">
                     Stop copying data<br>
                     <span class="text-gradient">manually.</span>
                 </h1>
                 <p class="hero-subtitle">
-                    OctoGrab lets you visually build web scraping automations right from your browser sidebar. 
-                    Point at elements, define extraction rules, and export clean data — <strong>no code required.</strong>
+                    OctoGrab lets you visually build web scraping automations right from your browser sidebar.
+                    Point at elements, define extraction rules, and export clean data — <strong>no code
+                        required.</strong>
                 </p>
                 <div class="hero-cta">
-                    <a href="#install" class="btn btn-primary btn-lg">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                        Install for Chrome — It's Free
+                    <a href="pricing.html" class="btn btn-primary btn-lg">
+                        <i data-lucide="download" style="width:20px;height:20px"></i>
+                        Get OctoGrab — $9.95
                     </a>
-                    <a href="https://github.com/ayoub-sahraoui/octograb" target="_blank" class="btn btn-outline btn-lg">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
-                        View on GitHub
+                    <a href="docs/index.html" class="btn btn-outline btn-lg">
+                        <i data-lucide="book-open" style="width:20px;height:20px"></i>
+                        Read the Docs
                     </a>
                 </div>
                 <div class="hero-stats">
@@ -119,65 +130,75 @@
         <div class="container">
             <div class="section-header">
                 <span class="section-tag">Features</span>
-                <h2 class="section-title">Everything you need to<br><span class="text-gradient">extract the web.</span></h2>
-                <p class="section-desc">OctoGrab packs enterprise-grade scraping power into a friendly visual interface that lives right in your browser sidebar.</p>
+                <h2 class="section-title">Everything you need to<br><span class="text-gradient">extract the web.</span>
+                </h2>
+                <p class="section-desc">OctoGrab packs enterprise-grade scraping power into a friendly visual interface
+                    that lives right in your browser sidebar.</p>
             </div>
             <div class="features-grid">
                 <div class="feature-card feature-card-highlight">
                     <div class="feature-icon">
-                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                        <i data-lucide="layout-grid"></i>
                     </div>
                     <h3>Visual Blueprint Builder</h3>
-                    <p>Drag-and-drop blocks to build scraping workflows visually. Navigate, click, wait, loop, extract — all without writing a single line of code.</p>
+                    <p>Drag-and-drop blocks to build scraping workflows visually. Navigate, click, wait, loop, extract —
+                        all without writing a single line of code.</p>
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon">
-                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                        <i data-lucide="file-spreadsheet"></i>
                     </div>
                     <h3>Multi-Format Export</h3>
-                    <p>Export your extracted data instantly as CSV, JSON, or Excel (.xlsx) files. Ready for spreadsheets, databases, or APIs.</p>
+                    <p>Export your extracted data instantly as CSV, JSON, or Excel (.xlsx) files. Ready for
+                        spreadsheets, databases, or APIs.</p>
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon">
-                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+                        <i data-lucide="code"></i>
                     </div>
                     <h3>Smart Selectors</h3>
-                    <p>Use CSS selectors, XPath, text matching, or ARIA roles. OctoGrab finds elements reliably even on complex, dynamic pages.</p>
+                    <p>Use CSS selectors, XPath, text matching, or ARIA roles. OctoGrab finds elements reliably even on
+                        complex, dynamic pages.</p>
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon">
-                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+                        <i data-lucide="wand-sparkles"></i>
                     </div>
                     <h3>Data Transformers</h3>
-                    <p>Clean extracted values with built-in transformers: regex extract/replace, trim, uppercase, lowercase, number parsing, and more.</p>
+                    <p>Clean extracted values with built-in transformers: regex extract/replace, trim, uppercase,
+                        lowercase, number parsing, and more.</p>
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon">
-                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 1-9 9m9-9a9 9 0 0 0-9-9m9 9H3m9 9a9 9 0 0 1-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 0 1 9-9"/></svg>
+                        <i data-lucide="repeat"></i>
                     </div>
                     <h3>Pagination &amp; Loops</h3>
-                    <p>Automatically paginate through lists, loop over elements, and navigate across multiple pages — all handled by the engine.</p>
+                    <p>Automatically paginate through lists, loop over elements, and navigate across multiple pages —
+                        all handled by the engine.</p>
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon">
-                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                        <i data-lucide="shield-check"></i>
                     </div>
                     <h3>Pause, Resume &amp; Checkpoint</h3>
-                    <p>Long-running scrapes? Pause anytime and resume from where you left off. Your data and progress are saved automatically.</p>
+                    <p>Long-running scrapes? Pause anytime and resume from where you left off. Your data and progress
+                        are saved automatically.</p>
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon">
-                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                        <i data-lucide="calculator"></i>
                     </div>
                     <h3>Formula &amp; Static Fields</h3>
-                    <p>Add computed fields with math formulas, auto-increment IDs, UUIDs, timestamps, and constants — all without extra code.</p>
+                    <p>Add computed fields with math formulas, auto-increment IDs, UUIDs, timestamps, and constants —
+                        all without extra code.</p>
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon">
-                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+                        <i data-lucide="arrow-left-right"></i>
                     </div>
                     <h3>Import &amp; Export Blueprints</h3>
-                    <p>Share your scraping blueprints as JSON files. Import community blueprints or reuse your own across projects.</p>
+                    <p>Share your scraping blueprints as JSON files. Import community blueprints or reuse your own
+                        across projects.</p>
                 </div>
             </div>
         </div>
@@ -189,14 +210,16 @@
             <div class="section-header">
                 <span class="section-tag">How It Works</span>
                 <h2 class="section-title">Three steps to<br><span class="text-gradient">structured data.</span></h2>
-                <p class="section-desc">From opening the sidebar to downloading your spreadsheet — it takes minutes, not hours.</p>
+                <p class="section-desc">From opening the sidebar to downloading your spreadsheet — it takes minutes, not
+                    hours.</p>
             </div>
             <div class="steps">
                 <div class="step">
                     <div class="step-number">1</div>
                     <div class="step-content">
                         <h3>Build Your Blueprint</h3>
-                        <p>Open the OctoGrab sidebar and add blocks: Navigate to a URL, loop over product cards, click into detail pages, and define which data fields to extract.</p>
+                        <p>Open the OctoGrab sidebar and add blocks: Navigate to a URL, loop over product cards, click
+                            into detail pages, and define which data fields to extract.</p>
                     </div>
                     <div class="step-visual">
                         <div class="screenshot-placeholder screenshot-placeholder-sm">
@@ -209,7 +232,9 @@
                     <div class="step-number">2</div>
                     <div class="step-content">
                         <h3>Hit Play &amp; Watch It Run</h3>
-                        <p>Click the play button. OctoGrab takes control of the browser tab — navigating pages, clicking elements, waiting for content, and extracting data in real time. Watch the progress bar and live data table update as it works.</p>
+                        <p>Click the play button. OctoGrab takes control of the browser tab — navigating pages, clicking
+                            elements, waiting for content, and extracting data in real time. Watch the progress bar and
+                            live data table update as it works.</p>
                     </div>
                     <div class="step-visual">
                         <div class="screenshot-placeholder screenshot-placeholder-sm">
@@ -222,7 +247,8 @@
                     <div class="step-number">3</div>
                     <div class="step-content">
                         <h3>Export Clean Data</h3>
-                        <p>When it's done (or anytime you pause), export your data as CSV, JSON, or Excel. Every row is clean, transformed, and ready to use in your workflow.</p>
+                        <p>When it's done (or anytime you pause), export your data as CSV, JSON, or Excel. Every row is
+                            clean, transformed, and ready to use in your workflow.</p>
                     </div>
                     <div class="step-visual">
                         <div class="screenshot-placeholder screenshot-placeholder-sm">
@@ -293,34 +319,34 @@
             </div>
             <div class="blocks-showcase">
                 <div class="block-chip">
-                    <span class="block-chip-icon">🌐</span> Navigate
+                    <span class="block-chip-icon"><i data-lucide="globe"></i></span> Navigate
                 </div>
                 <div class="block-chip">
-                    <span class="block-chip-icon">🖱️</span> Click
+                    <span class="block-chip-icon"><i data-lucide="mouse-pointer-click"></i></span> Click
                 </div>
                 <div class="block-chip">
-                    <span class="block-chip-icon">⌨️</span> Input
+                    <span class="block-chip-icon"><i data-lucide="type"></i></span> Input
                 </div>
                 <div class="block-chip">
-                    <span class="block-chip-icon">⏳</span> Wait
+                    <span class="block-chip-icon"><i data-lucide="clock"></i></span> Wait
                 </div>
                 <div class="block-chip">
-                    <span class="block-chip-icon">📜</span> Scroll
+                    <span class="block-chip-icon"><i data-lucide="arrow-down"></i></span> Scroll
                 </div>
                 <div class="block-chip">
-                    <span class="block-chip-icon">↩️</span> Go Back
+                    <span class="block-chip-icon"><i data-lucide="undo-2"></i></span> Go Back
                 </div>
                 <div class="block-chip">
-                    <span class="block-chip-icon">🔁</span> Loop Elements
+                    <span class="block-chip-icon"><i data-lucide="repeat"></i></span> Loop Elements
                 </div>
                 <div class="block-chip">
-                    <span class="block-chip-icon">📄</span> Loop Pagination
+                    <span class="block-chip-icon"><i data-lucide="book-open"></i></span> Loop Pagination
                 </div>
                 <div class="block-chip">
-                    <span class="block-chip-icon">📦</span> Extract Scope
+                    <span class="block-chip-icon"><i data-lucide="database"></i></span> Extract Scope
                 </div>
                 <div class="block-chip">
-                    <span class="block-chip-icon">🔀</span> Condition
+                    <span class="block-chip-icon"><i data-lucide="git-branch"></i></span> Condition
                 </div>
             </div>
         </div>
@@ -331,38 +357,45 @@
         <div class="container">
             <div class="section-header">
                 <span class="section-tag">Use Cases</span>
-                <h2 class="section-title">Built for people who<br><span class="text-gradient">need data yesterday.</span></h2>
+                <h2 class="section-title">Built for people who<br><span class="text-gradient">need data
+                        yesterday.</span></h2>
             </div>
             <div class="use-cases-grid">
                 <div class="use-case-card">
-                    <div class="use-case-emoji">🛒</div>
+                    <div class="use-case-emoji"><i data-lucide="shopping-cart"></i></div>
                     <h3>E-Commerce Research</h3>
-                    <p>Scrape product listings, prices, reviews, and ratings from Amazon, eBay, Shopify stores, and more. Track competitor pricing at scale.</p>
+                    <p>Scrape product listings, prices, reviews, and ratings from Amazon, eBay, Shopify stores, and
+                        more. Track competitor pricing at scale.</p>
                 </div>
                 <div class="use-case-card">
-                    <div class="use-case-emoji">📊</div>
+                    <div class="use-case-emoji"><i data-lucide="bar-chart-3"></i></div>
                     <h3>Market Analysis</h3>
-                    <p>Collect job postings, company profiles, real estate listings, or stock data from public websites into structured spreadsheets.</p>
+                    <p>Collect job postings, company profiles, real estate listings, or stock data from public websites
+                        into structured spreadsheets.</p>
                 </div>
                 <div class="use-case-card">
-                    <div class="use-case-emoji">🔬</div>
+                    <div class="use-case-emoji"><i data-lucide="microscope"></i></div>
                     <h3>Academic Research</h3>
-                    <p>Gather data from directories, public records, research papers, and government databases for analysis and studies.</p>
+                    <p>Gather data from directories, public records, research papers, and government databases for
+                        analysis and studies.</p>
                 </div>
                 <div class="use-case-card">
-                    <div class="use-case-emoji">📰</div>
+                    <div class="use-case-emoji"><i data-lucide="newspaper"></i></div>
                     <h3>Content Aggregation</h3>
-                    <p>Pull articles, headlines, metadata, and publication dates from news sites, blogs, and forums automatically.</p>
+                    <p>Pull articles, headlines, metadata, and publication dates from news sites, blogs, and forums
+                        automatically.</p>
                 </div>
                 <div class="use-case-card">
-                    <div class="use-case-emoji">🏷️</div>
+                    <div class="use-case-emoji"><i data-lucide="users"></i></div>
                     <h3>Lead Generation</h3>
-                    <p>Extract contact information, company details, and social profiles from business directories and LinkedIn public pages.</p>
+                    <p>Extract contact information, company details, and social profiles from business directories and
+                        LinkedIn public pages.</p>
                 </div>
                 <div class="use-case-card">
-                    <div class="use-case-emoji">🧪</div>
+                    <div class="use-case-emoji"><i data-lucide="flask-conical"></i></div>
                     <h3>QA &amp; Testing</h3>
-                    <p>Verify page content, extract test data, and monitor website changes automatically with repeatable blueprints.</p>
+                    <p>Verify page content, extract test data, and monitor website changes automatically with repeatable
+                        blueprints.</p>
                 </div>
             </div>
         </div>
@@ -378,7 +411,7 @@
             <div class="comparison-table">
                 <div class="comparison-col comparison-old">
                     <div class="comparison-header">
-                        <span class="comparison-icon">😩</span>
+                        <span class="comparison-icon"><i data-lucide="frown"></i></span>
                         <h3>Manual / Code-Based</h3>
                     </div>
                     <ul>
@@ -419,36 +452,46 @@
             </div>
             <div class="faq-list">
                 <details class="faq-item">
-                    <summary>Is OctoGrab free?</summary>
-                    <p>Yes, OctoGrab is completely free and open source. There are no premium tiers, usage limits, or hidden fees. You can use it for personal and commercial projects.</p>
+                    <summary>How much does OctoGrab cost?</summary>
+                    <p>OctoGrab is a one-time purchase of $9.95 (early adopter price). No subscriptions, no monthly
+                        fees. Pay once, use forever with all future updates included.</p>
                 </details>
                 <details class="faq-item">
                     <summary>Does it work on any website?</summary>
-                    <p>OctoGrab works on most public websites. It runs in your actual browser tab, so if you can see the data, OctoGrab can extract it. It handles dynamic JavaScript-rendered content, SPAs, and paginated lists.</p>
+                    <p>OctoGrab works on most public websites. It runs in your actual browser tab, so if you can see the
+                        data, OctoGrab can extract it. It handles dynamic JavaScript-rendered content, SPAs, and
+                        paginated lists.</p>
                 </details>
                 <details class="faq-item">
                     <summary>Do I need to know how to code?</summary>
-                    <p>Not at all. OctoGrab is designed for non-technical users. You build scraping workflows visually by adding blocks — Navigate, Click, Wait, Extract, etc. No scripting, no terminal, no APIs.</p>
+                    <p>Not at all. OctoGrab is designed for non-technical users. You build scraping workflows visually
+                        by adding blocks — Navigate, Click, Wait, Extract, etc. No scripting, no terminal, no APIs.</p>
                 </details>
                 <details class="faq-item">
                     <summary>How is this different from web scraping tools like Scrapy or Puppeteer?</summary>
-                    <p>Those are code-first developer tools. OctoGrab is a visual, no-code Chrome extension. You build blueprints in a sidebar, not in a code editor. It's designed for speed and simplicity, not for massive infrastructure-scale scraping.</p>
+                    <p>Those are code-first developer tools. OctoGrab is a visual, no-code Chrome extension. You build
+                        blueprints in a sidebar, not in a code editor. It's designed for speed and simplicity, not for
+                        massive infrastructure-scale scraping.</p>
                 </details>
                 <details class="faq-item">
                     <summary>Can I scrape data that requires login?</summary>
-                    <p>Yes. Since OctoGrab runs in your actual browser session, it uses your existing cookies and authentication state. Just log in normally, then run your blueprint.</p>
+                    <p>Yes. Since OctoGrab runs in your actual browser session, it uses your existing cookies and
+                        authentication state. Just log in normally, then run your blueprint.</p>
                 </details>
                 <details class="faq-item">
                     <summary>What export formats are supported?</summary>
-                    <p>CSV, JSON, and Excel (.xlsx). You can download your data at any time — even while a scrape is still running.</p>
+                    <p>CSV, JSON, and Excel (.xlsx). You can download your data at any time — even while a scrape is
+                        still running.</p>
                 </details>
                 <details class="faq-item">
                     <summary>Can I pause and resume a long scraping job?</summary>
-                    <p>Yes! OctoGrab supports pause, resume, and checkpointing. Your progress and extracted data are preserved even if you close the browser.</p>
+                    <p>Yes! OctoGrab supports pause, resume, and checkpointing. Your progress and extracted data are
+                        preserved even if you close the browser.</p>
                 </details>
                 <details class="faq-item">
                     <summary>Is my data sent to any server?</summary>
-                    <p>No. OctoGrab runs entirely in your browser. Your data never leaves your machine. There are no analytics, no telemetry, and no cloud dependencies.</p>
+                    <p>No. OctoGrab runs entirely in your browser. Your data never leaves your machine. There are no
+                        analytics, no telemetry, and no cloud dependencies.</p>
                 </details>
             </div>
         </div>
@@ -460,14 +503,15 @@
             <div class="cta-inner">
                 <img src="octograb-logo.png" alt="OctoGrab" class="cta-logo">
                 <h2>Ready to grab the web?</h2>
-                <p>Install OctoGrab and start extracting structured data from any website in minutes. Free, open source, and private by design.</p>
+                <p>Get OctoGrab and start extracting structured data from any website in minutes. One-time payment,
+                    lifetime access, privacy-first by design.</p>
                 <div class="cta-buttons">
-                    <a href="#" class="btn btn-white btn-lg">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><line x1="21.17" y1="8" x2="12" y2="8"/><line x1="3.95" y1="6.06" x2="8.54" y2="14"/><line x1="10.88" y1="21.94" x2="15.46" y2="14"/></svg>
-                        Add to Chrome — Free
+                    <a href="pricing.html" class="btn btn-white btn-lg">
+                        <i data-lucide="chrome" style="width:20px;height:20px"></i>
+                        Get OctoGrab — $9.95
                     </a>
-                    <a href="https://github.com/ayoub-sahraoui/octograb" target="_blank" class="btn btn-ghost btn-lg">
-                        Star on GitHub
+                    <a href="docs/index.html" class="btn btn-ghost btn-lg">
+                        Read the Docs
                     </a>
                 </div>
             </div>
@@ -494,19 +538,20 @@
                 </div>
                 <div class="footer-col">
                     <h4>Resources</h4>
-                    <a href="https://github.com/ayoub-sahraoui/octograb" target="_blank">GitHub</a>
-                    <a href="https://github.com/ayoub-sahraoui/octograb/issues" target="_blank">Report a Bug</a>
-                    <a href="https://github.com/ayoub-sahraoui/octograb/releases" target="_blank">Changelog</a>
+                    <a href="docs/index.html">Documentation</a>
+                    <a href="pricing.html">Pricing</a>
                 </div>
                 <div class="footer-col">
                     <h4>Legal</h4>
-                    <a href="#">Privacy Policy</a>
-                    <a href="#">Terms of Service</a>
+                    <a href="privacy.html">Privacy Policy</a>
+                    <a href="terms.html">Terms of Service</a>
+                    <a href="refund.html">Refund Policy</a>
                 </div>
             </div>
         </div>
         <div class="container footer-bottom">
-            <p>&copy; 2026 OctoGrab. Built with care by <a href="https://github.com/ayoub-sahraoui" target="_blank">Ayoub Sahraoui</a>.</p>
+            <p>&copy; 2026 OctoGrab. Built with care by <a href="https://github.com/ayoub-sahraoui"
+                    target="_blank">Ayoub Sahraoui</a>.</p>
         </div>
     </footer>
 
@@ -553,6 +598,10 @@
         document.querySelectorAll('.feature-card, .step, .use-case-card, .screenshot-card, .faq-item, .comparison-col').forEach(el => {
             observer.observe(el);
         });
+
+        // Initialize Lucide icons
+        lucide.createIcons();
     </script>
 </body>
+
 </html>

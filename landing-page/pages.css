@@ -1,0 +1,366 @@
+/* ====== SHARED STYLES FOR SUB-PAGES ====== */
+/* Inherits from style.css — these are additional styles for pricing, legal pages, etc. */
+
+.nav-active {
+    color: var(--primary) !important;
+    font-weight: 600 !important;
+}
+
+/* ====== PRICING PAGE ====== */
+.pricing-hero {
+    padding: 140px 0 80px;
+    background: linear-gradient(180deg, var(--primary-50) 0%, var(--white) 100%);
+}
+
+.pricing-cards {
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+    margin-bottom: 64px;
+}
+
+.pricing-card {
+    position: relative;
+    background: var(--white);
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    max-width: 460px;
+    width: 100%;
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.pricing-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-xl);
+}
+
+.pricing-card-featured {
+    border: 2px solid var(--primary);
+    box-shadow: var(--shadow-lg), 0 0 0 4px rgba(59, 166, 140, 0.1);
+}
+
+.pricing-ribbon {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+    color: var(--white);
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    text-align: center;
+    padding: 10px 0;
+}
+
+.pricing-card-inner {
+    padding: 40px 36px;
+    text-align: center;
+}
+
+.pricing-plan-name {
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--gray-900);
+    margin-bottom: 8px;
+}
+
+.pricing-plan-desc {
+    font-size: 15px;
+    color: var(--gray-500);
+    margin-bottom: 28px;
+    line-height: 1.6;
+}
+
+.pricing-price-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    margin-bottom: 4px;
+}
+
+.pricing-price-old {
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--gray-400);
+    text-decoration: line-through;
+}
+
+.pricing-price {
+    font-size: 64px;
+    font-weight: 800;
+    color: var(--gray-900);
+    line-height: 1;
+    letter-spacing: -0.03em;
+}
+
+.pricing-price-cents {
+    font-size: 28px;
+    font-weight: 700;
+    vertical-align: super;
+    margin-left: -2px;
+}
+
+.pricing-price-label {
+    display: block;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--gray-400);
+    margin-bottom: 28px;
+}
+
+.pricing-cta {
+    width: 100%;
+    margin-bottom: 32px;
+}
+
+.pricing-features {
+    list-style: none;
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.pricing-features li {
+    position: relative;
+    padding-left: 28px;
+    font-size: 14px;
+    color: var(--gray-600);
+    line-height: 1.5;
+}
+
+.pricing-features li::before {
+    content: '✓';
+    position: absolute;
+    left: 0;
+    color: var(--primary);
+    font-weight: 800;
+    font-size: 15px;
+}
+
+/* Trust signals */
+.pricing-trust {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.trust-item {
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+    background: var(--white);
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius);
+    padding: 20px;
+}
+
+.trust-icon {
+    font-size: 28px;
+    flex-shrink: 0;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--primary);
+}
+
+.trust-icon svg {
+    width: 28px;
+    height: 28px;
+}
+
+.trust-item strong {
+    display: block;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--gray-800);
+    margin-bottom: 4px;
+}
+
+.trust-item p {
+    font-size: 13px;
+    color: var(--gray-500);
+    line-height: 1.5;
+    margin: 0;
+}
+
+.trust-item a {
+    color: var(--primary);
+    font-weight: 500;
+}
+
+.trust-item a:hover {
+    text-decoration: underline;
+}
+
+/* Pricing FAQ */
+.pricing-faq {
+    padding: 80px 0;
+    background: var(--gray-50);
+}
+
+.pricing-faq .faq-item {
+    opacity: 1;
+    transform: none;
+}
+
+/* ====== LEGAL PAGES ====== */
+.legal-page {
+    padding: 120px 0 80px;
+    min-height: calc(100vh - 200px);
+}
+
+.legal-header {
+    text-align: center;
+    margin-bottom: 48px;
+}
+
+.legal-header h1 {
+    font-size: clamp(28px, 4vw, 42px);
+    color: var(--gray-900);
+    margin-bottom: 8px;
+}
+
+.legal-updated {
+    font-size: 14px;
+    color: var(--gray-400);
+    font-weight: 500;
+}
+
+.legal-content {
+    max-width: 740px;
+    margin: 0 auto;
+}
+
+.legal-content h2 {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--gray-900);
+    margin: 40px 0 12px;
+    padding-top: 8px;
+}
+
+.legal-content h2:first-child {
+    margin-top: 0;
+}
+
+.legal-content h3 {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--gray-800);
+    margin: 24px 0 8px;
+}
+
+.legal-content p {
+    font-size: 15px;
+    color: var(--gray-600);
+    line-height: 1.75;
+    margin-bottom: 14px;
+}
+
+.legal-content ul,
+.legal-content ol {
+    margin: 0 0 16px 20px;
+    font-size: 15px;
+    color: var(--gray-600);
+    line-height: 1.75;
+}
+
+.legal-content li {
+    margin-bottom: 6px;
+}
+
+.legal-content li strong {
+    color: var(--gray-800);
+}
+
+.legal-content a {
+    color: var(--primary);
+    font-weight: 500;
+}
+
+.legal-content a:hover {
+    text-decoration: underline;
+}
+
+/* Refund highlight box */
+.refund-highlight {
+    text-align: center;
+    background: linear-gradient(135deg, var(--primary-50) 0%, var(--white) 100%);
+    border: 1.5px solid var(--primary-200);
+    border-radius: var(--radius-lg);
+    padding: 40px 32px;
+    margin-bottom: 40px;
+}
+
+.refund-highlight-icon {
+    font-size: 48px;
+    margin-bottom: 12px;
+}
+
+.refund-highlight h2 {
+    font-size: 28px;
+    color: var(--gray-900);
+    margin: 0 0 12px !important;
+    padding: 0 !important;
+}
+
+.refund-highlight p {
+    font-size: 16px;
+    color: var(--gray-500);
+    max-width: 480px;
+    margin: 0 auto;
+    line-height: 1.7;
+}
+
+/* ====== RESPONSIVE ====== */
+@media (max-width: 768px) {
+    .pricing-hero {
+        padding: 120px 0 60px;
+    }
+
+    .pricing-trust {
+        grid-template-columns: 1fr;
+    }
+
+    .pricing-card-inner {
+        padding: 28px 24px;
+    }
+
+    .pricing-price {
+        font-size: 48px;
+    }
+
+    .pricing-price-cents {
+        font-size: 22px;
+    }
+
+    .legal-page {
+        padding: 100px 0 60px;
+    }
+
+    .legal-content {
+        padding: 0 8px;
+    }
+}
+
+@media (max-width: 480px) {
+    .pricing-price {
+        font-size: 40px;
+    }
+
+    .pricing-price-old {
+        font-size: 18px;
+    }
+
+    .refund-highlight {
+        padding: 28px 20px;
+    }
+
+    .refund-highlight h2 {
+        font-size: 22px;
+    }
+}

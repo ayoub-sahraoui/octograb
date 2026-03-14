@@ -5,7 +5,7 @@ import tailwindcss from '@tailwindcss/vite';
 export default defineConfig({
   manifest: {
     name: 'OctoGrab',
-    permissions: ['sidePanel', 'activeTab', 'scripting'],
+    permissions: ['sidePanel', 'activeTab', 'scripting', 'storage', 'alarms'],
     action: {},
     icons: {
       16: '/octograb-logo.png',
@@ -17,5 +17,9 @@ export default defineConfig({
   modules: ['@wxt-dev/module-react'],
   vite: () => ({
     plugins: [tailwindcss()],
+    build: {
+      sourcemap: false, // Disable source maps in production
+      minify: 'terser',
+    },
   }),
 });

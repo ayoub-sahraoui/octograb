@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { CirclePlus, Database, Settings, Menu, Play, SquarePen, House } from 'lucide-react'
+import { CirclePlus, Database, Settings, Menu, Play, SquarePen, House, Bot, Sparkles } from 'lucide-react'
 import { Outlet, useNavigate } from 'react-router-dom'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { useBlueprintBuilderStore } from '@/entrypoints/stores/blueprint-builder-store'
@@ -22,6 +22,7 @@ export default function Layout() {
     const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
     const [newBlueprintName, setNewBlueprintName] = useState('');
     const [newBlueprintDescription, setNewBlueprintDescription] = useState('');
+    const [isAgentDialogOpen, setIsAgentDialogOpen] = useState(false);
 
     const blueprintBuilderRoute = () => {
         setNewBlueprintName('');
@@ -67,6 +68,9 @@ export default function Layout() {
                         <Button size="icon" onClick={blueprintBuilderRoute}>
                             <CirclePlus />
                         </Button>
+                        <Button size="icon" onClick={() => setIsAgentDialogOpen(true)} className="relative">
+                            <Bot />
+                        </Button>
                         <Button size="icon" onClick={extractedDataRoute}>
                             <Database />
                         </Button>
@@ -79,6 +83,35 @@ export default function Layout() {
                     </div>
                 </div>
                 <Outlet />
+
+                {/* AI Agent Coming Soon Dialog */}
+                <Dialog open={isAgentDialogOpen} onOpenChange={setIsAgentDialogOpen}>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle className="flex items-center gap-2">
+                                <Sparkles className="w-5 h-5 text-yellow-500" />
+                                AI Blueprint Agent
+                            </DialogTitle>
+                            <DialogDescription>
+                                Our AI agent will help you create blueprints automatically by describing what you want to scrape in plain English.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="flex flex-col items-center gap-4 py-6">
+                            <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center">
+                                <Bot className="w-8 h-8 text-gray-400" />
+                            </div>
+                            <div className="text-center">
+                                <p className="text-lg font-semibold text-gray-700">Coming Soon</p>
+                                <p className="text-sm text-gray-500 mt-1">We're building something amazing. Stay tuned!</p>
+                            </div>
+                        </div>
+                        <DialogFooter>
+                            <Button onClick={() => setIsAgentDialogOpen(false)}>
+                                Got It
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
 
                 {/* Create Blueprint Dialog */}
                 <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
