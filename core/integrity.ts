@@ -65,10 +65,27 @@ export async function isTampered(): Promise<boolean> {
 }
 
 /**
+ * Detect if running in development mode.
+ * In dev mode, code isn't obfuscated so integrity checks will fail.
+ */
+function isDevMode(): boolean {
+  // Check if running from unpacked extension (dev mode)
+  // In production, extension ID is stable; in dev it changes or is from local path
+  const manifest = browser.runtime.getManifest();
+  return !('update_url' in manifest); // No update_url = unpacked/dev mode
+}
+
+/**
  * Run integrity check and flag if tampered.
  * Called from background script on startup and periodically.
+ * ONLY runs in production builds — skipped in dev mode.
  */
 export function startIntegrityMonitoring(): void {
+  // Skip integrity checks in development mode
+  if (isDevMode()) {
+    return;
+  }
+
   if (!checkIntegrity()) {
     markTampered();
   }
