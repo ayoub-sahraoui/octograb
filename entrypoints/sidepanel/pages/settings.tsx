@@ -255,7 +255,7 @@ export default observer(function Settings() {
                         <div className="flex justify-between">
                             <span className="text-gray-500">Status</span>
                             <span className={`font-medium ${licenseStore.status === 'active' ? 'text-green-600' :
-                                    licenseStore.status === 'grace' ? 'text-yellow-600' : 'text-red-600'
+                                licenseStore.status === 'grace' ? 'text-yellow-600' : 'text-red-600'
                                 }`}>
                                 {licenseStore.status === 'active' ? '● Active' :
                                     licenseStore.status === 'grace' ? '● Grace Period' : '● ' + licenseStore.status}
@@ -310,7 +310,7 @@ export default observer(function Settings() {
                         </div>
                         <div className="flex justify-between">
                             <span className="text-gray-500">Database</span>
-                            <span className="font-medium">Dexie.js (IndexedDB)</span>
+                            <span className="font-medium">local database</span>
                         </div>
                     </div>
                 </div>

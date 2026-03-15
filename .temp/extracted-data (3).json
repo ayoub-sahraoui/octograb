@@ -1,0 +1,24 @@
+[
+  {
+    "Stock": "20",
+    "PRIX": 0,
+    "Marque": "BRANDBOOK",
+    "Titre": "AI Engineering: Building Applications with Foundation Models",
+    "URL image 1": "https://m.media-amazon.com/images/I/815KH9GjFTL._SY342_.jpg",
+    "Description": "Recent breakthroughs in AI have not only increased demand for AI products, they've also lowered the barriers to entry for those who want to build AI products. The model-as-a-service approach has transformed AI from an esoteric discipline into a powerful development tool that anyone can use. Everyone, including those with minimal or no prior AI experience, can now leverage AI models to build applications. In this book, author Chip Huyen discusses AI engineering: the process of building applications with readily available foundation models.\n\nThe book starts with an overview of AI engineering, explaining how it differs from traditional ML engineering and discussing the new AI stack. The more AI is used, the more opportunities there are for catastrophic failures, and therefore, the more important evaluation becomes. This book discusses different approaches to evaluating open-ended models, including the rapidly growing AI-as-a-judge approach.\n\nAI application developers will discover how to navigate the AI landscape, including models, datasets, evaluation benchmarks, and the seemingly infinite number of use cases and application patterns. You'll learn a framework for developing an AI application, starting with simple techniques and progressing toward more sophisticated methods, and discover how to efficiently deploy these applications.\n\nUnderstand what AI engineering is and how it differs from traditional machine learning engineering\nLearn the process for developing an AI application, the challenges at each step, and approaches to address them\nExplore various model adaptation techniques, including prompt engineering, RAG, fine-tuning, agents, and dataset engineering, and understand how and why they work\nExamine the bottlenecks for latency and cost when serving foundation models and learn how to overcome them\nChoose the right model, dataset, evaluation benchmarks, and metrics for your needs\n\nChip Huyen works to accelerate data analytics on GPUs at Voltron Data. Previously, she was with Snorkel AI and NVIDIA, founded an AI infrastructure startup, and taught Machine Learning Systems Design at Stanford. She's the author of the book Designing Machine Learning Systems, an Amazon bestseller in AI.\n\nAI Engineering builds upon and is complementary to Designing Machine Learning Systems (O'Reilly).",
+    "GTIN": null,
+    "Pages": null,
+    "Référence vendeur": null
+  },
+  {
+    "Stock": "20",
+    "PRIX": 0,
+    "Marque": "BRANDBOOK",
+    "Titre": "Designing Data-Intensive Applications: The Big Ideas Behind Reliable, Scalable, and Maintainable Systems",
+    "URL image 1": "https://m.media-amazon.com/images/I/81yW67wBLHL._SY342_.jpg",
+    "Description": "Data is at the center of many challenges in system design today. Difficult issues such as scalability, consistency, reliability, efficiency, and maintainability need to be resolved. In addition, there's an overwhelming variety of systems, including relational databases, NoSQL datastores, data warehouses, and data lakes. There are cloud services, on-premises services, and embedded databases. What are the right choices for your application? How do you make sense of all these buzzwords?\n\nIn this second edition, authors Martin Kleppmann and Chris Riccomini build on the foundation laid in the acclaimed first edition, integrating new technologies and emerging trends. You'll be guided through the maze of decisions and trade-offs involved in building a modern data system, learn how to choose the right tools for your needs, and understand the fundamentals of distributed systems.\n\nPeer under the hood of the systems you already use, and learn to use them more effectively\nMake informed decisions by identifying the strengths and weaknesses of different tools\nLearn how major cloud services are designed for scalability, fault tolerance, and consistency\nUnderstand the core principles upon which modern databases are built",
+    "GTIN": null,
+    "Pages": null,
+    "Référence vendeur": null
+  }
+]

@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Play, Pause, Square, SquarePen, Plus, Trash2, Upload, Database, Eye, RotateCcw } from "lucide-react";
+import { Play, Pause, Square, SquarePen, Plus, Trash2, Upload, Database, Eye, RotateCcw, Copy } from "lucide-react";
 import { useBlueprintBuilderStore } from '@/entrypoints/stores/blueprint-builder-store';
 import { useBlueprintExecutorStore } from '@/entrypoints/stores/blueprint-executor-store';
 import { observer } from 'mobx-react-lite';
@@ -79,6 +79,13 @@ export default observer(function Home() {
             if (blueprint) {
                 await blueprintBuilderStore.deleteBlueprint(blueprint);
             }
+        }
+    };
+
+    const handleDuplicate = async (blueprintId: string) => {
+        const blueprint = blueprintBuilderStore.blueprints.find(b => b.id === blueprintId);
+        if (blueprint) {
+            await blueprintBuilderStore.duplicateBlueprint(blueprint);
         }
     };
 
@@ -184,7 +191,7 @@ export default observer(function Home() {
                                         'border-gray-300 hover:ring-2'
                                     }`}
                             >
-                                <div className="flex justify-between items-start">
+                                <div className="flex justify-between items-start gap-2">
                                     <div
                                         className={`flex-1 ${isThisActive ? 'cursor-pointer' : ''}`}
                                         onClick={isThisActive ? () => handleViewExecution(blueprint.id) : undefined}
@@ -207,7 +214,7 @@ export default observer(function Home() {
                                         <p className="text-sm text-gray-600">{blueprint.description || 'No description'}</p>
                                         <p className="text-xs text-gray-400 mt-1">{blueprint.blocks.length} blocks</p>
                                     </div>
-                                    <div className="flex gap-1">
+                                    <div className="flex gap-1 flex-wrap justify-end shrink-0">
                                         {/* Play / Pause button */}
                                         <Button
                                             size="icon"
@@ -263,6 +270,17 @@ export default observer(function Home() {
                                         >
                                             <SquarePen className="w-4 h-4" />
                                         </Button>
+                                        {/* Duplicate button - only when not active */}
+                                        {!isThisActive && (
+                                            <Button
+                                                size="icon"
+                                                variant="outline"
+                                                onClick={() => handleDuplicate(blueprint.id)}
+                                                title="Duplicate Blueprint"
+                                            >
+                                                <Copy className="w-4 h-4" />
+                                            </Button>
+                                        )}
                                         {/* Delete button - only when not active */}
                                         {!isThisActive && (
                                             <Button
@@ -280,19 +298,19 @@ export default observer(function Home() {
 
                                 {/* Execution progress bar */}
                                 {isThisActive && (
-                                    <div className="mt-1">
-                                        <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
-                                            <span className={isThisRunning ? 'text-blue-600' : 'text-amber-600'}>
+                                    <div className="mt-1 w-full min-w-0">
+                                        <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1 min-w-0">
+                                            <span className={`truncate ${isThisRunning ? 'text-blue-600' : 'text-amber-600'}`}>
                                                 {executorStore.currentBlock?.label || 'Starting...'}
                                             </span>
-                                            <span className="ml-auto">
+                                            <span className="ml-auto shrink-0">
                                                 {executorStore.extractedData.length > 0 && (
                                                     <span className="mr-2 text-green-600">{executorStore.extractedData.length} rows</span>
                                                 )}
                                                 {executorStore.progress.current}/{executorStore.progress.total} blocks
                                             </span>
                                         </div>
-                                        <div className="w-full bg-gray-200 rounded-full h-1.5">
+                                        <div className="w-full bg-gray-200 rounded-full h-1.5 overflow-hidden">
                                             <div
                                                 className={`h-1.5 rounded-full transition-all duration-300 ${isThisPaused ? 'bg-amber-500' : 'bg-blue-600'}`}
                                                 style={{ width: `${executorStore.progress.total > 0 ? (executorStore.progress.current / executorStore.progress.total) * 100 : 0}%` }}
@@ -328,7 +346,7 @@ export default observer(function Home() {
 
             {/* Create Blueprint Dialog */}
             <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-                <DialogContent>
+                <DialogContent className="bg-gray-50">
                     <DialogHeader>
                         <DialogTitle>Create New Blueprint</DialogTitle>
                         <DialogDescription>
@@ -361,7 +379,7 @@ export default observer(function Home() {
                             />
                         </div>
                     </div>
-                    <DialogFooter>
+                    <DialogFooter className="flex gap-2">
                         <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
                             Cancel
                         </Button>

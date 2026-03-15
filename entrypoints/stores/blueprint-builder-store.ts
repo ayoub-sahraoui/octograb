@@ -74,6 +74,13 @@ export class BlueprintBuilderStore {
                 plan: plan,
                 updatedAt: new Date().toISOString(),
             });
+
+            // Clear any stale resumable checkpoint when blueprint config changes
+            const { useBlueprintExecutorStore } = await import('./blueprint-executor-store');
+            const executorStore = useBlueprintExecutorStore();
+            if (executorStore.hasResumableCheckpoint(blueprint.id)) {
+                await executorStore.clearResumableCheckpoint(blueprint.id);
+            }
         } catch (error) {
             console.error('[OctoGrab] Failed to save blueprint:', error);
         }
@@ -246,18 +253,28 @@ export class BlueprintBuilderStore {
 
     exportBlueprint() {
         if (this.selectedBlueprint) {
-            // Use replacer to exclude 'parent' property to avoid circular reference
-            const json = this.selectedBlueprint.toJSON();
-            // Also need to handle circular stringify if not using toJSON which usually handles this? 
-            // Actually Blueprint.toJSON() returns an object without methods but might still have circular refs if not treated carefully.
-            // But typical JSON.stringify should use the object's toJSON if present.
-            // Let's stick to the existing logic but ensure we validly export.
             return JSON.stringify(toJS(this.selectedBlueprint), (key, value) => {
                 if (key === 'parent') return undefined;
                 return value;
             }, 2);
         }
         return null;
+    }
+
+    async duplicateBlueprint(blueprint: Blueprint) {
+        try {
+            const json = blueprint.toJSON();
+            const copy = new Blueprint(`${json.name} (Copy)`, json.description || '');
+            if (json.blocks && json.blocks.length > 0) {
+                copy.blocks = json.blocks.map((b: any) => createBlockFromJSON(b));
+            }
+            runInAction(() => {
+                this.blueprints.push(copy);
+            });
+            await this.saveBlueprint(copy);
+        } catch (error) {
+            console.error('[OctoGrab] Failed to duplicate blueprint:', error);
+        }
     }
 
     async importBlueprint(jsonContent: string) {

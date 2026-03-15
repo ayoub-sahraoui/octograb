@@ -1,11 +1,12 @@
 import { observer } from 'mobx-react-lite';
+import { runInAction } from 'mobx';
 import { ExtractScopeBlock, ExtractionField, StaticFieldType } from '@/entrypoints/models/extract-scope-block';
 import { SelectorType } from '@/entrypoints/models/selector';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Plus, Trash2, ChevronDown, ChevronRight, Wand2, ChevronsDownUp, ChevronsUpDown, Database, Calculator } from 'lucide-react';
+import { Plus, Trash2, ChevronDown, ChevronRight, Wand2, ChevronsDownUp, ChevronsUpDown, Database, Calculator, Play, Loader2, Info, FileText, Code, Link, Image, FormInput, Type } from 'lucide-react';
 import { useState } from 'react';
 import {
     Select,
@@ -17,6 +18,14 @@ import {
 import { AttributeType } from '@/entrypoints/models/enums';
 import { SelectorInput } from '../selector-input';
 import { TransformerType, TransformerConfig, CurrencyConvertTransformerConfig, ReplaceTransformerConfig, RegexTransformerConfig, SplitTransformerConfig } from '@/entrypoints/models/transformer';
+import { sendToContentScript } from '@/core/messaging';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 
 interface ExtractScopeBlockConfigProps {
     block: ExtractScopeBlock;
@@ -49,7 +58,9 @@ export const ExtractScopeBlockConfig = observer(({ block }: ExtractScopeBlockCon
             transformers: [],
             mode: 'extracted',
         };
-        block.config.fields.push(newField);
+        runInAction(() => {
+            block.config.fields.push(newField);
+        });
         // Auto-expand newly added field
         setExpandedFields(new Set([...expandedFields, block.config.fields.length - 1]));
     };
@@ -63,7 +74,9 @@ export const ExtractScopeBlockConfig = observer(({ block }: ExtractScopeBlockCon
             staticType: 'constant',
             staticValue: '',
         };
-        block.config.fields.push(newField);
+        runInAction(() => {
+            block.config.fields.push(newField);
+        });
         setExpandedFields(new Set([...expandedFields, block.config.fields.length - 1]));
     };
 
@@ -91,18 +104,281 @@ export const ExtractScopeBlockConfig = observer(({ block }: ExtractScopeBlockCon
                 newTransformer = { type };
         }
 
-        field.transformers.push(newTransformer);
+        runInAction(() => {
+            field.transformers!.push(newTransformer);
+        });
     };
 
     const removeTransformer = (fieldIndex: number, transformerIndex: number) => {
         const field = block.config.fields[fieldIndex];
         if (field.transformers) {
-            field.transformers.splice(transformerIndex, 1);
+            runInAction(() => {
+                field.transformers!.splice(transformerIndex, 1);
+            });
         }
     };
 
     const removeField = (index: number) => {
-        block.config.fields.splice(index, 1);
+        runInAction(() => {
+            block.config.fields.splice(index, 1);
+        });
+    };
+
+    const updateField = <K extends keyof ExtractionField>(field: ExtractionField, key: K, value: ExtractionField[K]) => {
+        runInAction(() => {
+            field[key] = value;
+        });
+    };
+
+    const updateTransformer = <T extends TransformerConfig, K extends keyof T>(transformer: T, key: K, value: T[K]) => {
+        runInAction(() => {
+            transformer[key] = value;
+        });
+    };
+
+    const [previewData, setPreviewData] = useState<Record<string, any> | null>(null);
+    const [previewLoading, setPreviewLoading] = useState(false);
+    const [previewError, setPreviewError] = useState<string | null>(null);
+    const [previewOpen, setPreviewOpen] = useState(false);
+
+    const attributeDescriptions: Record<string, string> = {
+        [AttributeType.Text]: 'Returns the full visible text of the element and all its children (uses innerText)',
+        [AttributeType.InnerHTML]: 'Returns the raw HTML markup inside the element',
+        [AttributeType.Href]: 'Returns the resolved URL from a link element',
+        [AttributeType.Src]: 'Returns the source URL from an image, video, or script element',
+        [AttributeType.Value]: 'Returns the current value of a form input element',
+    };
+
+    const formatPreviewDate = (date: Date, format: string) => {
+        const pad = (n: number) => String(n).padStart(2, '0');
+        return format
+            .replace('YYYY', String(date.getFullYear()))
+            .replace('MM', pad(date.getMonth() + 1))
+            .replace('DD', pad(date.getDate()))
+            .replace('HH', pad(date.getHours()))
+            .replace('mm', pad(date.getMinutes()))
+            .replace('ss', pad(date.getSeconds()));
+    };
+
+    const evaluatePreviewFormula = (formula: string, record: Record<string, any>) => {
+        let hasNullReference = false;
+        const expression = formula.replace(/\{\{(\w+)\}\}/g, (_, key) => {
+            const val = record[key];
+            if (val === null || val === undefined || val === '') {
+                hasNullReference = true;
+                return '0';
+            }
+            const num = parseFloat(String(val).replace(/[^0-9.\-]/g, ''));
+            if (Number.isNaN(num)) {
+                hasNullReference = true;
+                return '0';
+            }
+            return String(num);
+        }).trim();
+
+        if (hasNullReference) return null;
+
+        let pos = 0;
+
+        const skipWhitespace = () => {
+            while (pos < expression.length && expression[pos] === ' ') pos++;
+        };
+
+        const parseNumber = (): number => {
+            skipWhitespace();
+            let numStr = '';
+            if (expression[pos] === '-') {
+                numStr += '-';
+                pos++;
+            }
+            while (pos < expression.length && ((expression[pos] >= '0' && expression[pos] <= '9') || expression[pos] === '.')) {
+                numStr += expression[pos++];
+            }
+            if (numStr === '' || numStr === '-') throw new Error(`Expected number at position ${pos}`);
+            return parseFloat(numStr);
+        };
+
+        const parseMathFunction = (): number | null => {
+            skipWhitespace();
+            const mathFns: Record<string, (...args: number[]) => number> = {
+                'Math.round': Math.round,
+                'Math.floor': Math.floor,
+                'Math.ceil': Math.ceil,
+                'Math.abs': Math.abs,
+                'Math.sqrt': Math.sqrt,
+                'Math.min': Math.min,
+                'Math.max': Math.max,
+                'Math.pow': Math.pow,
+            };
+            for (const [name, fn] of Object.entries(mathFns)) {
+                if (expression.substring(pos, pos + name.length) === name) {
+                    pos += name.length;
+                    skipWhitespace();
+                    if (expression[pos] !== '(') throw new Error(`Expected '(' after ${name}`);
+                    pos++;
+                    const args: number[] = [parseAddSub()];
+                    skipWhitespace();
+                    while (expression[pos] === ',') {
+                        pos++;
+                        args.push(parseAddSub());
+                        skipWhitespace();
+                    }
+                    if (expression[pos] !== ')') throw new Error(`Expected ')' after ${name} args`);
+                    pos++;
+                    return fn(...args);
+                }
+            }
+            return null;
+        };
+
+        const parsePrimary = (): number => {
+            skipWhitespace();
+            const fnResult = parseMathFunction();
+            if (fnResult !== null) return fnResult;
+            if (expression[pos] === '(') {
+                pos++;
+                const val = parseAddSub();
+                skipWhitespace();
+                if (expression[pos] !== ')') throw new Error(`Expected ')' at position ${pos}`);
+                pos++;
+                return val;
+            }
+            return parseNumber();
+        };
+
+        const parseMulDiv = (): number => {
+            let left = parsePrimary();
+            skipWhitespace();
+            while (pos < expression.length && (expression[pos] === '*' || expression[pos] === '/')) {
+                const op = expression[pos++];
+                const right = parsePrimary();
+                left = op === '*' ? left * right : left / right;
+                skipWhitespace();
+            }
+            return left;
+        };
+
+        const parseAddSub = (): number => {
+            let left = parseMulDiv();
+            skipWhitespace();
+            while (pos < expression.length && (expression[pos] === '+' || expression[pos] === '-')) {
+                const op = expression[pos++];
+                const right = parseMulDiv();
+                left = op === '+' ? left + right : left - right;
+                skipWhitespace();
+            }
+            return left;
+        };
+
+        const result = parseAddSub();
+        return typeof result === 'number' && !Number.isNaN(result) ? result : 0;
+    };
+
+    const getStaticPreviewValue = (field: ExtractionField) => {
+        const staticType = field.staticType || 'constant';
+        switch (staticType) {
+            case 'constant':
+                return field.staticValue ?? '';
+            case 'uuid':
+                return crypto.randomUUID();
+            case 'random_number': {
+                const min = field.staticMin ?? 0;
+                const max = field.staticMax ?? 1000;
+                return Math.floor(Math.random() * (max - min + 1)) + min;
+            }
+            case 'date':
+                return formatPreviewDate(new Date(), field.staticDateFormat || 'YYYY-MM-DD HH:mm:ss');
+            case 'auto_increment':
+                return field.staticStartFrom ?? 1;
+            default:
+                return '';
+        }
+    };
+
+    const runPreview = async () => {
+        const extractedFields = block.config.fields.filter(f => f.mode !== 'static' && f.key);
+        const staticFields = block.config.fields.filter(f => f.mode === 'static' && f.key);
+
+        if (extractedFields.length === 0 && staticFields.length === 0) {
+            setPreviewError('Add at least one field with a key to preview');
+            setPreviewOpen(true);
+            return;
+        }
+
+        setPreviewLoading(true);
+        setPreviewError(null);
+        setPreviewData(null);
+        setPreviewOpen(true);
+
+        try {
+            let extractScope: any = undefined;
+
+            if (!block.config.resetScope && block.config.scopeSelector?.value) {
+                extractScope = {
+                    selector: block.config.scopeSelector.value,
+                    selectorType: block.config.scopeSelector.type || 'css',
+                    index: 0,
+                };
+            }
+
+            const envFields = extractedFields.map((f) => ({
+                key: f.key,
+                selector: f.selector?.value || '',
+                selectorType: (f.selector?.type || 'css') as string,
+                attribute: f.attribute === AttributeType.InnerHTML ? 'html' : (f.attribute || 'text'),
+                transformers: f.transformers ? JSON.parse(JSON.stringify(f.transformers)) : [],
+                required: f.required || false,
+                multiple: f.multiple || false,
+            }));
+
+            const record: Record<string, any> = {};
+
+            for (const field of staticFields) {
+                record[field.key] = getStaticPreviewValue(field);
+            }
+
+            if (envFields.length > 0) {
+                const response = await sendToContentScript({
+                    type: 'ENV_EXTRACT_RECORD',
+                    data: {
+                        fields: envFields,
+                        scope: extractScope || undefined,
+                    }
+                });
+
+                if (!response.success) {
+                    setPreviewError(response.error || 'Extraction failed');
+                    return;
+                }
+
+                const extractedRecord = response.data as Record<string, any>;
+                for (const [key, value] of Object.entries(extractedRecord)) {
+                    record[key] = value;
+                }
+            }
+
+            for (const field of block.config.fields) {
+                if (!field.key || !field.formula) continue;
+                try {
+                    record[field.key] = evaluatePreviewFormula(field.formula, record);
+                } catch {
+                }
+            }
+
+            for (const field of block.config.fields) {
+                if (!field.key) continue;
+                if (field.defaultValue !== undefined && field.defaultValue !== '' &&
+                    (record[field.key] === null || record[field.key] === undefined || record[field.key] === '')) {
+                    record[field.key] = field.defaultValue;
+                }
+            }
+
+            setPreviewData(record);
+        } catch (err: any) {
+            setPreviewError(err.message || 'Failed to connect to page');
+        } finally {
+            setPreviewLoading(false);
+        }
     };
 
     return (
@@ -111,7 +387,11 @@ export const ExtractScopeBlockConfig = observer(({ block }: ExtractScopeBlockCon
                 <Checkbox
                     id="reset-scope"
                     checked={block.config.resetScope || false}
-                    onCheckedChange={(checked) => block.config.resetScope = checked as boolean}
+                    onCheckedChange={(checked) => {
+                        runInAction(() => {
+                            block.config.resetScope = checked as boolean;
+                        });
+                    }}
                 />
                 <div className="flex flex-col">
                     <Label htmlFor="reset-scope" className="cursor-pointer font-medium">
@@ -128,17 +408,22 @@ export const ExtractScopeBlockConfig = observer(({ block }: ExtractScopeBlockCon
                 placeholder=".container"
                 helpText="Limit extraction to within this element"
                 selector={block.config.scopeSelector}
-                onSelectorChange={(sel) => { block.config.scopeSelector = sel; }}
+                onSelectorChange={(sel) => {
+                    runInAction(() => {
+                        block.config.scopeSelector = sel;
+                    });
+                }}
                 block={block.config.resetScope ? undefined : block}
             />
 
             <div className="flex flex-col gap-4">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col gap-2">
                     <Label>Extraction Fields</Label>
                     <div className="flex items-center gap-1">
                         {block.config.fields.length > 0 && (
-                            <Button onClick={allExpanded ? collapseAll : expandAll} size="sm" variant="ghost" className="h-8 px-2" title={allExpanded ? 'Collapse All' : 'Expand All'}>
-                                {allExpanded ? <ChevronsDownUp className="w-4 h-4" /> : <ChevronsUpDown className="w-4 h-4" />}
+                            <Button onClick={runPreview} size="sm" variant="secondary" className="h-8" disabled={previewLoading}>
+                                {previewLoading ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Play className="w-4 h-4 mr-1" />}
+                                Preview
                             </Button>
                         )}
                         <Button onClick={addStaticField} size="sm" variant="outline">
@@ -149,6 +434,11 @@ export const ExtractScopeBlockConfig = observer(({ block }: ExtractScopeBlockCon
                             <Plus className="w-4 h-4 mr-1" />
                             Field
                         </Button>
+                        {block.config.fields.length > 0 && (
+                            <Button onClick={allExpanded ? collapseAll : expandAll} size="sm" variant="ghost" className="h-8 px-2 ml-auto" title={allExpanded ? 'Collapse All' : 'Expand All'}>
+                                {allExpanded ? <ChevronsDownUp className="w-4 h-4" /> : <ChevronsUpDown className="w-4 h-4" />}
+                            </Button>
+                        )}
                     </div>
                 </div>
 
@@ -162,11 +452,11 @@ export const ExtractScopeBlockConfig = observer(({ block }: ExtractScopeBlockCon
                     const isExpanded = expandedFields.has(index);
                     const isStatic = field.mode === 'static';
                     return (
-                        <div key={index} className={`border rounded-lg overflow-hidden ${isStatic ? 'border-blue-500/30' : ''}`}>
+                        <div key={index} className={`border rounded-lg overflow-hidden ${isStatic ? 'border-primary/30' : ''}`}>
                             <div className="flex items-center justify-between p-3 bg-muted/30 cursor-pointer hover:bg-muted/50" onClick={() => toggleField(index)}>
                                 <div className="flex items-center gap-2">
-                                    {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-                                    {isStatic ? <Database className="w-3.5 h-3.5 text-blue-500" /> : null}
+                                    {isExpanded ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronRight className="w-4 h-4 text-muted-foreground" />}
+                                    {isStatic ? <Database className="w-3.5 h-3.5 text-primary" /> : <FileText className="w-3.5 h-3.5 text-primary" />}
                                     <h4 className="font-medium text-sm">
                                         {isStatic ? 'Static' : 'Field'} {index + 1}
                                         {field.key && <span className="text-muted-foreground ml-2">({field.key})</span>}
@@ -204,7 +494,7 @@ export const ExtractScopeBlockConfig = observer(({ block }: ExtractScopeBlockCon
                                                 type="text"
                                                 placeholder={isStatic ? "ref_id" : "title"}
                                                 value={field.key}
-                                                onChange={(e) => field.key = e.target.value}
+                                                onChange={(e) => updateField(field, 'key', e.target.value)}
                                             />
                                         </div>
 
@@ -215,19 +505,19 @@ export const ExtractScopeBlockConfig = observer(({ block }: ExtractScopeBlockCon
                                                 type="text"
                                                 placeholder={isStatic ? "Reference ID" : "Product Title"}
                                                 value={field.label || ''}
-                                                onChange={(e) => field.label = e.target.value}
+                                                onChange={(e) => updateField(field, 'label', e.target.value)}
                                             />
                                         </div>
                                     </div>
 
                                     {/* === STATIC FIELD CONFIG === */}
                                     {isStatic && (
-                                        <div className="flex flex-col gap-3 border rounded-md p-3 bg-blue-500/5">
+                                        <div className="flex flex-col gap-3 border rounded-md p-3 bg-primary/5">
                                             <div className="flex flex-col gap-2">
                                                 <Label htmlFor={`static-type-${index}`}>Value Type</Label>
                                                 <Select
                                                     value={field.staticType || 'constant'}
-                                                    onValueChange={(value) => field.staticType = value as StaticFieldType}
+                                                    onValueChange={(value) => updateField(field, 'staticType', value as StaticFieldType)}
                                                 >
                                                     <SelectTrigger id={`static-type-${index}`}>
                                                         <SelectValue placeholder="Select type" />
@@ -250,7 +540,7 @@ export const ExtractScopeBlockConfig = observer(({ block }: ExtractScopeBlockCon
                                                         type="text"
                                                         placeholder="e.g. 30, in stock, etc."
                                                         value={field.staticValue || ''}
-                                                        onChange={(e) => field.staticValue = e.target.value}
+                                                        onChange={(e) => updateField(field, 'staticValue', e.target.value)}
                                                     />
                                                 </div>
                                             )}
@@ -264,7 +554,7 @@ export const ExtractScopeBlockConfig = observer(({ block }: ExtractScopeBlockCon
                                                             type="number"
                                                             placeholder="0"
                                                             value={field.staticMin ?? ''}
-                                                            onChange={(e) => field.staticMin = e.target.value ? parseInt(e.target.value) : undefined}
+                                                            onChange={(e) => updateField(field, 'staticMin', e.target.value ? parseInt(e.target.value) : undefined)}
                                                         />
                                                     </div>
                                                     <div className="flex flex-col gap-2">
@@ -274,7 +564,7 @@ export const ExtractScopeBlockConfig = observer(({ block }: ExtractScopeBlockCon
                                                             type="number"
                                                             placeholder="1000"
                                                             value={field.staticMax ?? ''}
-                                                            onChange={(e) => field.staticMax = e.target.value ? parseInt(e.target.value) : undefined}
+                                                            onChange={(e) => updateField(field, 'staticMax', e.target.value ? parseInt(e.target.value) : undefined)}
                                                         />
                                                     </div>
                                                 </div>
@@ -288,7 +578,7 @@ export const ExtractScopeBlockConfig = observer(({ block }: ExtractScopeBlockCon
                                                         type="text"
                                                         placeholder="YYYY-MM-DD HH:mm:ss"
                                                         value={field.staticDateFormat || ''}
-                                                        onChange={(e) => field.staticDateFormat = e.target.value}
+                                                        onChange={(e) => updateField(field, 'staticDateFormat', e.target.value)}
                                                     />
                                                     <p className="text-xs text-muted-foreground">
                                                         YYYY=year, MM=month, DD=day, HH=hours, mm=minutes, ss=seconds
@@ -304,7 +594,7 @@ export const ExtractScopeBlockConfig = observer(({ block }: ExtractScopeBlockCon
                                                         type="number"
                                                         placeholder="1"
                                                         value={field.staticStartFrom ?? ''}
-                                                        onChange={(e) => field.staticStartFrom = e.target.value ? parseInt(e.target.value) : undefined}
+                                                        onChange={(e) => updateField(field, 'staticStartFrom', e.target.value ? parseInt(e.target.value) : undefined)}
                                                     />
                                                 </div>
                                             )}
@@ -325,7 +615,7 @@ export const ExtractScopeBlockConfig = observer(({ block }: ExtractScopeBlockCon
                                                 id={`field-selector-${index}`}
                                                 placeholder="h1.title"
                                                 selector={field.selector}
-                                                onSelectorChange={(sel) => { field.selector = sel; }}
+                                                onSelectorChange={(sel) => { updateField(field, 'selector', sel); }}
                                                 parentSelector={block.config.scopeSelector?.value || null}
                                                 block={block.config.resetScope ? undefined : (block.config.scopeSelector?.value ? undefined : block)}
                                             />
@@ -334,19 +624,35 @@ export const ExtractScopeBlockConfig = observer(({ block }: ExtractScopeBlockCon
                                                 <Label htmlFor={`attribute-${index}`}>Attribute</Label>
                                                 <Select
                                                     value={field.attribute}
-                                                    onValueChange={(value) => field.attribute = value as AttributeType}
+                                                    onValueChange={(value) => updateField(field, 'attribute', value as AttributeType)}
                                                 >
                                                     <SelectTrigger id={`attribute-${index}`}>
                                                         <SelectValue placeholder="Select attribute" />
                                                     </SelectTrigger>
                                                     <SelectContent>
-                                                        <SelectItem value={AttributeType.Text}>Text</SelectItem>
-                                                        <SelectItem value={AttributeType.InnerHTML}>Inner HTML</SelectItem>
-                                                        <SelectItem value={AttributeType.Href}>Href</SelectItem>
-                                                        <SelectItem value={AttributeType.Src}>Src</SelectItem>
-                                                        <SelectItem value={AttributeType.Value}>Value</SelectItem>
+                                                        <SelectItem value={AttributeType.Text}>
+                                                            <span className="flex items-center gap-2"><Type className="w-3.5 h-3.5 text-muted-foreground" /> Text</span>
+                                                        </SelectItem>
+                                                        <SelectItem value={AttributeType.InnerHTML}>
+                                                            <span className="flex items-center gap-2"><Code className="w-3.5 h-3.5 text-muted-foreground" /> Inner HTML</span>
+                                                        </SelectItem>
+                                                        <SelectItem value={AttributeType.Href}>
+                                                            <span className="flex items-center gap-2"><Link className="w-3.5 h-3.5 text-muted-foreground" /> Href</span>
+                                                        </SelectItem>
+                                                        <SelectItem value={AttributeType.Src}>
+                                                            <span className="flex items-center gap-2"><Image className="w-3.5 h-3.5 text-muted-foreground" /> Src</span>
+                                                        </SelectItem>
+                                                        <SelectItem value={AttributeType.Value}>
+                                                            <span className="flex items-center gap-2"><FormInput className="w-3.5 h-3.5 text-muted-foreground" /> Value</span>
+                                                        </SelectItem>
                                                     </SelectContent>
                                                 </Select>
+                                                {attributeDescriptions[field.attribute] && (
+                                                    <p className="text-xs text-muted-foreground flex items-start gap-1.5">
+                                                        <Info className="w-3 h-3 mt-0.5 shrink-0" />
+                                                        {attributeDescriptions[field.attribute]}
+                                                    </p>
+                                                )}
                                             </div>
 
                                             <div className="flex flex-col gap-2">
@@ -356,7 +662,7 @@ export const ExtractScopeBlockConfig = observer(({ block }: ExtractScopeBlockCon
                                                     type="text"
                                                     placeholder="N/A"
                                                     value={field.defaultValue || ''}
-                                                    onChange={(e) => field.defaultValue = e.target.value}
+                                                    onChange={(e) => updateField(field, 'defaultValue', e.target.value)}
                                                 />
                                             </div>
 
@@ -365,7 +671,7 @@ export const ExtractScopeBlockConfig = observer(({ block }: ExtractScopeBlockCon
                                                     <Checkbox
                                                         id={`required-${index}`}
                                                         checked={field.required || false}
-                                                        onCheckedChange={(checked) => field.required = checked as boolean}
+                                                        onCheckedChange={(checked) => updateField(field, 'required', checked as boolean)}
                                                         className="mt-0.5"
                                                     />
                                                     <div className="flex flex-col">
@@ -382,7 +688,7 @@ export const ExtractScopeBlockConfig = observer(({ block }: ExtractScopeBlockCon
                                                     <Checkbox
                                                         id={`multiple-${index}`}
                                                         checked={field.multiple || false}
-                                                        onCheckedChange={(checked) => field.multiple = checked as boolean}
+                                                        onCheckedChange={(checked) => updateField(field, 'multiple', checked as boolean)}
                                                         className="mt-0.5"
                                                     />
                                                     <div className="flex flex-col">
@@ -446,7 +752,7 @@ export const ExtractScopeBlockConfig = observer(({ block }: ExtractScopeBlockCon
                                                                             <Select
                                                                                 value={(transformer as CurrencyConvertTransformerConfig).fromCurrency}
                                                                                 onValueChange={(value) => {
-                                                                                    (transformer as CurrencyConvertTransformerConfig).fromCurrency = value as any;
+                                                                                    updateTransformer(transformer as CurrencyConvertTransformerConfig, 'fromCurrency', value as any);
                                                                                 }}
                                                                             >
                                                                                 <SelectTrigger className="h-8">
@@ -467,7 +773,7 @@ export const ExtractScopeBlockConfig = observer(({ block }: ExtractScopeBlockCon
                                                                             <Select
                                                                                 value={(transformer as CurrencyConvertTransformerConfig).toCurrency}
                                                                                 onValueChange={(value) => {
-                                                                                    (transformer as CurrencyConvertTransformerConfig).toCurrency = value as any;
+                                                                                    updateTransformer(transformer as CurrencyConvertTransformerConfig, 'toCurrency', value as any);
                                                                                 }}
                                                                             >
                                                                                 <SelectTrigger className="h-8">
@@ -492,7 +798,7 @@ export const ExtractScopeBlockConfig = observer(({ block }: ExtractScopeBlockCon
                                                                                 className="h-8"
                                                                                 value={(transformer as CurrencyConvertTransformerConfig).fixedRate || ''}
                                                                                 onChange={(e) => {
-                                                                                    (transformer as CurrencyConvertTransformerConfig).fixedRate = e.target.value ? parseFloat(e.target.value) : undefined;
+                                                                                    updateTransformer(transformer as CurrencyConvertTransformerConfig, 'fixedRate', e.target.value ? parseFloat(e.target.value) : undefined);
                                                                                 }}
                                                                             />
                                                                         </div>
@@ -507,7 +813,7 @@ export const ExtractScopeBlockConfig = observer(({ block }: ExtractScopeBlockCon
                                                                                 className="h-8"
                                                                                 value={(transformer as ReplaceTransformerConfig).searchValue}
                                                                                 onChange={(e) => {
-                                                                                    (transformer as ReplaceTransformerConfig).searchValue = e.target.value;
+                                                                                    updateTransformer(transformer as ReplaceTransformerConfig, 'searchValue', e.target.value);
                                                                                 }}
                                                                             />
                                                                         </div>
@@ -517,7 +823,7 @@ export const ExtractScopeBlockConfig = observer(({ block }: ExtractScopeBlockCon
                                                                                 className="h-8"
                                                                                 value={(transformer as ReplaceTransformerConfig).replaceValue}
                                                                                 onChange={(e) => {
-                                                                                    (transformer as ReplaceTransformerConfig).replaceValue = e.target.value;
+                                                                                    updateTransformer(transformer as ReplaceTransformerConfig, 'replaceValue', e.target.value);
                                                                                 }}
                                                                             />
                                                                         </div>
@@ -526,7 +832,7 @@ export const ExtractScopeBlockConfig = observer(({ block }: ExtractScopeBlockCon
                                                                                 id={`global-${index}-${tIndex}`}
                                                                                 checked={(transformer as ReplaceTransformerConfig).global || false}
                                                                                 onCheckedChange={(checked) => {
-                                                                                    (transformer as ReplaceTransformerConfig).global = checked as boolean;
+                                                                                    updateTransformer(transformer as ReplaceTransformerConfig, 'global', checked as boolean);
                                                                                 }}
                                                                             />
                                                                             <Label htmlFor={`global-${index}-${tIndex}`} className="text-xs cursor-pointer">
@@ -547,11 +853,11 @@ export const ExtractScopeBlockConfig = observer(({ block }: ExtractScopeBlockCon
                                                                                     value={isReplaceMode ? 'replace' : 'extract'}
                                                                                     onValueChange={(value) => {
                                                                                         if (value === 'replace') {
-                                                                                            regexConfig.replacement = '';
-                                                                                            regexConfig.extractGroup = undefined;
+                                                                                            updateTransformer(regexConfig, 'replacement', '');
+                                                                                            updateTransformer(regexConfig, 'extractGroup', undefined);
                                                                                         } else {
-                                                                                            regexConfig.replacement = undefined as any;
-                                                                                            regexConfig.extractGroup = 0;
+                                                                                            updateTransformer(regexConfig, 'replacement', undefined as any);
+                                                                                            updateTransformer(regexConfig, 'extractGroup', 0);
                                                                                         }
                                                                                     }}
                                                                                 >
@@ -571,7 +877,7 @@ export const ExtractScopeBlockConfig = observer(({ block }: ExtractScopeBlockCon
                                                                                     placeholder={isReplaceMode ? "\\d+" : "(\\d+\\.?\\d*)"}
                                                                                     value={regexConfig.pattern}
                                                                                     onChange={(e) => {
-                                                                                        regexConfig.pattern = e.target.value;
+                                                                                        updateTransformer(regexConfig, 'pattern', e.target.value);
                                                                                     }}
                                                                                 />
                                                                             </div>
@@ -582,7 +888,7 @@ export const ExtractScopeBlockConfig = observer(({ block }: ExtractScopeBlockCon
                                                                                     placeholder="g, i, m"
                                                                                     value={regexConfig.flags || ''}
                                                                                     onChange={(e) => {
-                                                                                        regexConfig.flags = e.target.value;
+                                                                                        updateTransformer(regexConfig, 'flags', e.target.value);
                                                                                     }}
                                                                                 />
                                                                             </div>
@@ -594,7 +900,7 @@ export const ExtractScopeBlockConfig = observer(({ block }: ExtractScopeBlockCon
                                                                                         placeholder="$1"
                                                                                         value={regexConfig.replacement || ''}
                                                                                         onChange={(e) => {
-                                                                                            regexConfig.replacement = e.target.value;
+                                                                                            updateTransformer(regexConfig, 'replacement', e.target.value);
                                                                                         }}
                                                                                     />
                                                                                 </div>
@@ -608,7 +914,7 @@ export const ExtractScopeBlockConfig = observer(({ block }: ExtractScopeBlockCon
                                                                                         min={0}
                                                                                         value={regexConfig.extractGroup ?? 0}
                                                                                         onChange={(e) => {
-                                                                                            regexConfig.extractGroup = e.target.value ? parseInt(e.target.value) : 0;
+                                                                                            updateTransformer(regexConfig, 'extractGroup', e.target.value ? parseInt(e.target.value) : 0);
                                                                                         }}
                                                                                     />
                                                                                     <p className="text-xs text-muted-foreground mt-1">
@@ -628,7 +934,7 @@ export const ExtractScopeBlockConfig = observer(({ block }: ExtractScopeBlockCon
                                                                                 className="h-8"
                                                                                 value={(transformer as SplitTransformerConfig).delimiter}
                                                                                 onChange={(e) => {
-                                                                                    (transformer as SplitTransformerConfig).delimiter = e.target.value;
+                                                                                    updateTransformer(transformer as SplitTransformerConfig, 'delimiter', e.target.value);
                                                                                 }}
                                                                             />
                                                                         </div>
@@ -640,7 +946,7 @@ export const ExtractScopeBlockConfig = observer(({ block }: ExtractScopeBlockCon
                                                                                 placeholder="All parts"
                                                                                 value={(transformer as SplitTransformerConfig).index ?? ''}
                                                                                 onChange={(e) => {
-                                                                                    (transformer as SplitTransformerConfig).index = e.target.value ? parseInt(e.target.value) : undefined;
+                                                                                    updateTransformer(transformer as SplitTransformerConfig, 'index', e.target.value ? parseInt(e.target.value) : undefined);
                                                                                 }}
                                                                             />
                                                                         </div>
@@ -671,7 +977,7 @@ export const ExtractScopeBlockConfig = observer(({ block }: ExtractScopeBlockCon
                                             type="text"
                                             placeholder="e.g. {{price}} + (0.2 * {{shipping}})"
                                             value={field.formula || ''}
-                                            onChange={(e) => field.formula = e.target.value}
+                                            onChange={(e) => updateField(field, 'formula', e.target.value)}
                                             className="font-mono text-sm"
                                         />
                                         <p className="text-xs text-muted-foreground">
@@ -684,6 +990,62 @@ export const ExtractScopeBlockConfig = observer(({ block }: ExtractScopeBlockCon
                     );
                 })}
             </div>
+
+            <Dialog
+                open={previewOpen}
+                onOpenChange={(open) => {
+                    setPreviewOpen(open);
+                    if (!open) {
+                        setPreviewData(null);
+                        setPreviewError(null);
+                    }
+                }}
+            >
+                <DialogContent className="max-w-2xl">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center justify-center">
+                            Extraction Preview
+                        </DialogTitle>
+                        <DialogDescription className="text-center">
+                            Test the current extract scope fields against the active page.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="max-h-[60vh] overflow-y-auto pr-1">
+                        {previewLoading && (
+                            <div className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground">
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                                Extracting from page...
+                            </div>
+                        )}
+
+                        {previewError && (
+                            <div className="text-sm text-destructive bg-destructive/10 rounded-md p-3">
+                                {previewError}
+                            </div>
+                        )}
+
+                        {previewData && (
+                            <div className="space-y-2">
+                                {Object.entries(previewData).map(([key, value]) => (
+                                    <div key={key} className="rounded-md border bg-muted/20 p-3">
+                                        <div className="text-xs font-medium uppercase tracking-wide text-primary">
+                                            {key}
+                                        </div>
+                                        <div className="mt-1 break-all rounded bg-muted/40 px-2 py-1.5 font-mono text-xs text-foreground">
+                                            {value === null || value === undefined ? <span className="text-muted-foreground italic">empty</span> : String(value).substring(0, 500)}
+                                            {String(value || '').length > 500 && '...'}
+                                        </div>
+                                    </div>
+                                ))}
+
+                                {Object.keys(previewData).length === 0 && (
+                                    <p className="py-4 text-center text-sm text-muted-foreground">No data extracted</p>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 });

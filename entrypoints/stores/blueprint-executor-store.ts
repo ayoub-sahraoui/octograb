@@ -804,6 +804,22 @@ export class BlueprintExecutorStore {
             this.log('info', `  📌 Selector type: ${sel?.type || 'css'}`);
             this.log('info', `  🔍 Has scope: ${scope ? 'Yes' : 'No'}`);
 
+            // Capture URL before click to detect if navigation happens
+            let urlBeforeClick: string | undefined;
+            try {
+                const tabBefore = await browser.tabs.get(this._targetTabId!);
+                urlBeforeClick = tabBefore.url;
+            } catch { /* ignore */ }
+
+            // Listen for navigation that the click might trigger
+            let navigationDetected = false;
+            const onNavListener = (tabId: number, changeInfo: any) => {
+                if (tabId === this._targetTabId && changeInfo.status === 'loading') {
+                    navigationDetected = true;
+                }
+            };
+            browser.tabs.onUpdated.addListener(onNavListener);
+
             const response = await this.send({
                 type: 'ENV_CLICK',
                 data: {
@@ -819,10 +835,45 @@ export class BlueprintExecutorStore {
 
             // If click might cause navigation, wait for the page to settle
             if (config.waitAfterClick) {
+                browser.tabs.onUpdated.removeListener(onNavListener);
                 this.log('info', `  ⏳ Waiting ${config.waitAfterClick}ms after click...`);
                 await this.delay(config.waitAfterClick);
                 this.log('info', `  ⏳ Waiting for page to settle...`);
                 await this.waitForTab(config.timeout || 15000);
+            } else {
+                // Auto-detect navigation: give the browser a moment to start navigating
+                await this.delay(300);
+                browser.tabs.onUpdated.removeListener(onNavListener);
+
+                if (navigationDetected) {
+                    this.log('info', `  🔀 Navigation detected after click, waiting for page load...`);
+                    // Check if page already finished loading
+                    let alreadyComplete = false;
+                    try {
+                        const tabNow = await browser.tabs.get(this._targetTabId!);
+                        alreadyComplete = tabNow.status === 'complete';
+                    } catch { /* ignore */ }
+
+                    if (!alreadyComplete) {
+                        try {
+                            await this.waitForNavigation(this._targetTabId!, 30000);
+                        } catch {
+                            // Navigation may have already completed during the delay
+                        }
+                    }
+                    await this.waitForTab(30000);
+                    this.log('info', `  ✓ Page loaded after click-triggered navigation`);
+                } else {
+                    // Double-check by comparing URLs (handles fast navigations)
+                    try {
+                        const tabAfter = await browser.tabs.get(this._targetTabId!);
+                        if (urlBeforeClick && tabAfter.url !== urlBeforeClick) {
+                            this.log('info', `  🔀 URL changed after click, waiting for content script...`);
+                            await this.waitForTab(30000);
+                            this.log('info', `  ✓ Content script ready after navigation`);
+                        }
+                    } catch { /* ignore */ }
+                }
             }
         }
     }
@@ -900,8 +951,17 @@ export class BlueprintExecutorStore {
             this.log('error', `  ❌ Timeout after ${checkCount} checks (${timeout}ms)`);
             throw new Error(`Timeout waiting for ${sel?.value || 'scope element'} to be ${targetVisible ? 'visible' : 'hidden'}`);
         } else if (config.type === 'dom_content_loaded') {
-            this.log('info', `  ⏳ Waiting for DOM content loaded (${config.timeout || 2000}ms)...`);
-            await this.delay(config.timeout || 2000);
+            const timeout = config.timeout || 5000;
+            this.log('info', `  ⏳ Waiting for DOM content loaded (${timeout}ms)...`);
+            // Actually wait for content script readiness instead of just sleeping
+            try {
+                await this.waitForTab(timeout);
+                this.log('info', `  ✓ Content script is ready`);
+            } catch {
+                this.log('warn', `  ⚠ Content script not ready after ${timeout}ms, continuing anyway`);
+            }
+            // Additional stabilization delay to let the page render dynamic content
+            await this.delay(Math.min(timeout, 1000));
         } else if (config.type === 'network_idle') {
             const timeout = config.timeout || 10000;
             this.log('info', `  🌐 Waiting for network idle (timeout: ${timeout}ms)...`);
@@ -1875,18 +1935,42 @@ export class BlueprintExecutorStore {
 
             this.log('info', `  📤 Sending extraction request...`);
 
-            const response = await this.send({
-                type: 'ENV_EXTRACT_RECORD',
-                data: {
-                    fields: envFields,
-                    scope: extractScope || undefined,
-                }
-            });
+            // Identify fields with transformers — these may need retries if content is lazy-loaded
+            const fieldsWithTransformers = new Set(
+                envFields.filter((f: any) => f.transformers && f.transformers.length > 0).map((f: any) => f.key)
+            );
 
-            if (!response.success) throw new Error(response.error || 'Extraction failed');
+            const maxExtractionAttempts = fieldsWithTransformers.size > 0 ? 3 : 1;
+            let extractedRecord: Record<string, any> = {};
+
+            for (let attempt = 1; attempt <= maxExtractionAttempts; attempt++) {
+                const response = await this.send({
+                    type: 'ENV_EXTRACT_RECORD',
+                    data: {
+                        fields: envFields,
+                        scope: extractScope || undefined,
+                    }
+                });
+
+                if (!response.success) throw new Error(response.error || 'Extraction failed');
+
+                extractedRecord = response.data as Record<string, any>;
+
+                // Check if any transformer-dependent fields returned empty (possible lazy-load issue)
+                if (attempt < maxExtractionAttempts && fieldsWithTransformers.size > 0) {
+                    const emptyTransformerFields = Array.from(fieldsWithTransformers).filter(
+                        key => !extractedRecord[key] || extractedRecord[key] === ''
+                    );
+                    if (emptyTransformerFields.length > 0) {
+                        this.log('info', `  🔄 Retry ${attempt}/${maxExtractionAttempts}: fields [${emptyTransformerFields.join(', ')}] empty (possible lazy-load), waiting 1.5s...`);
+                        await this.delay(1500);
+                        continue;
+                    }
+                }
+                break;
+            }
 
             // Merge extracted values into record
-            const extractedRecord = response.data as Record<string, any>;
             for (const [key, value] of Object.entries(extractedRecord)) {
                 record[key] = value;
             }
@@ -1978,16 +2062,27 @@ export class BlueprintExecutorStore {
      * Uses a safe recursive-descent parser — no eval/Function (blocked by Chrome extension CSP).
      */
     private evaluateFormula(formula: string, record: Record<string, any>): any {
-        // Replace {{fieldKey}} with actual values
+        // Check if any referenced field is null/empty — if so, return null
+        // (formula can't produce a meaningful result from missing data)
+        let hasNullReference = false;
         const expression = formula.replace(/\{\{(\w+)\}\}/g, (_, key) => {
             const val = record[key];
-            if (val === null || val === undefined) return '0';
+            if (val === null || val === undefined || val === '') {
+                hasNullReference = true;
+                return '0';
+            }
             const num = parseFloat(String(val).replace(/[^0-9.\-]/g, ''));
-            return isNaN(num) ? '0' : String(num);
+            if (isNaN(num)) {
+                hasNullReference = true;
+                return '0';
+            }
+            return String(num);
         });
 
+        if (hasNullReference) return null;
+
         const result = this.parseMathExpression(expression.trim());
-        return typeof result === 'number' && !isNaN(result) ? result : 0;
+        return typeof result === 'number' && !isNaN(result) ? result : null;
     }
 
     /**

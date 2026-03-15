@@ -1,0 +1,1798 @@
+[2026-03-15T23:21:40.947Z] [INFO] ▶ Starting blueprint: amazon (tab 1348410698)
+[2026-03-15T23:21:41.025Z] [BLOCK] ▶ Executing: Navigate [No Scope]
+[2026-03-15T23:21:41.025Z] [INFO]   📋 Config: {"url":"https://www.amazon.com/s?k=O%27Reilly+Media&rh=p_n_feature_browse-bin%3A2656022011&dc&crid=2...
+[2026-03-15T23:21:41.025Z] [INFO] 🌐 Navigating to: https://www.amazon.com/s?k=O%27Reilly+Media&rh=p_n_feature_browse-bin%3A2656022011&dc&crid=2HNCF2KNH11LV&qid=1773441713&rnid=618072011&sprefix=o%27reilly+media%2Caps%2C308&ref=sr_nr_p_n_feature_browse-bin_1&ds=v1%3AIWcf%2FeyUttEkH3Ng%2BJJCsXNoqqd8z9q327KlMHPYW%2BI
+[2026-03-15T23:21:41.025Z] [INFO]   📍 Behavior: same_tab
+[2026-03-15T23:21:41.025Z] [INFO]   ⏱ Timeout: 30000ms
+[2026-03-15T23:21:41.025Z] [INFO]   🎯 Current tab ID: 1348410698
+[2026-03-15T23:21:41.025Z] [INFO]   🔄 Navigating in current tab 1348410698...
+[2026-03-15T23:21:42.777Z] [INFO]   ⏳ Waiting for content script to be ready...
+[2026-03-15T23:21:42.843Z] [SUCCESS] ✓ Navigated to: https://www.amazon.com/s?k=O%27Reilly+Media&rh=p_n_feature_browse-bin%3A2656022011&dc&crid=2HNCF2KNH11LV&qid=1773441713&rnid=618072011&sprefix=o%27reilly+media%2Caps%2C308&ref=sr_nr_p_n_feature_browse-bin_1&ds=v1%3AIWcf%2FeyUttEkH3Ng%2BJJCsXNoqqd8z9q327KlMHPYW%2BI
+[2026-03-15T23:21:42.918Z] [INFO]   ⏱ Execution time: 1893ms
+[2026-03-15T23:21:42.994Z] [BLOCK] ▶ Executing: Wait [No Scope]
+[2026-03-15T23:21:42.995Z] [INFO]   📋 Config: {"type":"timeout","timeout":3000}
+[2026-03-15T23:21:42.995Z] [INFO]   ⏱ Wait type: timeout
+[2026-03-15T23:21:42.995Z] [INFO]   ⏳ Waiting 3000ms...
+[2026-03-15T23:21:45.999Z] [INFO]   ⏱ Execution time: 3004ms
+[2026-03-15T23:21:46.072Z] [BLOCK] ▶ Executing: Loop Pagination [No Scope]
+[2026-03-15T23:21:46.072Z] [INFO]   📋 Config: {"nextButtonSelector":{"type":"xpath","value":"//a[normalize-space()='Next']","detected":{"css":"[ar...
+[2026-03-15T23:21:46.072Z] [INFO]   📄 Loop Pagination
+[2026-03-15T23:21:46.072Z] [INFO]   🔄 Pagination type: button
+[2026-03-15T23:21:46.072Z] [INFO]   � Max pages: 10
+[2026-03-15T23:21:46.072Z] [INFO]   ⏱ Delay between pages: 1000ms
+[2026-03-15T23:21:46.072Z] [INFO]   👶 Children per page: 1
+[2026-03-15T23:21:46.072Z] [INFO]   🎯 Next button selector: //a[normalize-space()='Next']
+[2026-03-15T23:21:46.072Z] [INFO]   📌 Selector type: xpath
+[2026-03-15T23:21:46.072Z] [INFO]   ⚠ On no next button: stop
+[2026-03-15T23:21:46.139Z] [INFO]   ━━━ Page 1 ━━━
+[2026-03-15T23:21:46.139Z] [INFO]     👶 Executing 1 children on this page...
+[2026-03-15T23:21:46.207Z] [BLOCK] ▶ Executing: Loop Elements [No Scope]
+[2026-03-15T23:21:46.207Z] [INFO]   📋 Config: {"selector":{"type":"css","value":"div.desktop-grid-content-view","detected":{"css":"div.desktop-gri...
+[2026-03-15T23:21:46.207Z] [INFO]   🔁 Loop Elements
+[2026-03-15T23:21:46.207Z] [INFO]   🎯 Selector: div.desktop-grid-content-view
+[2026-03-15T23:21:46.207Z] [INFO]   📌 Selector type: css
+[2026-03-15T23:21:46.207Z] [INFO]   🔍 Has parent scope: No
+[2026-03-15T23:21:46.261Z] [INFO]   📍 Loop start URL: https://www.amazon.com/s?k=O%27Reilly+Media&rh=p_n_feature_browse-bin%3A2656022011&dc&ds=v1%3AIWcf%2FeyUttEkH3Ng%2BJJCsXNoqqd8z9q327KlMHPYW%2BI&crid=2HNCF2KNH11LV&qid=1773441713&rnid=618072011&sprefix=o%27reilly+media%2Caps%2C308&ref=sr_nr_p_n_feature_browse-bin_1
+[2026-03-15T23:21:46.295Z] [INFO]   📊 Found 48 elements
+[2026-03-15T23:21:46.295Z] [INFO]   🔄 Max iterations: unlimited
+[2026-03-15T23:21:46.295Z] [INFO]   ▶️ Will iterate: 48 times
+[2026-03-15T23:21:46.295Z] [INFO]   👶 Children per iteration: 6
+[2026-03-15T23:21:46.321Z] [INFO]   ━━━ Item 1/48 ━━━
+[2026-03-15T23:21:46.321Z] [INFO]     🔍 Checking if element at index 0 exists...
+[2026-03-15T23:21:46.352Z] [INFO]     ✓ Element exists (48 total elements, check attempt 1)
+[2026-03-15T23:21:46.378Z] [BLOCK] ▶ Executing: Wait [Scope: div.desktop-grid-content-view[0]]
+[2026-03-15T23:21:46.378Z] [INFO]   📋 Config: {"type":"timeout","timeout":1000}
+[2026-03-15T23:21:46.378Z] [INFO]   ⏱ Wait type: timeout
+[2026-03-15T23:21:46.379Z] [INFO]   ⏳ Waiting 1000ms...
+[2026-03-15T23:21:47.381Z] [INFO]   ⏱ Execution time: 1003ms
+[2026-03-15T23:21:47.444Z] [BLOCK] ▶ Executing: Click [Scope: div.desktop-grid-content-view[0]]
+[2026-03-15T23:21:47.444Z] [INFO]   📋 Config: {"selector":{"type":"css","value":".a-size-base-plus","detected":{"css":".a-size-base-plus","xpath":...
+[2026-03-15T23:21:47.444Z] [INFO]   ⏱ Delay before: 1000ms
+[2026-03-15T23:21:48.446Z] [INFO]   🖱 Normal click
+[2026-03-15T23:21:48.447Z] [INFO]   🎯 Selector: .a-size-base-plus
+[2026-03-15T23:21:48.447Z] [INFO]   📌 Selector type: css
+[2026-03-15T23:21:48.447Z] [INFO]   🔍 Has scope: Yes
+[2026-03-15T23:21:48.697Z] [SUCCESS] ✓ Clicked: .a-size-base-plus
+[2026-03-15T23:21:48.999Z] [INFO]   ⏱ Delay after: 1000ms
+[2026-03-15T23:21:49.999Z] [INFO]   ⏱ Execution time: 2555ms
+[2026-03-15T23:21:50.074Z] [BLOCK] ▶ Executing: Wait [Scope: div.desktop-grid-content-view[0]]
+[2026-03-15T23:21:50.074Z] [INFO]   📋 Config: {"type":"dom_content_loaded","timeout":2000}
+[2026-03-15T23:21:50.074Z] [INFO]   ⏱ Wait type: dom_content_loaded
+[2026-03-15T23:21:50.074Z] [INFO]   ⏳ Waiting for DOM content loaded (2000ms)...
+[2026-03-15T23:21:51.807Z] [INFO]   ✓ Content script is ready
+[2026-03-15T23:21:52.814Z] [INFO]   ⏱ Execution time: 2739ms
+[2026-03-15T23:21:52.879Z] [BLOCK] ▶ Executing: Extract Scope [Scope: div.desktop-grid-content-view[0]]
+[2026-03-15T23:21:52.879Z] [INFO]   📋 Config: {"fields":[{"key":"Titre","selector":{"type":"css","value":"#productTitle","detected":{"css":"#produ...
+[2026-03-15T23:21:52.879Z] [INFO]   📦 Extract Scope
+[2026-03-15T23:21:52.879Z] [INFO]   📊 Fields to extract: 9
+[2026-03-15T23:21:52.880Z] [INFO]   🔄 Reset scope: Yes
+[2026-03-15T23:21:52.880Z] [INFO]   🔍 Has parent scope: Yes
+[2026-03-15T23:21:52.880Z] [INFO]     1. Titre: selector="#productTitle" attr="text"
+[2026-03-15T23:21:52.880Z] [INFO]     2. URL image 1: selector="#landingImage" attr="src"
+[2026-03-15T23:21:52.880Z] [INFO]     3. Description: selector="#bookDescription_feature_div > div > div" attr="text"
+[2026-03-15T23:21:52.880Z] [INFO]     4. GTIN: selector=".detail-bullet-list" attr="innerHTML"
+[2026-03-15T23:21:52.880Z] [INFO]        🔧 Transformers (1):
+[2026-03-15T23:21:52.880Z] [INFO]     5. Pages: selector=".detail-bullet-list" attr="innerHTML"
+[2026-03-15T23:21:52.880Z] [INFO]        🔧 Transformers (1):
+[2026-03-15T23:21:52.880Z] [INFO]     6. Stock: [static] type="constant"
+[2026-03-15T23:21:52.880Z] [INFO]     7. PRIX: [static] type="constant"
+[2026-03-15T23:21:52.880Z] [INFO]        📐 Formula: {{Pages}}*0.50
+[2026-03-15T23:21:52.880Z] [INFO]     8. Référence vendeur: selector=".detail-bullet-list" attr="innerHTML"
+[2026-03-15T23:21:52.880Z] [INFO]        🔧 Transformers (1):
+[2026-03-15T23:21:52.880Z] [INFO]     9. Marque: [static] type="constant"
+[2026-03-15T23:21:52.880Z] [INFO]     🗄️ Static "Stock" = "20"
+[2026-03-15T23:21:52.880Z] [INFO]     🗄️ Static "PRIX" = ""
+[2026-03-15T23:21:52.880Z] [INFO]     🗄️ Static "Marque" = "BRANDBOOK"
+[2026-03-15T23:21:52.880Z] [INFO]   📤 Extraction fields being sent: Titre, URL image 1, Description, GTIN, Pages, Référence vendeur
+[2026-03-15T23:21:52.881Z] [INFO]      Field "GTIN" transformers: [{"type":"regex","pattern":"ISBN-13[\\s\\S]*?<span>(97[89][\\d-]+)<\\/span>","flags":"i","extractGroup":1}]
+[2026-03-15T23:21:52.881Z] [INFO]      Field "Pages" transformers: [{"type":"regex","pattern":"Print length[\\s\\S]*?<span>(\\d+)\\s*pages<\\/span>","flags":"i","extractGroup":1}]
+[2026-03-15T23:21:52.881Z] [INFO]      Field "Référence vendeur" transformers: [{"type":"regex","pattern":"ISBN-10[\\s\\S]*?<span>([\\dXx-]+)<\\/span>","flags":"i","extractGroup":1}]
+[2026-03-15T23:21:52.881Z] [INFO]   🔄 Resetting scope to document root
+[2026-03-15T23:21:52.881Z] [INFO]   📤 Sending extraction request...
+[2026-03-15T23:21:52.949Z] [INFO]   🔄 Retry 1/3: fields [Référence vendeur] empty (possible lazy-load), waiting 1.5s...
+[2026-03-15T23:21:54.465Z] [INFO]   🔄 Retry 2/3: fields [Référence vendeur] empty (possible lazy-load), waiting 1.5s...
+[2026-03-15T23:21:55.983Z] [INFO]     📐 Formula "PRIX": {{Pages}}*0.50 = 530
+[2026-03-15T23:21:55.983Z] [INFO]   📝 Extracted values:
+[2026-03-15T23:21:55.983Z] [INFO]     Stock: "20"
+[2026-03-15T23:21:55.983Z] [INFO]     PRIX: "530"
+[2026-03-15T23:21:55.983Z] [INFO]     Marque: "BRANDBOOK"
+[2026-03-15T23:21:55.984Z] [INFO]     Titre: "AI Systems Performance Engineering: Optimizing Mod..."
+[2026-03-15T23:21:55.984Z] [INFO]     URL image 1: "https://m.media-amazon.com/images/I/81VVCV2U9zL._S..."
+[2026-03-15T23:21:55.984Z] [INFO]     Description: "Elevate your AI system performance capabilities wi..."
+[2026-03-15T23:21:55.984Z] [INFO]     GTIN: "979-8341627789"
+[2026-03-15T23:21:55.984Z] [INFO]     Pages: "1060"
+[2026-03-15T23:21:55.984Z] [INFO]     Référence vendeur: ""
+[2026-03-15T23:21:55.984Z] [SUCCESS]   ✓ Extracted row #1
+[2026-03-15T23:21:55.984Z] [INFO]   📊 Total rows collected: 1
+[2026-03-15T23:21:56.071Z] [INFO]   ⏱ Execution time: 3192ms
+[2026-03-15T23:21:56.140Z] [BLOCK] ▶ Executing: Wait [Scope: div.desktop-grid-content-view[0]]
+[2026-03-15T23:21:56.140Z] [INFO]   📋 Config: {"type":"timeout","timeout":1500}
+[2026-03-15T23:21:56.140Z] [INFO]   ⏱ Wait type: timeout
+[2026-03-15T23:21:56.141Z] [INFO]   ⏳ Waiting 1500ms...
+[2026-03-15T23:21:57.643Z] [INFO]   ⏱ Execution time: 1503ms
+[2026-03-15T23:21:57.719Z] [BLOCK] ▶ Executing: Go Back [Scope: div.desktop-grid-content-view[0]]
+[2026-03-15T23:21:57.719Z] [INFO]   📋 Config: {}
+[2026-03-15T23:21:57.719Z] [INFO] ↩ Going back...
+[2026-03-15T23:21:57.719Z] [INFO]   🎯 Current tab ID: 1348410698
+[2026-03-15T23:21:57.719Z] [INFO]   🔄 Navigating to stored URL: https://www.amazon.com/s?k=O%27Reilly+Media&rh=p_n_feature_browse-bin%3A2656022011&dc&ds=v1%3AIWcf%2FeyUttEkH3Ng%2BJJCsXNoqqd8z9q327KlMHPYW%2BI&crid=2HNCF2KNH11LV&qid=1773441713&rnid=618072011&sprefix=o%27reilly+media%2Caps%2C308&ref=sr_nr_p_n_feature_browse-bin_1
+[2026-03-15T23:21:57.816Z] [INFO]   ⏳ Waiting for navigation to complete...
+[2026-03-15T23:21:59.573Z] [INFO]   ⏳ Waiting for content script to be ready...
+[2026-03-15T23:21:59.674Z] [INFO]   ⏱ Waiting 500ms for page stabilization...
+[2026-03-15T23:22:00.178Z] [INFO]   📍 Current URL after go_back: https://www.amazon.com/s?k=O%27Reilly+Media&rh=p_n_feature_browse-bin%3A2656022011&dc&ds=v1%3AIWcf%2FeyUttEkH3Ng%2BJJCsXNoqqd8z9q327KlMHPYW%2BI&crid=2HNCF2KNH11LV&qid=1773441713&rnid=618072011&sprefix=o%27reilly+media%2Caps%2C308&ref=sr_nr_p_n_feature_browse-bin_1
+[2026-03-15T23:22:00.178Z] [SUCCESS] ✓ Went back
+[2026-03-15T23:22:00.247Z] [INFO]   ⏱ Execution time: 2528ms
+[2026-03-15T23:22:00.279Z] [INFO]   ━━━ Item 2/48 ━━━
+[2026-03-15T23:22:00.279Z] [INFO]     🔍 Checking if element at index 1 exists...
+[2026-03-15T23:22:00.312Z] [INFO]     ✓ Element exists (48 total elements, check attempt 1)
+[2026-03-15T23:22:00.346Z] [BLOCK] ▶ Executing: Wait [Scope: div.desktop-grid-content-view[1]]
+[2026-03-15T23:22:00.346Z] [INFO]   📋 Config: {"type":"timeout","timeout":1000}
+[2026-03-15T23:22:00.346Z] [INFO]   ⏱ Wait type: timeout
+[2026-03-15T23:22:00.346Z] [INFO]   ⏳ Waiting 1000ms...
+[2026-03-15T23:22:01.358Z] [INFO]   ⏱ Execution time: 1012ms
+[2026-03-15T23:22:01.433Z] [BLOCK] ▶ Executing: Click [Scope: div.desktop-grid-content-view[1]]
+[2026-03-15T23:22:01.433Z] [INFO]   📋 Config: {"selector":{"type":"css","value":".a-size-base-plus","detected":{"css":".a-size-base-plus","xpath":...
+[2026-03-15T23:22:01.433Z] [INFO]   ⏱ Delay before: 1000ms
+[2026-03-15T23:22:02.445Z] [INFO]   🖱 Normal click
+[2026-03-15T23:22:02.445Z] [INFO]   🎯 Selector: .a-size-base-plus
+[2026-03-15T23:22:02.446Z] [INFO]   📌 Selector type: css
+[2026-03-15T23:22:02.446Z] [INFO]   🔍 Has scope: Yes
+[2026-03-15T23:22:02.803Z] [SUCCESS] ✓ Clicked: .a-size-base-plus
+[2026-03-15T23:22:03.131Z] [INFO]   🔀 URL changed after click, waiting for content script...
+[2026-03-15T23:22:05.583Z] [INFO]   ✓ Content script ready after navigation
+[2026-03-15T23:22:05.671Z] [INFO]   ⏱ Delay after: 1000ms
+[2026-03-15T23:22:06.673Z] [INFO]   ⏱ Execution time: 5240ms
+[2026-03-15T23:22:06.759Z] [BLOCK] ▶ Executing: Wait [Scope: div.desktop-grid-content-view[1]]
+[2026-03-15T23:22:06.759Z] [INFO]   📋 Config: {"type":"dom_content_loaded","timeout":2000}
+[2026-03-15T23:22:06.759Z] [INFO]   ⏱ Wait type: dom_content_loaded
+[2026-03-15T23:22:06.759Z] [INFO]   ⏳ Waiting for DOM content loaded (2000ms)...
+[2026-03-15T23:22:06.833Z] [INFO]   ✓ Content script is ready
+[2026-03-15T23:22:07.840Z] [INFO]   ⏱ Execution time: 1080ms
+[2026-03-15T23:22:07.926Z] [BLOCK] ▶ Executing: Extract Scope [Scope: div.desktop-grid-content-view[1]]
+[2026-03-15T23:22:07.927Z] [INFO]   📋 Config: {"fields":[{"key":"Titre","selector":{"type":"css","value":"#productTitle","detected":{"css":"#produ...
+[2026-03-15T23:22:07.927Z] [INFO]   📦 Extract Scope
+[2026-03-15T23:22:07.927Z] [INFO]   📊 Fields to extract: 9
+[2026-03-15T23:22:07.927Z] [INFO]   🔄 Reset scope: Yes
+[2026-03-15T23:22:07.927Z] [INFO]   🔍 Has parent scope: Yes
+[2026-03-15T23:22:07.927Z] [INFO]     1. Titre: selector="#productTitle" attr="text"
+[2026-03-15T23:22:07.927Z] [INFO]     2. URL image 1: selector="#landingImage" attr="src"
+[2026-03-15T23:22:07.927Z] [INFO]     3. Description: selector="#bookDescription_feature_div > div > div" attr="text"
+[2026-03-15T23:22:07.927Z] [INFO]     4. GTIN: selector=".detail-bullet-list" attr="innerHTML"
+[2026-03-15T23:22:07.927Z] [INFO]        🔧 Transformers (1):
+[2026-03-15T23:22:07.927Z] [INFO]     5. Pages: selector=".detail-bullet-list" attr="innerHTML"
+[2026-03-15T23:22:07.927Z] [INFO]        🔧 Transformers (1):
+[2026-03-15T23:22:07.927Z] [INFO]     6. Stock: [static] type="constant"
+[2026-03-15T23:22:07.927Z] [INFO]     7. PRIX: [static] type="constant"
+[2026-03-15T23:22:07.927Z] [INFO]        📐 Formula: {{Pages}}*0.50
+[2026-03-15T23:22:07.927Z] [INFO]     8. Référence vendeur: selector=".detail-bullet-list" attr="innerHTML"
+[2026-03-15T23:22:07.927Z] [INFO]        🔧 Transformers (1):
+[2026-03-15T23:22:07.927Z] [INFO]     9. Marque: [static] type="constant"
+[2026-03-15T23:22:07.927Z] [INFO]     🗄️ Static "Stock" = "20"
+[2026-03-15T23:22:07.927Z] [INFO]     🗄️ Static "PRIX" = ""
+[2026-03-15T23:22:07.927Z] [INFO]     🗄️ Static "Marque" = "BRANDBOOK"
+[2026-03-15T23:22:07.927Z] [INFO]   📤 Extraction fields being sent: Titre, URL image 1, Description, GTIN, Pages, Référence vendeur
+[2026-03-15T23:22:07.927Z] [INFO]      Field "GTIN" transformers: [{"type":"regex","pattern":"ISBN-13[\\s\\S]*?<span>(97[89][\\d-]+)<\\/span>","flags":"i","extractGroup":1}]
+[2026-03-15T23:22:07.927Z] [INFO]      Field "Pages" transformers: [{"type":"regex","pattern":"Print length[\\s\\S]*?<span>(\\d+)\\s*pages<\\/span>","flags":"i","extractGroup":1}]
+[2026-03-15T23:22:07.928Z] [INFO]      Field "Référence vendeur" transformers: [{"type":"regex","pattern":"ISBN-10[\\s\\S]*?<span>([\\dXx-]+)<\\/span>","flags":"i","extractGroup":1}]
+[2026-03-15T23:22:07.928Z] [INFO]   🔄 Resetting scope to document root
+[2026-03-15T23:22:07.928Z] [INFO]   📤 Sending extraction request...
+[2026-03-15T23:22:08.004Z] [INFO]     📐 Formula "PRIX": {{Pages}}*0.50 = 135
+[2026-03-15T23:22:08.004Z] [INFO]   📝 Extracted values:
+[2026-03-15T23:22:08.004Z] [INFO]     Stock: "20"
+[2026-03-15T23:22:08.004Z] [INFO]     PRIX: "135"
+[2026-03-15T23:22:08.004Z] [INFO]     Marque: "BRANDBOOK"
+[2026-03-15T23:22:08.004Z] [INFO]     Titre: "Engineering Leadership: The Hard Parts: Navigating..."
+[2026-03-15T23:22:08.004Z] [INFO]     URL image 1: "https://m.media-amazon.com/images/I/81-XswJ9prL._S..."
+[2026-03-15T23:22:08.004Z] [INFO]     Description: "Whether they're building a startup or scaling an e..."
+[2026-03-15T23:22:08.004Z] [INFO]     GTIN: "978-1098175634"
+[2026-03-15T23:22:08.004Z] [INFO]     Pages: "270"
+[2026-03-15T23:22:08.004Z] [INFO]     Référence vendeur: "1098175638"
+[2026-03-15T23:22:08.004Z] [SUCCESS]   ✓ Extracted row #2
+[2026-03-15T23:22:08.004Z] [INFO]   📊 Total rows collected: 2
+[2026-03-15T23:22:08.079Z] [INFO]   ⏱ Execution time: 152ms
+[2026-03-15T23:22:08.108Z] [BLOCK] ▶ Executing: Wait [Scope: div.desktop-grid-content-view[1]]
+[2026-03-15T23:22:08.108Z] [INFO]   📋 Config: {"type":"timeout","timeout":1500}
+[2026-03-15T23:22:08.108Z] [INFO]   ⏱ Wait type: timeout
+[2026-03-15T23:22:08.108Z] [INFO]   ⏳ Waiting 1500ms...
+[2026-03-15T23:22:09.620Z] [INFO]   ⏱ Execution time: 1512ms
+[2026-03-15T23:22:09.706Z] [BLOCK] ▶ Executing: Go Back [Scope: div.desktop-grid-content-view[1]]
+[2026-03-15T23:22:09.706Z] [INFO]   📋 Config: {}
+[2026-03-15T23:22:09.706Z] [INFO] ↩ Going back...
+[2026-03-15T23:22:09.706Z] [INFO]   🎯 Current tab ID: 1348410698
+[2026-03-15T23:22:09.706Z] [INFO]   🔄 Navigating to stored URL: https://www.amazon.com/s?k=O%27Reilly+Media&rh=p_n_feature_browse-bin%3A2656022011&dc&ds=v1%3AIWcf%2FeyUttEkH3Ng%2BJJCsXNoqqd8z9q327KlMHPYW%2BI&crid=2HNCF2KNH11LV&qid=1773441713&rnid=618072011&sprefix=o%27reilly+media%2Caps%2C308&ref=sr_nr_p_n_feature_browse-bin_1
+[2026-03-15T23:22:09.796Z] [INFO]   ⏳ Waiting for navigation to complete...
+[2026-03-15T23:22:11.445Z] [INFO]   ⏳ Waiting for content script to be ready...
+[2026-03-15T23:22:11.529Z] [INFO]   ⏱ Waiting 500ms for page stabilization...
+[2026-03-15T23:22:12.031Z] [INFO]   📍 Current URL after go_back: https://www.amazon.com/s?k=O%27Reilly+Media&rh=p_n_feature_browse-bin%3A2656022011&dc&ds=v1%3AIWcf%2FeyUttEkH3Ng%2BJJCsXNoqqd8z9q327KlMHPYW%2BI&crid=2HNCF2KNH11LV&qid=1773441713&rnid=618072011&sprefix=o%27reilly+media%2Caps%2C308&ref=sr_nr_p_n_feature_browse-bin_1
+[2026-03-15T23:22:12.031Z] [SUCCESS] ✓ Went back
+[2026-03-15T23:22:12.098Z] [INFO]   ⏱ Execution time: 2392ms
+[2026-03-15T23:22:12.134Z] [INFO]   ━━━ Item 3/48 ━━━
+[2026-03-15T23:22:12.134Z] [INFO]     🔍 Checking if element at index 2 exists...
+[2026-03-15T23:22:12.165Z] [INFO]     ✓ Element exists (48 total elements, check attempt 1)
+[2026-03-15T23:22:12.193Z] [BLOCK] ▶ Executing: Wait [Scope: div.desktop-grid-content-view[2]]
+[2026-03-15T23:22:12.193Z] [INFO]   📋 Config: {"type":"timeout","timeout":1000}
+[2026-03-15T23:22:12.193Z] [INFO]   ⏱ Wait type: timeout
+[2026-03-15T23:22:12.193Z] [INFO]   ⏳ Waiting 1000ms...
+[2026-03-15T23:22:13.194Z] [INFO]   ⏱ Execution time: 1001ms
+[2026-03-15T23:22:13.271Z] [BLOCK] ▶ Executing: Click [Scope: div.desktop-grid-content-view[2]]
+[2026-03-15T23:22:13.271Z] [INFO]   📋 Config: {"selector":{"type":"css","value":".a-size-base-plus","detected":{"css":".a-size-base-plus","xpath":...
+[2026-03-15T23:22:13.271Z] [INFO]   ⏱ Delay before: 1000ms
+[2026-03-15T23:22:14.273Z] [INFO]   🖱 Normal click
+[2026-03-15T23:22:14.273Z] [INFO]   🎯 Selector: .a-size-base-plus
+[2026-03-15T23:22:14.274Z] [INFO]   📌 Selector type: css
+[2026-03-15T23:22:14.274Z] [INFO]   🔍 Has scope: Yes
+[2026-03-15T23:22:14.567Z] [SUCCESS] ✓ Clicked: .a-size-base-plus
+[2026-03-15T23:22:14.870Z] [INFO]   ⏱ Delay after: 1000ms
+[2026-03-15T23:22:15.872Z] [INFO]   ⏱ Execution time: 2601ms
+[2026-03-15T23:22:15.968Z] [BLOCK] ▶ Executing: Wait [Scope: div.desktop-grid-content-view[2]]
+[2026-03-15T23:22:15.968Z] [INFO]   📋 Config: {"type":"dom_content_loaded","timeout":2000}
+[2026-03-15T23:22:15.968Z] [INFO]   ⏱ Wait type: dom_content_loaded
+[2026-03-15T23:22:15.968Z] [INFO]   ⏳ Waiting for DOM content loaded (2000ms)...
+[2026-03-15T23:22:16.819Z] [INFO]   ✓ Content script is ready
+[2026-03-15T23:22:17.827Z] [INFO]   ⏱ Execution time: 1858ms
+[2026-03-15T23:22:17.904Z] [BLOCK] ▶ Executing: Extract Scope [Scope: div.desktop-grid-content-view[2]]
+[2026-03-15T23:22:17.904Z] [INFO]   📋 Config: {"fields":[{"key":"Titre","selector":{"type":"css","value":"#productTitle","detected":{"css":"#produ...
+[2026-03-15T23:22:17.904Z] [INFO]   📦 Extract Scope
+[2026-03-15T23:22:17.904Z] [INFO]   📊 Fields to extract: 9
+[2026-03-15T23:22:17.904Z] [INFO]   🔄 Reset scope: Yes
+[2026-03-15T23:22:17.904Z] [INFO]   🔍 Has parent scope: Yes
+[2026-03-15T23:22:17.904Z] [INFO]     1. Titre: selector="#productTitle" attr="text"
+[2026-03-15T23:22:17.905Z] [INFO]     2. URL image 1: selector="#landingImage" attr="src"
+[2026-03-15T23:22:17.905Z] [INFO]     3. Description: selector="#bookDescription_feature_div > div > div" attr="text"
+[2026-03-15T23:22:17.905Z] [INFO]     4. GTIN: selector=".detail-bullet-list" attr="innerHTML"
+[2026-03-15T23:22:17.905Z] [INFO]        🔧 Transformers (1):
+[2026-03-15T23:22:17.905Z] [INFO]     5. Pages: selector=".detail-bullet-list" attr="innerHTML"
+[2026-03-15T23:22:17.905Z] [INFO]        🔧 Transformers (1):
+[2026-03-15T23:22:17.905Z] [INFO]     6. Stock: [static] type="constant"
+[2026-03-15T23:22:17.905Z] [INFO]     7. PRIX: [static] type="constant"
+[2026-03-15T23:22:17.905Z] [INFO]        📐 Formula: {{Pages}}*0.50
+[2026-03-15T23:22:17.905Z] [INFO]     8. Référence vendeur: selector=".detail-bullet-list" attr="innerHTML"
+[2026-03-15T23:22:17.905Z] [INFO]        🔧 Transformers (1):
+[2026-03-15T23:22:17.905Z] [INFO]     9. Marque: [static] type="constant"
+[2026-03-15T23:22:17.905Z] [INFO]     🗄️ Static "Stock" = "20"
+[2026-03-15T23:22:17.905Z] [INFO]     🗄️ Static "PRIX" = ""
+[2026-03-15T23:22:17.905Z] [INFO]     🗄️ Static "Marque" = "BRANDBOOK"
+[2026-03-15T23:22:17.906Z] [INFO]   📤 Extraction fields being sent: Titre, URL image 1, Description, GTIN, Pages, Référence vendeur
+[2026-03-15T23:22:17.906Z] [INFO]      Field "GTIN" transformers: [{"type":"regex","pattern":"ISBN-13[\\s\\S]*?<span>(97[89][\\d-]+)<\\/span>","flags":"i","extractGroup":1}]
+[2026-03-15T23:22:17.906Z] [INFO]      Field "Pages" transformers: [{"type":"regex","pattern":"Print length[\\s\\S]*?<span>(\\d+)\\s*pages<\\/span>","flags":"i","extractGroup":1}]
+[2026-03-15T23:22:17.906Z] [INFO]      Field "Référence vendeur" transformers: [{"type":"regex","pattern":"ISBN-10[\\s\\S]*?<span>([\\dXx-]+)<\\/span>","flags":"i","extractGroup":1}]
+[2026-03-15T23:22:17.906Z] [INFO]   🔄 Resetting scope to document root
+[2026-03-15T23:22:17.906Z] [INFO]   📤 Sending extraction request...
+[2026-03-15T23:22:17.993Z] [INFO]     📐 Formula "PRIX": {{Pages}}*0.50 = 176
+[2026-03-15T23:22:17.993Z] [INFO]   📝 Extracted values:
+[2026-03-15T23:22:17.993Z] [INFO]     Stock: "20"
+[2026-03-15T23:22:17.993Z] [INFO]     PRIX: "176"
+[2026-03-15T23:22:17.993Z] [INFO]     Marque: "BRANDBOOK"
+[2026-03-15T23:22:17.993Z] [INFO]     Titre: "Building Applications with AI Agents: Designing an..."
+[2026-03-15T23:22:17.993Z] [INFO]     URL image 1: "https://m.media-amazon.com/images/I/81E3fuwKThL._S..."
+[2026-03-15T23:22:17.993Z] [INFO]     Description: "Generative AI has revolutionized how organizations..."
+[2026-03-15T23:22:17.993Z] [INFO]     GTIN: "978-1098176501"
+[2026-03-15T23:22:17.993Z] [INFO]     Pages: "352"
+[2026-03-15T23:22:17.993Z] [INFO]     Référence vendeur: "1098176502"
+[2026-03-15T23:22:17.993Z] [SUCCESS]   ✓ Extracted row #3
+[2026-03-15T23:22:17.994Z] [INFO]   📊 Total rows collected: 3
+[2026-03-15T23:22:18.101Z] [INFO]   ⏱ Execution time: 197ms
+[2026-03-15T23:22:18.148Z] [BLOCK] ▶ Executing: Wait [Scope: div.desktop-grid-content-view[2]]
+[2026-03-15T23:22:18.148Z] [INFO]   📋 Config: {"type":"timeout","timeout":1500}
+[2026-03-15T23:22:18.148Z] [INFO]   ⏱ Wait type: timeout
+[2026-03-15T23:22:18.148Z] [INFO]   ⏳ Waiting 1500ms...
+[2026-03-15T23:22:19.654Z] [INFO]   ⏱ Execution time: 1506ms
+[2026-03-15T23:22:19.742Z] [BLOCK] ▶ Executing: Go Back [Scope: div.desktop-grid-content-view[2]]
+[2026-03-15T23:22:19.742Z] [INFO]   📋 Config: {}
+[2026-03-15T23:22:19.742Z] [INFO] ↩ Going back...
+[2026-03-15T23:22:19.742Z] [INFO]   🎯 Current tab ID: 1348410698
+[2026-03-15T23:22:19.742Z] [INFO]   🔄 Navigating to stored URL: https://www.amazon.com/s?k=O%27Reilly+Media&rh=p_n_feature_browse-bin%3A2656022011&dc&ds=v1%3AIWcf%2FeyUttEkH3Ng%2BJJCsXNoqqd8z9q327KlMHPYW%2BI&crid=2HNCF2KNH11LV&qid=1773441713&rnid=618072011&sprefix=o%27reilly+media%2Caps%2C308&ref=sr_nr_p_n_feature_browse-bin_1
+[2026-03-15T23:22:19.851Z] [INFO]   ⏳ Waiting for navigation to complete...
+[2026-03-15T23:22:21.236Z] [INFO]   ⏳ Waiting for content script to be ready...
+[2026-03-15T23:22:21.334Z] [INFO]   ⏱ Waiting 500ms for page stabilization...
+[2026-03-15T23:22:21.837Z] [INFO]   📍 Current URL after go_back: https://www.amazon.com/s?k=O%27Reilly+Media&rh=p_n_feature_browse-bin%3A2656022011&dc&ds=v1%3AIWcf%2FeyUttEkH3Ng%2BJJCsXNoqqd8z9q327KlMHPYW%2BI&crid=2HNCF2KNH11LV&qid=1773441713&rnid=618072011&sprefix=o%27reilly+media%2Caps%2C308&ref=sr_nr_p_n_feature_browse-bin_1
+[2026-03-15T23:22:21.838Z] [SUCCESS] ✓ Went back
+[2026-03-15T23:22:21.896Z] [INFO]   ⏱ Execution time: 2154ms
+[2026-03-15T23:22:21.925Z] [INFO]   ━━━ Item 4/48 ━━━
+[2026-03-15T23:22:21.925Z] [INFO]     🔍 Checking if element at index 3 exists...
+[2026-03-15T23:22:21.957Z] [INFO]     ✓ Element exists (48 total elements, check attempt 1)
+[2026-03-15T23:22:21.985Z] [BLOCK] ▶ Executing: Wait [Scope: div.desktop-grid-content-view[3]]
+[2026-03-15T23:22:21.986Z] [INFO]   📋 Config: {"type":"timeout","timeout":1000}
+[2026-03-15T23:22:21.986Z] [INFO]   ⏱ Wait type: timeout
+[2026-03-15T23:22:21.986Z] [INFO]   ⏳ Waiting 1000ms...
+[2026-03-15T23:22:22.986Z] [INFO]   ⏱ Execution time: 1000ms
+[2026-03-15T23:22:23.069Z] [BLOCK] ▶ Executing: Click [Scope: div.desktop-grid-content-view[3]]
+[2026-03-15T23:22:23.069Z] [INFO]   📋 Config: {"selector":{"type":"css","value":".a-size-base-plus","detected":{"css":".a-size-base-plus","xpath":...
+[2026-03-15T23:22:23.069Z] [INFO]   ⏱ Delay before: 1000ms
+[2026-03-15T23:22:24.079Z] [INFO]   🖱 Normal click
+[2026-03-15T23:22:24.079Z] [INFO]   🎯 Selector: .a-size-base-plus
+[2026-03-15T23:22:24.079Z] [INFO]   📌 Selector type: css
+[2026-03-15T23:22:24.079Z] [INFO]   🔍 Has scope: Yes
+[2026-03-15T23:22:24.346Z] [SUCCESS] ✓ Clicked: .a-size-base-plus
+[2026-03-15T23:22:24.648Z] [INFO]   🔀 Navigation detected after click, waiting for page load...
+[2026-03-15T23:22:27.108Z] [INFO]   ✓ Page loaded after click-triggered navigation
+[2026-03-15T23:22:27.210Z] [INFO]   ⏱ Delay after: 1000ms
+[2026-03-15T23:22:28.218Z] [INFO]   ⏱ Execution time: 5149ms
+[2026-03-15T23:22:28.308Z] [BLOCK] ▶ Executing: Wait [Scope: div.desktop-grid-content-view[3]]
+[2026-03-15T23:22:28.308Z] [INFO]   📋 Config: {"type":"dom_content_loaded","timeout":2000}
+[2026-03-15T23:22:28.308Z] [INFO]   ⏱ Wait type: dom_content_loaded
+[2026-03-15T23:22:28.308Z] [INFO]   ⏳ Waiting for DOM content loaded (2000ms)...
+[2026-03-15T23:22:28.395Z] [INFO]   ✓ Content script is ready
+[2026-03-15T23:22:29.401Z] [INFO]   ⏱ Execution time: 1093ms
+[2026-03-15T23:22:29.496Z] [BLOCK] ▶ Executing: Extract Scope [Scope: div.desktop-grid-content-view[3]]
+[2026-03-15T23:22:29.496Z] [INFO]   📋 Config: {"fields":[{"key":"Titre","selector":{"type":"css","value":"#productTitle","detected":{"css":"#produ...
+[2026-03-15T23:22:29.497Z] [INFO]   📦 Extract Scope
+[2026-03-15T23:22:29.497Z] [INFO]   📊 Fields to extract: 9
+[2026-03-15T23:22:29.497Z] [INFO]   🔄 Reset scope: Yes
+[2026-03-15T23:22:29.497Z] [INFO]   🔍 Has parent scope: Yes
+[2026-03-15T23:22:29.497Z] [INFO]     1. Titre: selector="#productTitle" attr="text"
+[2026-03-15T23:22:29.497Z] [INFO]     2. URL image 1: selector="#landingImage" attr="src"
+[2026-03-15T23:22:29.497Z] [INFO]     3. Description: selector="#bookDescription_feature_div > div > div" attr="text"
+[2026-03-15T23:22:29.497Z] [INFO]     4. GTIN: selector=".detail-bullet-list" attr="innerHTML"
+[2026-03-15T23:22:29.497Z] [INFO]        🔧 Transformers (1):
+[2026-03-15T23:22:29.497Z] [INFO]     5. Pages: selector=".detail-bullet-list" attr="innerHTML"
+[2026-03-15T23:22:29.497Z] [INFO]        🔧 Transformers (1):
+[2026-03-15T23:22:29.497Z] [INFO]     6. Stock: [static] type="constant"
+[2026-03-15T23:22:29.497Z] [INFO]     7. PRIX: [static] type="constant"
+[2026-03-15T23:22:29.497Z] [INFO]        📐 Formula: {{Pages}}*0.50
+[2026-03-15T23:22:29.497Z] [INFO]     8. Référence vendeur: selector=".detail-bullet-list" attr="innerHTML"
+[2026-03-15T23:22:29.497Z] [INFO]        🔧 Transformers (1):
+[2026-03-15T23:22:29.497Z] [INFO]     9. Marque: [static] type="constant"
+[2026-03-15T23:22:29.497Z] [INFO]     🗄️ Static "Stock" = "20"
+[2026-03-15T23:22:29.497Z] [INFO]     🗄️ Static "PRIX" = ""
+[2026-03-15T23:22:29.497Z] [INFO]     🗄️ Static "Marque" = "BRANDBOOK"
+[2026-03-15T23:22:29.497Z] [INFO]   📤 Extraction fields being sent: Titre, URL image 1, Description, GTIN, Pages, Référence vendeur
+[2026-03-15T23:22:29.497Z] [INFO]      Field "GTIN" transformers: [{"type":"regex","pattern":"ISBN-13[\\s\\S]*?<span>(97[89][\\d-]+)<\\/span>","flags":"i","extractGroup":1}]
+[2026-03-15T23:22:29.497Z] [INFO]      Field "Pages" transformers: [{"type":"regex","pattern":"Print length[\\s\\S]*?<span>(\\d+)\\s*pages<\\/span>","flags":"i","extractGroup":1}]
+[2026-03-15T23:22:29.498Z] [INFO]      Field "Référence vendeur" transformers: [{"type":"regex","pattern":"ISBN-10[\\s\\S]*?<span>([\\dXx-]+)<\\/span>","flags":"i","extractGroup":1}]
+[2026-03-15T23:22:29.498Z] [INFO]   🔄 Resetting scope to document root
+[2026-03-15T23:22:29.498Z] [INFO]   📤 Sending extraction request...
+[2026-03-15T23:22:29.587Z] [INFO]     📐 Formula "PRIX": {{Pages}}*0.50 = 335
+[2026-03-15T23:22:29.587Z] [INFO]   📝 Extracted values:
+[2026-03-15T23:22:29.587Z] [INFO]     Stock: "20"
+[2026-03-15T23:22:29.587Z] [INFO]     PRIX: "335"
+[2026-03-15T23:22:29.587Z] [INFO]     Marque: "BRANDBOOK"
+[2026-03-15T23:22:29.587Z] [INFO]     Titre: "Designing Data-Intensive Applications: The Big Ide..."
+[2026-03-15T23:22:29.587Z] [INFO]     URL image 1: "https://m.media-amazon.com/images/I/81yW67wBLHL._S..."
+[2026-03-15T23:22:29.587Z] [INFO]     Description: "Data is at the center of many challenges in system..."
+[2026-03-15T23:22:29.588Z] [INFO]     GTIN: "978-1098119065"
+[2026-03-15T23:22:29.588Z] [INFO]     Pages: "670"
+[2026-03-15T23:22:29.588Z] [INFO]     Référence vendeur: "1098119061"
+[2026-03-15T23:22:29.588Z] [SUCCESS]   ✓ Extracted row #4
+[2026-03-15T23:22:29.588Z] [INFO]   📊 Total rows collected: 4
+[2026-03-15T23:22:29.648Z] [INFO]   ⏱ Execution time: 151ms
+[2026-03-15T23:22:29.678Z] [BLOCK] ▶ Executing: Wait [Scope: div.desktop-grid-content-view[3]]
+[2026-03-15T23:22:29.678Z] [INFO]   📋 Config: {"type":"timeout","timeout":1500}
+[2026-03-15T23:22:29.678Z] [INFO]   ⏱ Wait type: timeout
+[2026-03-15T23:22:29.678Z] [INFO]   ⏳ Waiting 1500ms...
+[2026-03-15T23:22:31.183Z] [INFO]   ⏱ Execution time: 1505ms
+[2026-03-15T23:22:31.273Z] [BLOCK] ▶ Executing: Go Back [Scope: div.desktop-grid-content-view[3]]
+[2026-03-15T23:22:31.273Z] [INFO]   📋 Config: {}
+[2026-03-15T23:22:31.274Z] [INFO] ↩ Going back...
+[2026-03-15T23:22:31.274Z] [INFO]   🎯 Current tab ID: 1348410698
+[2026-03-15T23:22:31.274Z] [INFO]   🔄 Navigating to stored URL: https://www.amazon.com/s?k=O%27Reilly+Media&rh=p_n_feature_browse-bin%3A2656022011&dc&ds=v1%3AIWcf%2FeyUttEkH3Ng%2BJJCsXNoqqd8z9q327KlMHPYW%2BI&crid=2HNCF2KNH11LV&qid=1773441713&rnid=618072011&sprefix=o%27reilly+media%2Caps%2C308&ref=sr_nr_p_n_feature_browse-bin_1
+[2026-03-15T23:22:31.406Z] [INFO]   ⏳ Waiting for navigation to complete...
+[2026-03-15T23:22:33.144Z] [INFO]   ⏳ Waiting for content script to be ready...
+[2026-03-15T23:22:33.293Z] [INFO]   ⏱ Waiting 500ms for page stabilization...
+[2026-03-15T23:22:33.798Z] [INFO]   📍 Current URL after go_back: https://www.amazon.com/s?k=O%27Reilly+Media&rh=p_n_feature_browse-bin%3A2656022011&dc&ds=v1%3AIWcf%2FeyUttEkH3Ng%2BJJCsXNoqqd8z9q327KlMHPYW%2BI&crid=2HNCF2KNH11LV&qid=1773441713&rnid=618072011&sprefix=o%27reilly+media%2Caps%2C308&ref=sr_nr_p_n_feature_browse-bin_1
+[2026-03-15T23:22:33.798Z] [SUCCESS] ✓ Went back
+[2026-03-15T23:22:33.868Z] [INFO]   ⏱ Execution time: 2594ms
+[2026-03-15T23:22:33.903Z] [INFO]   ━━━ Item 5/48 ━━━
+[2026-03-15T23:22:33.903Z] [INFO]     🔍 Checking if element at index 4 exists...
+[2026-03-15T23:22:33.943Z] [INFO]     ✓ Element exists (48 total elements, check attempt 1)
+[2026-03-15T23:22:33.982Z] [BLOCK] ▶ Executing: Wait [Scope: div.desktop-grid-content-view[4]]
+[2026-03-15T23:22:33.983Z] [INFO]   📋 Config: {"type":"timeout","timeout":1000}
+[2026-03-15T23:22:33.983Z] [INFO]   ⏱ Wait type: timeout
+[2026-03-15T23:22:33.983Z] [INFO]   ⏳ Waiting 1000ms...
+[2026-03-15T23:22:34.999Z] [INFO]   ⏱ Execution time: 1015ms
+[2026-03-15T23:22:35.109Z] [BLOCK] ▶ Executing: Click [Scope: div.desktop-grid-content-view[4]]
+[2026-03-15T23:22:35.109Z] [INFO]   📋 Config: {"selector":{"type":"css","value":".a-size-base-plus","detected":{"css":".a-size-base-plus","xpath":...
+[2026-03-15T23:22:35.109Z] [INFO]   ⏱ Delay before: 1000ms
+[2026-03-15T23:22:36.114Z] [INFO]   🖱 Normal click
+[2026-03-15T23:22:36.115Z] [INFO]   🎯 Selector: .a-size-base-plus
+[2026-03-15T23:22:36.115Z] [INFO]   📌 Selector type: css
+[2026-03-15T23:22:36.115Z] [INFO]   🔍 Has scope: Yes
+[2026-03-15T23:22:36.411Z] [SUCCESS] ✓ Clicked: .a-size-base-plus
+[2026-03-15T23:22:36.716Z] [INFO]   ⏱ Delay after: 1000ms
+[2026-03-15T23:22:37.717Z] [INFO]   ⏱ Execution time: 2608ms
+[2026-03-15T23:22:37.873Z] [BLOCK] ▶ Executing: Wait [Scope: div.desktop-grid-content-view[4]]
+[2026-03-15T23:22:37.873Z] [INFO]   📋 Config: {"type":"dom_content_loaded","timeout":2000}
+[2026-03-15T23:22:37.874Z] [INFO]   ⏱ Wait type: dom_content_loaded
+[2026-03-15T23:22:37.874Z] [INFO]   ⏳ Waiting for DOM content loaded (2000ms)...
+[2026-03-15T23:22:39.549Z] [INFO]   ✓ Content script is ready
+[2026-03-15T23:22:40.559Z] [INFO]   ⏱ Execution time: 2686ms
+[2026-03-15T23:22:40.687Z] [BLOCK] ▶ Executing: Extract Scope [Scope: div.desktop-grid-content-view[4]]
+[2026-03-15T23:22:40.687Z] [INFO]   📋 Config: {"fields":[{"key":"Titre","selector":{"type":"css","value":"#productTitle","detected":{"css":"#produ...
+[2026-03-15T23:22:40.687Z] [INFO]   📦 Extract Scope
+[2026-03-15T23:22:40.687Z] [INFO]   📊 Fields to extract: 9
+[2026-03-15T23:22:40.687Z] [INFO]   🔄 Reset scope: Yes
+[2026-03-15T23:22:40.687Z] [INFO]   🔍 Has parent scope: Yes
+[2026-03-15T23:22:40.687Z] [INFO]     1. Titre: selector="#productTitle" attr="text"
+[2026-03-15T23:22:40.687Z] [INFO]     2. URL image 1: selector="#landingImage" attr="src"
+[2026-03-15T23:22:40.687Z] [INFO]     3. Description: selector="#bookDescription_feature_div > div > div" attr="text"
+[2026-03-15T23:22:40.688Z] [INFO]     4. GTIN: selector=".detail-bullet-list" attr="innerHTML"
+[2026-03-15T23:22:40.688Z] [INFO]        🔧 Transformers (1):
+[2026-03-15T23:22:40.688Z] [INFO]     5. Pages: selector=".detail-bullet-list" attr="innerHTML"
+[2026-03-15T23:22:40.688Z] [INFO]        🔧 Transformers (1):
+[2026-03-15T23:22:40.688Z] [INFO]     6. Stock: [static] type="constant"
+[2026-03-15T23:22:40.688Z] [INFO]     7. PRIX: [static] type="constant"
+[2026-03-15T23:22:40.688Z] [INFO]        📐 Formula: {{Pages}}*0.50
+[2026-03-15T23:22:40.688Z] [INFO]     8. Référence vendeur: selector=".detail-bullet-list" attr="innerHTML"
+[2026-03-15T23:22:40.688Z] [INFO]        🔧 Transformers (1):
+[2026-03-15T23:22:40.688Z] [INFO]     9. Marque: [static] type="constant"
+[2026-03-15T23:22:40.688Z] [INFO]     🗄️ Static "Stock" = "20"
+[2026-03-15T23:22:40.688Z] [INFO]     🗄️ Static "PRIX" = ""
+[2026-03-15T23:22:40.688Z] [INFO]     🗄️ Static "Marque" = "BRANDBOOK"
+[2026-03-15T23:22:40.689Z] [INFO]   📤 Extraction fields being sent: Titre, URL image 1, Description, GTIN, Pages, Référence vendeur
+[2026-03-15T23:22:40.689Z] [INFO]      Field "GTIN" transformers: [{"type":"regex","pattern":"ISBN-13[\\s\\S]*?<span>(97[89][\\d-]+)<\\/span>","flags":"i","extractGroup":1}]
+[2026-03-15T23:22:40.689Z] [INFO]      Field "Pages" transformers: [{"type":"regex","pattern":"Print length[\\s\\S]*?<span>(\\d+)\\s*pages<\\/span>","flags":"i","extractGroup":1}]
+[2026-03-15T23:22:40.689Z] [INFO]      Field "Référence vendeur" transformers: [{"type":"regex","pattern":"ISBN-10[\\s\\S]*?<span>([\\dXx-]+)<\\/span>","flags":"i","extractGroup":1}]
+[2026-03-15T23:22:40.689Z] [INFO]   🔄 Resetting scope to document root
+[2026-03-15T23:22:40.689Z] [INFO]   📤 Sending extraction request...
+[2026-03-15T23:22:40.806Z] [INFO]     📐 Formula "PRIX": {{Pages}}*0.50 = 266
+[2026-03-15T23:22:40.806Z] [INFO]   📝 Extracted values:
+[2026-03-15T23:22:40.806Z] [INFO]     Stock: "20"
+[2026-03-15T23:22:40.806Z] [INFO]     PRIX: "266"
+[2026-03-15T23:22:40.807Z] [INFO]     Marque: "BRANDBOOK"
+[2026-03-15T23:22:40.807Z] [INFO]     Titre: "AI Engineering: Building Applications with Foundat..."
+[2026-03-15T23:22:40.807Z] [INFO]     URL image 1: "https://m.media-amazon.com/images/I/815KH9GjFTL._S..."
+[2026-03-15T23:22:40.807Z] [INFO]     Description: "Recent breakthroughs in AI have not only increased..."
+[2026-03-15T23:22:40.807Z] [INFO]     GTIN: "978-1098166304"
+[2026-03-15T23:22:40.807Z] [INFO]     Pages: "532"
+[2026-03-15T23:22:40.807Z] [INFO]     Référence vendeur: "1098166302"
+[2026-03-15T23:22:40.807Z] [SUCCESS]   ✓ Extracted row #5
+[2026-03-15T23:22:40.807Z] [INFO]   📊 Total rows collected: 5
+[2026-03-15T23:22:40.875Z] [INFO]   ⏱ Execution time: 188ms
+[2026-03-15T23:22:40.915Z] [BLOCK] ▶ Executing: Wait [Scope: div.desktop-grid-content-view[4]]
+[2026-03-15T23:22:40.915Z] [INFO]   📋 Config: {"type":"timeout","timeout":1500}
+[2026-03-15T23:22:40.915Z] [INFO]   ⏱ Wait type: timeout
+[2026-03-15T23:22:40.915Z] [INFO]   ⏳ Waiting 1500ms...
+[2026-03-15T23:22:42.420Z] [INFO]   ⏱ Execution time: 1505ms
+[2026-03-15T23:22:42.520Z] [BLOCK] ▶ Executing: Go Back [Scope: div.desktop-grid-content-view[4]]
+[2026-03-15T23:22:42.520Z] [INFO]   📋 Config: {}
+[2026-03-15T23:22:42.520Z] [INFO] ↩ Going back...
+[2026-03-15T23:22:42.520Z] [INFO]   🎯 Current tab ID: 1348410698
+[2026-03-15T23:22:42.520Z] [INFO]   🔄 Navigating to stored URL: https://www.amazon.com/s?k=O%27Reilly+Media&rh=p_n_feature_browse-bin%3A2656022011&dc&ds=v1%3AIWcf%2FeyUttEkH3Ng%2BJJCsXNoqqd8z9q327KlMHPYW%2BI&crid=2HNCF2KNH11LV&qid=1773441713&rnid=618072011&sprefix=o%27reilly+media%2Caps%2C308&ref=sr_nr_p_n_feature_browse-bin_1
+[2026-03-15T23:22:42.641Z] [INFO]   ⏳ Waiting for navigation to complete...
+[2026-03-15T23:22:44.198Z] [INFO]   ⏳ Waiting for content script to be ready...
+[2026-03-15T23:22:44.367Z] [INFO]   ⏱ Waiting 500ms for page stabilization...
+[2026-03-15T23:22:44.916Z] [INFO]   📍 Current URL after go_back: https://www.amazon.com/s?k=O%27Reilly+Media&rh=p_n_feature_browse-bin%3A2656022011&dc&ds=v1%3AIWcf%2FeyUttEkH3Ng%2BJJCsXNoqqd8z9q327KlMHPYW%2BI&crid=2HNCF2KNH11LV&qid=1773441713&rnid=618072011&sprefix=o%27reilly+media%2Caps%2C308&ref=sr_nr_p_n_feature_browse-bin_1
+[2026-03-15T23:22:44.916Z] [SUCCESS] ✓ Went back
+[2026-03-15T23:22:44.968Z] [INFO]   ⏱ Execution time: 2448ms
+[2026-03-15T23:22:45.003Z] [INFO]   ━━━ Item 6/48 ━━━
+[2026-03-15T23:22:45.003Z] [INFO]     🔍 Checking if element at index 5 exists...
+[2026-03-15T23:22:45.041Z] [INFO]     ✓ Element exists (48 total elements, check attempt 1)
+[2026-03-15T23:22:45.073Z] [BLOCK] ▶ Executing: Wait [Scope: div.desktop-grid-content-view[5]]
+[2026-03-15T23:22:45.073Z] [INFO]   📋 Config: {"type":"timeout","timeout":1000}
+[2026-03-15T23:22:45.073Z] [INFO]   ⏱ Wait type: timeout
+[2026-03-15T23:22:45.073Z] [INFO]   ⏳ Waiting 1000ms...
+[2026-03-15T23:22:46.078Z] [INFO]   ⏱ Execution time: 1005ms
+[2026-03-15T23:22:46.185Z] [BLOCK] ▶ Executing: Click [Scope: div.desktop-grid-content-view[5]]
+[2026-03-15T23:22:46.186Z] [INFO]   📋 Config: {"selector":{"type":"css","value":".a-size-base-plus","detected":{"css":".a-size-base-plus","xpath":...
+[2026-03-15T23:22:46.186Z] [INFO]   ⏱ Delay before: 1000ms
+[2026-03-15T23:22:47.187Z] [INFO]   🖱 Normal click
+[2026-03-15T23:22:47.187Z] [INFO]   🎯 Selector: .a-size-base-plus
+[2026-03-15T23:22:47.187Z] [INFO]   📌 Selector type: css
+[2026-03-15T23:22:47.187Z] [INFO]   🔍 Has scope: Yes
+[2026-03-15T23:22:47.471Z] [SUCCESS] ✓ Clicked: .a-size-base-plus
+[2026-03-15T23:22:47.771Z] [INFO]   🔀 Navigation detected after click, waiting for page load...
+[2026-03-15T23:22:50.400Z] [INFO]   ✓ Page loaded after click-triggered navigation
+[2026-03-15T23:22:50.536Z] [INFO]   ⏱ Delay after: 1000ms
+[2026-03-15T23:22:51.544Z] [INFO]   ⏱ Execution time: 5358ms
+[2026-03-15T23:22:51.649Z] [BLOCK] ▶ Executing: Wait [Scope: div.desktop-grid-content-view[5]]
+[2026-03-15T23:22:51.649Z] [INFO]   📋 Config: {"type":"dom_content_loaded","timeout":2000}
+[2026-03-15T23:22:51.649Z] [INFO]   ⏱ Wait type: dom_content_loaded
+[2026-03-15T23:22:51.649Z] [INFO]   ⏳ Waiting for DOM content loaded (2000ms)...
+[2026-03-15T23:22:51.763Z] [INFO]   ✓ Content script is ready
+[2026-03-15T23:22:52.767Z] [INFO]   ⏱ Execution time: 1118ms
+[2026-03-15T23:22:52.880Z] [BLOCK] ▶ Executing: Extract Scope [Scope: div.desktop-grid-content-view[5]]
+[2026-03-15T23:22:52.880Z] [INFO]   📋 Config: {"fields":[{"key":"Titre","selector":{"type":"css","value":"#productTitle","detected":{"css":"#produ...
+[2026-03-15T23:22:52.880Z] [INFO]   📦 Extract Scope
+[2026-03-15T23:22:52.880Z] [INFO]   📊 Fields to extract: 9
+[2026-03-15T23:22:52.880Z] [INFO]   🔄 Reset scope: Yes
+[2026-03-15T23:22:52.880Z] [INFO]   🔍 Has parent scope: Yes
+[2026-03-15T23:22:52.880Z] [INFO]     1. Titre: selector="#productTitle" attr="text"
+[2026-03-15T23:22:52.880Z] [INFO]     2. URL image 1: selector="#landingImage" attr="src"
+[2026-03-15T23:22:52.881Z] [INFO]     3. Description: selector="#bookDescription_feature_div > div > div" attr="text"
+[2026-03-15T23:22:52.881Z] [INFO]     4. GTIN: selector=".detail-bullet-list" attr="innerHTML"
+[2026-03-15T23:22:52.881Z] [INFO]        🔧 Transformers (1):
+[2026-03-15T23:22:52.881Z] [INFO]     5. Pages: selector=".detail-bullet-list" attr="innerHTML"
+[2026-03-15T23:22:52.881Z] [INFO]        🔧 Transformers (1):
+[2026-03-15T23:22:52.881Z] [INFO]     6. Stock: [static] type="constant"
+[2026-03-15T23:22:52.881Z] [INFO]     7. PRIX: [static] type="constant"
+[2026-03-15T23:22:52.881Z] [INFO]        📐 Formula: {{Pages}}*0.50
+[2026-03-15T23:22:52.881Z] [INFO]     8. Référence vendeur: selector=".detail-bullet-list" attr="innerHTML"
+[2026-03-15T23:22:52.881Z] [INFO]        🔧 Transformers (1):
+[2026-03-15T23:22:52.881Z] [INFO]     9. Marque: [static] type="constant"
+[2026-03-15T23:22:52.881Z] [INFO]     🗄️ Static "Stock" = "20"
+[2026-03-15T23:22:52.881Z] [INFO]     🗄️ Static "PRIX" = ""
+[2026-03-15T23:22:52.881Z] [INFO]     🗄️ Static "Marque" = "BRANDBOOK"
+[2026-03-15T23:22:52.881Z] [INFO]   📤 Extraction fields being sent: Titre, URL image 1, Description, GTIN, Pages, Référence vendeur
+[2026-03-15T23:22:52.881Z] [INFO]      Field "GTIN" transformers: [{"type":"regex","pattern":"ISBN-13[\\s\\S]*?<span>(97[89][\\d-]+)<\\/span>","flags":"i","extractGroup":1}]
+[2026-03-15T23:22:52.882Z] [INFO]      Field "Pages" transformers: [{"type":"regex","pattern":"Print length[\\s\\S]*?<span>(\\d+)\\s*pages<\\/span>","flags":"i","extractGroup":1}]
+[2026-03-15T23:22:52.882Z] [INFO]      Field "Référence vendeur" transformers: [{"type":"regex","pattern":"ISBN-10[\\s\\S]*?<span>([\\dXx-]+)<\\/span>","flags":"i","extractGroup":1}]
+[2026-03-15T23:22:52.882Z] [INFO]   🔄 Resetting scope to document root
+[2026-03-15T23:22:52.882Z] [INFO]   📤 Sending extraction request...
+[2026-03-15T23:22:53.000Z] [INFO]   🔄 Retry 1/3: fields [Référence vendeur] empty (possible lazy-load), waiting 1.5s...
+[2026-03-15T23:22:54.520Z] [INFO]   🔄 Retry 2/3: fields [Référence vendeur] empty (possible lazy-load), waiting 1.5s...
+[2026-03-15T23:22:56.030Z] [INFO]     📐 Formula "PRIX": {{Pages}}*0.50 = 253
+[2026-03-15T23:22:56.030Z] [INFO]   📝 Extracted values:
+[2026-03-15T23:22:56.030Z] [INFO]     Stock: "20"
+[2026-03-15T23:22:56.030Z] [INFO]     PRIX: "253"
+[2026-03-15T23:22:56.030Z] [INFO]     Marque: "BRANDBOOK"
+[2026-03-15T23:22:56.030Z] [INFO]     Titre: "Generative AI Design Patterns: Solutions to Common..."
+[2026-03-15T23:22:56.030Z] [INFO]     URL image 1: "https://m.media-amazon.com/images/I/816eYPcR2RL._S..."
+[2026-03-15T23:22:56.030Z] [INFO]     Description: "Generative AI enables powerful new capabilities, b..."
+[2026-03-15T23:22:56.030Z] [INFO]     GTIN: "979-8341622661"
+[2026-03-15T23:22:56.030Z] [INFO]     Pages: "506"
+[2026-03-15T23:22:56.030Z] [INFO]     Référence vendeur: ""
+[2026-03-15T23:22:56.030Z] [SUCCESS]   ✓ Extracted row #6
+[2026-03-15T23:22:56.030Z] [INFO]   📊 Total rows collected: 6
+[2026-03-15T23:22:56.180Z] [INFO]   ⏱ Execution time: 3299ms
+[2026-03-15T23:22:56.250Z] [BLOCK] ▶ Executing: Wait [Scope: div.desktop-grid-content-view[5]]
+[2026-03-15T23:22:56.250Z] [INFO]   📋 Config: {"type":"timeout","timeout":1500}
+[2026-03-15T23:22:56.250Z] [INFO]   ⏱ Wait type: timeout
+[2026-03-15T23:22:56.250Z] [INFO]   ⏳ Waiting 1500ms...
+[2026-03-15T23:22:57.758Z] [INFO]   ⏱ Execution time: 1508ms
+[2026-03-15T23:22:57.865Z] [BLOCK] ▶ Executing: Go Back [Scope: div.desktop-grid-content-view[5]]
+[2026-03-15T23:22:57.865Z] [INFO]   📋 Config: {}
+[2026-03-15T23:22:57.865Z] [INFO] ↩ Going back...
+[2026-03-15T23:22:57.865Z] [INFO]   🎯 Current tab ID: 1348410698
+[2026-03-15T23:22:57.865Z] [INFO]   🔄 Navigating to stored URL: https://www.amazon.com/s?k=O%27Reilly+Media&rh=p_n_feature_browse-bin%3A2656022011&dc&ds=v1%3AIWcf%2FeyUttEkH3Ng%2BJJCsXNoqqd8z9q327KlMHPYW%2BI&crid=2HNCF2KNH11LV&qid=1773441713&rnid=618072011&sprefix=o%27reilly+media%2Caps%2C308&ref=sr_nr_p_n_feature_browse-bin_1
+[2026-03-15T23:22:57.987Z] [INFO]   ⏳ Waiting for navigation to complete...
+[2026-03-15T23:22:59.472Z] [INFO]   ⏳ Waiting for content script to be ready...
+[2026-03-15T23:22:59.619Z] [INFO]   ⏱ Waiting 500ms for page stabilization...
+[2026-03-15T23:23:00.124Z] [INFO]   📍 Current URL after go_back: https://www.amazon.com/s?k=O%27Reilly+Media&rh=p_n_feature_browse-bin%3A2656022011&dc&ds=v1%3AIWcf%2FeyUttEkH3Ng%2BJJCsXNoqqd8z9q327KlMHPYW%2BI&crid=2HNCF2KNH11LV&qid=1773441713&rnid=618072011&sprefix=o%27reilly+media%2Caps%2C308&ref=sr_nr_p_n_feature_browse-bin_1
+[2026-03-15T23:23:00.125Z] [SUCCESS] ✓ Went back
+[2026-03-15T23:23:00.160Z] [INFO]   ⏱ Execution time: 2295ms
+[2026-03-15T23:23:00.194Z] [INFO]   ━━━ Item 7/48 ━━━
+[2026-03-15T23:23:00.195Z] [INFO]     🔍 Checking if element at index 6 exists...
+[2026-03-15T23:23:00.233Z] [INFO]     ✓ Element exists (48 total elements, check attempt 1)
+[2026-03-15T23:23:00.268Z] [BLOCK] ▶ Executing: Wait [Scope: div.desktop-grid-content-view[6]]
+[2026-03-15T23:23:00.268Z] [INFO]   📋 Config: {"type":"timeout","timeout":1000}
+[2026-03-15T23:23:00.268Z] [INFO]   ⏱ Wait type: timeout
+[2026-03-15T23:23:00.268Z] [INFO]   ⏳ Waiting 1000ms...
+[2026-03-15T23:23:01.272Z] [INFO]   ⏱ Execution time: 1004ms
+[2026-03-15T23:23:01.382Z] [BLOCK] ▶ Executing: Click [Scope: div.desktop-grid-content-view[6]]
+[2026-03-15T23:23:01.382Z] [INFO]   📋 Config: {"selector":{"type":"css","value":".a-size-base-plus","detected":{"css":".a-size-base-plus","xpath":...
+[2026-03-15T23:23:01.382Z] [INFO]   ⏱ Delay before: 1000ms
+[2026-03-15T23:23:02.385Z] [INFO]   🖱 Normal click
+[2026-03-15T23:23:02.386Z] [INFO]   🎯 Selector: .a-size-base-plus
+[2026-03-15T23:23:02.386Z] [INFO]   📌 Selector type: css
+[2026-03-15T23:23:02.386Z] [INFO]   🔍 Has scope: Yes
+[2026-03-15T23:23:02.711Z] [SUCCESS] ✓ Clicked: .a-size-base-plus
+[2026-03-15T23:23:03.013Z] [INFO]   🔀 Navigation detected after click, waiting for page load...
+[2026-03-15T23:23:06.414Z] [INFO]   ✓ Page loaded after click-triggered navigation
+[2026-03-15T23:23:06.607Z] [INFO]   ⏱ Delay after: 1000ms
+[2026-03-15T23:23:07.607Z] [INFO]   ⏱ Execution time: 6225ms
+[2026-03-15T23:23:07.740Z] [BLOCK] ▶ Executing: Wait [Scope: div.desktop-grid-content-view[6]]
+[2026-03-15T23:23:07.740Z] [INFO]   📋 Config: {"type":"dom_content_loaded","timeout":2000}
+[2026-03-15T23:23:07.740Z] [INFO]   ⏱ Wait type: dom_content_loaded
+[2026-03-15T23:23:07.740Z] [INFO]   ⏳ Waiting for DOM content loaded (2000ms)...
+[2026-03-15T23:23:07.886Z] [INFO]   ✓ Content script is ready
+[2026-03-15T23:23:08.887Z] [INFO]   ⏱ Execution time: 1147ms
+[2026-03-15T23:23:09.010Z] [BLOCK] ▶ Executing: Extract Scope [Scope: div.desktop-grid-content-view[6]]
+[2026-03-15T23:23:09.010Z] [INFO]   📋 Config: {"fields":[{"key":"Titre","selector":{"type":"css","value":"#productTitle","detected":{"css":"#produ...
+[2026-03-15T23:23:09.010Z] [INFO]   📦 Extract Scope
+[2026-03-15T23:23:09.010Z] [INFO]   📊 Fields to extract: 9
+[2026-03-15T23:23:09.010Z] [INFO]   🔄 Reset scope: Yes
+[2026-03-15T23:23:09.010Z] [INFO]   🔍 Has parent scope: Yes
+[2026-03-15T23:23:09.010Z] [INFO]     1. Titre: selector="#productTitle" attr="text"
+[2026-03-15T23:23:09.010Z] [INFO]     2. URL image 1: selector="#landingImage" attr="src"
+[2026-03-15T23:23:09.010Z] [INFO]     3. Description: selector="#bookDescription_feature_div > div > div" attr="text"
+[2026-03-15T23:23:09.010Z] [INFO]     4. GTIN: selector=".detail-bullet-list" attr="innerHTML"
+[2026-03-15T23:23:09.010Z] [INFO]        🔧 Transformers (1):
+[2026-03-15T23:23:09.010Z] [INFO]     5. Pages: selector=".detail-bullet-list" attr="innerHTML"
+[2026-03-15T23:23:09.010Z] [INFO]        🔧 Transformers (1):
+[2026-03-15T23:23:09.011Z] [INFO]     6. Stock: [static] type="constant"
+[2026-03-15T23:23:09.011Z] [INFO]     7. PRIX: [static] type="constant"
+[2026-03-15T23:23:09.011Z] [INFO]        📐 Formula: {{Pages}}*0.50
+[2026-03-15T23:23:09.011Z] [INFO]     8. Référence vendeur: selector=".detail-bullet-list" attr="innerHTML"
+[2026-03-15T23:23:09.011Z] [INFO]        🔧 Transformers (1):
+[2026-03-15T23:23:09.011Z] [INFO]     9. Marque: [static] type="constant"
+[2026-03-15T23:23:09.011Z] [INFO]     🗄️ Static "Stock" = "20"
+[2026-03-15T23:23:09.011Z] [INFO]     🗄️ Static "PRIX" = ""
+[2026-03-15T23:23:09.011Z] [INFO]     🗄️ Static "Marque" = "BRANDBOOK"
+[2026-03-15T23:23:09.011Z] [INFO]   📤 Extraction fields being sent: Titre, URL image 1, Description, GTIN, Pages, Référence vendeur
+[2026-03-15T23:23:09.011Z] [INFO]      Field "GTIN" transformers: [{"type":"regex","pattern":"ISBN-13[\\s\\S]*?<span>(97[89][\\d-]+)<\\/span>","flags":"i","extractGroup":1}]
+[2026-03-15T23:23:09.011Z] [INFO]      Field "Pages" transformers: [{"type":"regex","pattern":"Print length[\\s\\S]*?<span>(\\d+)\\s*pages<\\/span>","flags":"i","extractGroup":1}]
+[2026-03-15T23:23:09.011Z] [INFO]      Field "Référence vendeur" transformers: [{"type":"regex","pattern":"ISBN-10[\\s\\S]*?<span>([\\dXx-]+)<\\/span>","flags":"i","extractGroup":1}]
+[2026-03-15T23:23:09.011Z] [INFO]   🔄 Resetting scope to document root
+[2026-03-15T23:23:09.011Z] [INFO]   📤 Sending extraction request...
+[2026-03-15T23:23:09.152Z] [INFO]   🔄 Retry 1/3: fields [Référence vendeur] empty (possible lazy-load), waiting 1.5s...
+[2026-03-15T23:23:10.660Z] [INFO]   🔄 Retry 2/3: fields [Référence vendeur] empty (possible lazy-load), waiting 1.5s...
+[2026-03-15T23:23:12.173Z] [INFO]     📐 Formula "PRIX": {{Pages}}*0.50 = 437.5
+[2026-03-15T23:23:12.173Z] [INFO]   📝 Extracted values:
+[2026-03-15T23:23:12.173Z] [INFO]     Stock: "20"
+[2026-03-15T23:23:12.173Z] [INFO]     PRIX: "437.5"
+[2026-03-15T23:23:12.173Z] [INFO]     Marque: "BRANDBOOK"
+[2026-03-15T23:23:12.173Z] [INFO]     Titre: "Hands-On Machine Learning with Scikit-Learn and Py..."
+[2026-03-15T23:23:12.173Z] [INFO]     URL image 1: "https://m.media-amazon.com/images/I/81VywRgKFbL._S..."
+[2026-03-15T23:23:12.173Z] [INFO]     Description: "The potential of machine learning today is extraor..."
+[2026-03-15T23:23:12.173Z] [INFO]     GTIN: "979-8341607989"
+[2026-03-15T23:23:12.173Z] [INFO]     Pages: "875"
+[2026-03-15T23:23:12.173Z] [INFO]     Référence vendeur: ""
+[2026-03-15T23:23:12.174Z] [SUCCESS]   ✓ Extracted row #7
+[2026-03-15T23:23:12.174Z] [INFO]   📊 Total rows collected: 7
+[2026-03-15T23:23:12.326Z] [INFO]   ⏱ Execution time: 3316ms
+[2026-03-15T23:23:12.393Z] [BLOCK] ▶ Executing: Wait [Scope: div.desktop-grid-content-view[6]]
+[2026-03-15T23:23:12.393Z] [INFO]   📋 Config: {"type":"timeout","timeout":1500}
+[2026-03-15T23:23:12.393Z] [INFO]   ⏱ Wait type: timeout
+[2026-03-15T23:23:12.393Z] [INFO]   ⏳ Waiting 1500ms...
+[2026-03-15T23:23:13.894Z] [INFO]   ⏱ Execution time: 1500ms
+[2026-03-15T23:23:14.000Z] [BLOCK] ▶ Executing: Go Back [Scope: div.desktop-grid-content-view[6]]
+[2026-03-15T23:23:14.000Z] [INFO]   📋 Config: {}
+[2026-03-15T23:23:14.000Z] [INFO] ↩ Going back...
+[2026-03-15T23:23:14.000Z] [INFO]   🎯 Current tab ID: 1348410698
+[2026-03-15T23:23:14.000Z] [INFO]   🔄 Navigating to stored URL: https://www.amazon.com/s?k=O%27Reilly+Media&rh=p_n_feature_browse-bin%3A2656022011&dc&ds=v1%3AIWcf%2FeyUttEkH3Ng%2BJJCsXNoqqd8z9q327KlMHPYW%2BI&crid=2HNCF2KNH11LV&qid=1773441713&rnid=618072011&sprefix=o%27reilly+media%2Caps%2C308&ref=sr_nr_p_n_feature_browse-bin_1
+[2026-03-15T23:23:14.109Z] [INFO]   ⏳ Waiting for navigation to complete...
+[2026-03-15T23:23:15.570Z] [INFO]   ⏳ Waiting for content script to be ready...
+[2026-03-15T23:23:15.733Z] [INFO]   ⏱ Waiting 500ms for page stabilization...
+[2026-03-15T23:23:16.240Z] [INFO]   📍 Current URL after go_back: https://www.amazon.com/s?k=O%27Reilly+Media&rh=p_n_feature_browse-bin%3A2656022011&dc&ds=v1%3AIWcf%2FeyUttEkH3Ng%2BJJCsXNoqqd8z9q327KlMHPYW%2BI&crid=2HNCF2KNH11LV&qid=1773441713&rnid=618072011&sprefix=o%27reilly+media%2Caps%2C308&ref=sr_nr_p_n_feature_browse-bin_1
+[2026-03-15T23:23:16.241Z] [SUCCESS] ✓ Went back
+[2026-03-15T23:23:16.295Z] [INFO]   ⏱ Execution time: 2295ms
+[2026-03-15T23:23:16.330Z] [INFO]   ━━━ Item 8/48 ━━━
+[2026-03-15T23:23:16.330Z] [INFO]     🔍 Checking if element at index 7 exists...
+[2026-03-15T23:23:16.370Z] [INFO]     ✓ Element exists (48 total elements, check attempt 1)
+[2026-03-15T23:23:16.405Z] [BLOCK] ▶ Executing: Wait [Scope: div.desktop-grid-content-view[7]]
+[2026-03-15T23:23:16.405Z] [INFO]   📋 Config: {"type":"timeout","timeout":1000}
+[2026-03-15T23:23:16.405Z] [INFO]   ⏱ Wait type: timeout
+[2026-03-15T23:23:16.405Z] [INFO]   ⏳ Waiting 1000ms...
+[2026-03-15T23:23:17.406Z] [INFO]   ⏱ Execution time: 1001ms
+[2026-03-15T23:23:17.514Z] [BLOCK] ▶ Executing: Click [Scope: div.desktop-grid-content-view[7]]
+[2026-03-15T23:23:17.514Z] [INFO]   📋 Config: {"selector":{"type":"css","value":".a-size-base-plus","detected":{"css":".a-size-base-plus","xpath":...
+[2026-03-15T23:23:17.514Z] [INFO]   ⏱ Delay before: 1000ms
+[2026-03-15T23:23:18.518Z] [INFO]   🖱 Normal click
+[2026-03-15T23:23:18.518Z] [INFO]   🎯 Selector: .a-size-base-plus
+[2026-03-15T23:23:18.518Z] [INFO]   📌 Selector type: css
+[2026-03-15T23:23:18.518Z] [INFO]   🔍 Has scope: Yes
+[2026-03-15T23:23:18.872Z] [SUCCESS] ✓ Clicked: .a-size-base-plus
+[2026-03-15T23:23:19.207Z] [INFO]   🔀 URL changed after click, waiting for content script...
+[2026-03-15T23:23:21.566Z] [INFO]   ✓ Content script ready after navigation
+[2026-03-15T23:23:21.751Z] [INFO]   ⏱ Delay after: 1000ms
+[2026-03-15T23:23:22.766Z] [INFO]   ⏱ Execution time: 5252ms
+[2026-03-15T23:23:22.886Z] [BLOCK] ▶ Executing: Wait [Scope: div.desktop-grid-content-view[7]]
+[2026-03-15T23:23:22.886Z] [INFO]   📋 Config: {"type":"dom_content_loaded","timeout":2000}
+[2026-03-15T23:23:22.886Z] [INFO]   ⏱ Wait type: dom_content_loaded
+[2026-03-15T23:23:22.886Z] [INFO]   ⏳ Waiting for DOM content loaded (2000ms)...
+[2026-03-15T23:23:22.989Z] [INFO]   ✓ Content script is ready
+[2026-03-15T23:23:23.990Z] [INFO]   ⏱ Execution time: 1104ms
+[2026-03-15T23:23:24.103Z] [BLOCK] ▶ Executing: Extract Scope [Scope: div.desktop-grid-content-view[7]]
+[2026-03-15T23:23:24.103Z] [INFO]   📋 Config: {"fields":[{"key":"Titre","selector":{"type":"css","value":"#productTitle","detected":{"css":"#produ...
+[2026-03-15T23:23:24.103Z] [INFO]   📦 Extract Scope
+[2026-03-15T23:23:24.103Z] [INFO]   📊 Fields to extract: 9
+[2026-03-15T23:23:24.103Z] [INFO]   🔄 Reset scope: Yes
+[2026-03-15T23:23:24.103Z] [INFO]   🔍 Has parent scope: Yes
+[2026-03-15T23:23:24.103Z] [INFO]     1. Titre: selector="#productTitle" attr="text"
+[2026-03-15T23:23:24.103Z] [INFO]     2. URL image 1: selector="#landingImage" attr="src"
+[2026-03-15T23:23:24.103Z] [INFO]     3. Description: selector="#bookDescription_feature_div > div > div" attr="text"
+[2026-03-15T23:23:24.104Z] [INFO]     4. GTIN: selector=".detail-bullet-list" attr="innerHTML"
+[2026-03-15T23:23:24.104Z] [INFO]        🔧 Transformers (1):
+[2026-03-15T23:23:24.104Z] [INFO]     5. Pages: selector=".detail-bullet-list" attr="innerHTML"
+[2026-03-15T23:23:24.104Z] [INFO]        🔧 Transformers (1):
+[2026-03-15T23:23:24.104Z] [INFO]     6. Stock: [static] type="constant"
+[2026-03-15T23:23:24.104Z] [INFO]     7. PRIX: [static] type="constant"
+[2026-03-15T23:23:24.104Z] [INFO]        📐 Formula: {{Pages}}*0.50
+[2026-03-15T23:23:24.104Z] [INFO]     8. Référence vendeur: selector=".detail-bullet-list" attr="innerHTML"
+[2026-03-15T23:23:24.104Z] [INFO]        🔧 Transformers (1):
+[2026-03-15T23:23:24.104Z] [INFO]     9. Marque: [static] type="constant"
+[2026-03-15T23:23:24.104Z] [INFO]     🗄️ Static "Stock" = "20"
+[2026-03-15T23:23:24.104Z] [INFO]     🗄️ Static "PRIX" = ""
+[2026-03-15T23:23:24.104Z] [INFO]     🗄️ Static "Marque" = "BRANDBOOK"
+[2026-03-15T23:23:24.104Z] [INFO]   📤 Extraction fields being sent: Titre, URL image 1, Description, GTIN, Pages, Référence vendeur
+[2026-03-15T23:23:24.104Z] [INFO]      Field "GTIN" transformers: [{"type":"regex","pattern":"ISBN-13[\\s\\S]*?<span>(97[89][\\d-]+)<\\/span>","flags":"i","extractGroup":1}]
+[2026-03-15T23:23:24.104Z] [INFO]      Field "Pages" transformers: [{"type":"regex","pattern":"Print length[\\s\\S]*?<span>(\\d+)\\s*pages<\\/span>","flags":"i","extractGroup":1}]
+[2026-03-15T23:23:24.104Z] [INFO]      Field "Référence vendeur" transformers: [{"type":"regex","pattern":"ISBN-10[\\s\\S]*?<span>([\\dXx-]+)<\\/span>","flags":"i","extractGroup":1}]
+[2026-03-15T23:23:24.104Z] [INFO]   🔄 Resetting scope to document root
+[2026-03-15T23:23:24.104Z] [INFO]   📤 Sending extraction request...
+[2026-03-15T23:23:24.207Z] [INFO]   🔄 Retry 1/3: fields [Référence vendeur] empty (possible lazy-load), waiting 1.5s...
+[2026-03-15T23:23:25.717Z] [INFO]   🔄 Retry 2/3: fields [Référence vendeur] empty (possible lazy-load), waiting 1.5s...
+[2026-03-15T23:23:27.234Z] [INFO]     📐 Formula "PRIX": {{Pages}}*0.50 = 153.5
+[2026-03-15T23:23:27.234Z] [INFO]   📝 Extracted values:
+[2026-03-15T23:23:27.234Z] [INFO]     Stock: "20"
+[2026-03-15T23:23:27.234Z] [INFO]     PRIX: "153.5"
+[2026-03-15T23:23:27.234Z] [INFO]     Marque: "BRANDBOOK"
+[2026-03-15T23:23:27.235Z] [INFO]     Titre: "Crafting Engineering Strategy: How Thoughtful Deci..."
+[2026-03-15T23:23:27.235Z] [INFO]     URL image 1: "https://m.media-amazon.com/images/I/71bPT7IBebL._S..."
+[2026-03-15T23:23:27.235Z] [INFO]     Description: "Many engineers assume their organization doesn't h..."
+[2026-03-15T23:23:27.235Z] [INFO]     GTIN: "979-8341645523"
+[2026-03-15T23:23:27.235Z] [INFO]     Pages: "307"
+[2026-03-15T23:23:27.235Z] [INFO]     Référence vendeur: ""
+[2026-03-15T23:23:27.235Z] [SUCCESS]   ✓ Extracted row #8
+[2026-03-15T23:23:27.235Z] [INFO]   📊 Total rows collected: 8
+[2026-03-15T23:23:27.419Z] [INFO]   ⏱ Execution time: 3316ms
+[2026-03-15T23:23:27.469Z] [BLOCK] ▶ Executing: Wait [Scope: div.desktop-grid-content-view[7]]
+[2026-03-15T23:23:27.469Z] [INFO]   📋 Config: {"type":"timeout","timeout":1500}
+[2026-03-15T23:23:27.469Z] [INFO]   ⏱ Wait type: timeout
+[2026-03-15T23:23:27.469Z] [INFO]   ⏳ Waiting 1500ms...
+[2026-03-15T23:23:28.976Z] [INFO]   ⏱ Execution time: 1507ms
+[2026-03-15T23:23:29.103Z] [BLOCK] ▶ Executing: Go Back [Scope: div.desktop-grid-content-view[7]]
+[2026-03-15T23:23:29.103Z] [INFO]   📋 Config: {}
+[2026-03-15T23:23:29.103Z] [INFO] ↩ Going back...
+[2026-03-15T23:23:29.104Z] [INFO]   🎯 Current tab ID: 1348410698
+[2026-03-15T23:23:29.104Z] [INFO]   🔄 Navigating to stored URL: https://www.amazon.com/s?k=O%27Reilly+Media&rh=p_n_feature_browse-bin%3A2656022011&dc&ds=v1%3AIWcf%2FeyUttEkH3Ng%2BJJCsXNoqqd8z9q327KlMHPYW%2BI&crid=2HNCF2KNH11LV&qid=1773441713&rnid=618072011&sprefix=o%27reilly+media%2Caps%2C308&ref=sr_nr_p_n_feature_browse-bin_1
+[2026-03-15T23:23:29.226Z] [INFO]   ⏳ Waiting for navigation to complete...
+[2026-03-15T23:23:30.844Z] [INFO]   ⏳ Waiting for content script to be ready...
+[2026-03-15T23:23:30.986Z] [INFO]   ⏱ Waiting 500ms for page stabilization...
+[2026-03-15T23:23:31.494Z] [INFO]   📍 Current URL after go_back: https://www.amazon.com/s?k=O%27Reilly+Media&rh=p_n_feature_browse-bin%3A2656022011&dc&ds=v1%3AIWcf%2FeyUttEkH3Ng%2BJJCsXNoqqd8z9q327KlMHPYW%2BI&crid=2HNCF2KNH11LV&qid=1773441713&rnid=618072011&sprefix=o%27reilly+media%2Caps%2C308&ref=sr_nr_p_n_feature_browse-bin_1
+[2026-03-15T23:23:31.494Z] [SUCCESS] ✓ Went back
+[2026-03-15T23:23:31.538Z] [INFO]   ⏱ Execution time: 2435ms
+[2026-03-15T23:23:31.573Z] [INFO]   ━━━ Item 9/48 ━━━
+[2026-03-15T23:23:31.573Z] [INFO]     🔍 Checking if element at index 8 exists...
+[2026-03-15T23:23:31.613Z] [INFO]     ✓ Element exists (48 total elements, check attempt 1)
+[2026-03-15T23:23:31.648Z] [BLOCK] ▶ Executing: Wait [Scope: div.desktop-grid-content-view[8]]
+[2026-03-15T23:23:31.648Z] [INFO]   📋 Config: {"type":"timeout","timeout":1000}
+[2026-03-15T23:23:31.648Z] [INFO]   ⏱ Wait type: timeout
+[2026-03-15T23:23:31.648Z] [INFO]   ⏳ Waiting 1000ms...
+[2026-03-15T23:23:32.662Z] [INFO]   ⏱ Execution time: 1013ms
+[2026-03-15T23:23:32.791Z] [BLOCK] ▶ Executing: Click [Scope: div.desktop-grid-content-view[8]]
+[2026-03-15T23:23:32.791Z] [INFO]   📋 Config: {"selector":{"type":"css","value":".a-size-base-plus","detected":{"css":".a-size-base-plus","xpath":...
+[2026-03-15T23:23:32.791Z] [INFO]   ⏱ Delay before: 1000ms
+[2026-03-15T23:23:33.796Z] [INFO]   🖱 Normal click
+[2026-03-15T23:23:33.796Z] [INFO]   🎯 Selector: .a-size-base-plus
+[2026-03-15T23:23:33.796Z] [INFO]   📌 Selector type: css
+[2026-03-15T23:23:33.797Z] [INFO]   🔍 Has scope: Yes
+[2026-03-15T23:23:34.143Z] [SUCCESS] ✓ Clicked: .a-size-base-plus
+[2026-03-15T23:23:34.454Z] [INFO]   🔀 Navigation detected after click, waiting for page load...
+[2026-03-15T23:23:37.060Z] [INFO]   ✓ Page loaded after click-triggered navigation
+[2026-03-15T23:23:37.228Z] [INFO]   ⏱ Delay after: 1000ms
+[2026-03-15T23:23:38.235Z] [INFO]   ⏱ Execution time: 5444ms
+[2026-03-15T23:23:38.350Z] [BLOCK] ▶ Executing: Wait [Scope: div.desktop-grid-content-view[8]]
+[2026-03-15T23:23:38.350Z] [INFO]   📋 Config: {"type":"dom_content_loaded","timeout":2000}
+[2026-03-15T23:23:38.350Z] [INFO]   ⏱ Wait type: dom_content_loaded
+[2026-03-15T23:23:38.351Z] [INFO]   ⏳ Waiting for DOM content loaded (2000ms)...
+[2026-03-15T23:23:38.459Z] [INFO]   ✓ Content script is ready
+[2026-03-15T23:23:39.461Z] [INFO]   ⏱ Execution time: 1111ms
+[2026-03-15T23:23:39.598Z] [BLOCK] ▶ Executing: Extract Scope [Scope: div.desktop-grid-content-view[8]]
+[2026-03-15T23:23:39.598Z] [INFO]   📋 Config: {"fields":[{"key":"Titre","selector":{"type":"css","value":"#productTitle","detected":{"css":"#produ...
+[2026-03-15T23:23:39.598Z] [INFO]   📦 Extract Scope
+[2026-03-15T23:23:39.598Z] [INFO]   📊 Fields to extract: 9
+[2026-03-15T23:23:39.598Z] [INFO]   🔄 Reset scope: Yes
+[2026-03-15T23:23:39.598Z] [INFO]   🔍 Has parent scope: Yes
+[2026-03-15T23:23:39.598Z] [INFO]     1. Titre: selector="#productTitle" attr="text"
+[2026-03-15T23:23:39.598Z] [INFO]     2. URL image 1: selector="#landingImage" attr="src"
+[2026-03-15T23:23:39.598Z] [INFO]     3. Description: selector="#bookDescription_feature_div > div > div" attr="text"
+[2026-03-15T23:23:39.598Z] [INFO]     4. GTIN: selector=".detail-bullet-list" attr="innerHTML"
+[2026-03-15T23:23:39.598Z] [INFO]        🔧 Transformers (1):
+[2026-03-15T23:23:39.598Z] [INFO]     5. Pages: selector=".detail-bullet-list" attr="innerHTML"
+[2026-03-15T23:23:39.598Z] [INFO]        🔧 Transformers (1):
+[2026-03-15T23:23:39.598Z] [INFO]     6. Stock: [static] type="constant"
+[2026-03-15T23:23:39.598Z] [INFO]     7. PRIX: [static] type="constant"
+[2026-03-15T23:23:39.598Z] [INFO]        📐 Formula: {{Pages}}*0.50
+[2026-03-15T23:23:39.598Z] [INFO]     8. Référence vendeur: selector=".detail-bullet-list" attr="innerHTML"
+[2026-03-15T23:23:39.598Z] [INFO]        🔧 Transformers (1):
+[2026-03-15T23:23:39.598Z] [INFO]     9. Marque: [static] type="constant"
+[2026-03-15T23:23:39.598Z] [INFO]     🗄️ Static "Stock" = "20"
+[2026-03-15T23:23:39.598Z] [INFO]     🗄️ Static "PRIX" = ""
+[2026-03-15T23:23:39.598Z] [INFO]     🗄️ Static "Marque" = "BRANDBOOK"
+[2026-03-15T23:23:39.599Z] [INFO]   📤 Extraction fields being sent: Titre, URL image 1, Description, GTIN, Pages, Référence vendeur
+[2026-03-15T23:23:39.599Z] [INFO]      Field "GTIN" transformers: [{"type":"regex","pattern":"ISBN-13[\\s\\S]*?<span>(97[89][\\d-]+)<\\/span>","flags":"i","extractGroup":1}]
+[2026-03-15T23:23:39.599Z] [INFO]      Field "Pages" transformers: [{"type":"regex","pattern":"Print length[\\s\\S]*?<span>(\\d+)\\s*pages<\\/span>","flags":"i","extractGroup":1}]
+[2026-03-15T23:23:39.599Z] [INFO]      Field "Référence vendeur" transformers: [{"type":"regex","pattern":"ISBN-10[\\s\\S]*?<span>([\\dXx-]+)<\\/span>","flags":"i","extractGroup":1}]
+[2026-03-15T23:23:39.599Z] [INFO]   🔄 Resetting scope to document root
+[2026-03-15T23:23:39.599Z] [INFO]   📤 Sending extraction request...
+[2026-03-15T23:23:39.696Z] [INFO]   🔄 Retry 1/3: fields [Référence vendeur] empty (possible lazy-load), waiting 1.5s...
+[2026-03-15T23:23:41.217Z] [INFO]   🔄 Retry 2/3: fields [Référence vendeur] empty (possible lazy-load), waiting 1.5s...
+[2026-03-15T23:23:42.728Z] [INFO]     📐 Formula "PRIX": {{Pages}}*0.50 = 126
+[2026-03-15T23:23:42.728Z] [INFO]   📝 Extracted values:
+[2026-03-15T23:23:42.728Z] [INFO]     Stock: "20"
+[2026-03-15T23:23:42.728Z] [INFO]     PRIX: "126"
+[2026-03-15T23:23:42.728Z] [INFO]     Marque: "BRANDBOOK"
+[2026-03-15T23:23:42.728Z] [INFO]     Titre: "Beyond Vibe Coding: From Coder to AI-Era Developer"
+[2026-03-15T23:23:42.728Z] [INFO]     URL image 1: "https://m.media-amazon.com/images/I/81YeenO4ZbL._S..."
+[2026-03-15T23:23:42.728Z] [INFO]     Description: "AI is transforming software development, shifting ..."
+[2026-03-15T23:23:42.728Z] [INFO]     GTIN: "979-8341634756"
+[2026-03-15T23:23:42.728Z] [INFO]     Pages: "252"
+[2026-03-15T23:23:42.728Z] [INFO]     Référence vendeur: ""
+[2026-03-15T23:23:42.728Z] [SUCCESS]   ✓ Extracted row #9
+[2026-03-15T23:23:42.729Z] [INFO]   📊 Total rows collected: 9
+[2026-03-15T23:23:42.923Z] [INFO]   ⏱ Execution time: 3325ms
+[2026-03-15T23:23:42.965Z] [BLOCK] ▶ Executing: Wait [Scope: div.desktop-grid-content-view[8]]
+[2026-03-15T23:23:42.965Z] [INFO]   📋 Config: {"type":"timeout","timeout":1500}
+[2026-03-15T23:23:42.965Z] [INFO]   ⏱ Wait type: timeout
+[2026-03-15T23:23:42.965Z] [INFO]   ⏳ Waiting 1500ms...
+[2026-03-15T23:23:44.474Z] [INFO]   ⏱ Execution time: 1509ms
+[2026-03-15T23:23:44.597Z] [BLOCK] ▶ Executing: Go Back [Scope: div.desktop-grid-content-view[8]]
+[2026-03-15T23:23:44.597Z] [INFO]   📋 Config: {}
+[2026-03-15T23:23:44.597Z] [INFO] ↩ Going back...
+[2026-03-15T23:23:44.597Z] [INFO]   🎯 Current tab ID: 1348410698
+[2026-03-15T23:23:44.597Z] [INFO]   🔄 Navigating to stored URL: https://www.amazon.com/s?k=O%27Reilly+Media&rh=p_n_feature_browse-bin%3A2656022011&dc&ds=v1%3AIWcf%2FeyUttEkH3Ng%2BJJCsXNoqqd8z9q327KlMHPYW%2BI&crid=2HNCF2KNH11LV&qid=1773441713&rnid=618072011&sprefix=o%27reilly+media%2Caps%2C308&ref=sr_nr_p_n_feature_browse-bin_1
+[2026-03-15T23:23:44.720Z] [INFO]   ⏳ Waiting for navigation to complete...
+[2026-03-15T23:23:45.934Z] [INFO]   ⏳ Waiting for content script to be ready...
+[2026-03-15T23:23:46.070Z] [INFO]   ⏱ Waiting 500ms for page stabilization...
+[2026-03-15T23:23:46.576Z] [INFO]   📍 Current URL after go_back: https://www.amazon.com/s?k=O%27Reilly+Media&rh=p_n_feature_browse-bin%3A2656022011&dc&ds=v1%3AIWcf%2FeyUttEkH3Ng%2BJJCsXNoqqd8z9q327KlMHPYW%2BI&crid=2HNCF2KNH11LV&qid=1773441713&rnid=618072011&sprefix=o%27reilly+media%2Caps%2C308&ref=sr_nr_p_n_feature_browse-bin_1
+[2026-03-15T23:23:46.576Z] [SUCCESS] ✓ Went back
+[2026-03-15T23:23:46.619Z] [INFO]   ⏱ Execution time: 2022ms
+[2026-03-15T23:23:46.659Z] [INFO]   ━━━ Item 10/48 ━━━
+[2026-03-15T23:23:46.659Z] [INFO]     🔍 Checking if element at index 9 exists...
+[2026-03-15T23:23:46.709Z] [INFO]     ✓ Element exists (48 total elements, check attempt 1)
+[2026-03-15T23:23:46.758Z] [BLOCK] ▶ Executing: Wait [Scope: div.desktop-grid-content-view[9]]
+[2026-03-15T23:23:46.758Z] [INFO]   📋 Config: {"type":"timeout","timeout":1000}
+[2026-03-15T23:23:46.758Z] [INFO]   ⏱ Wait type: timeout
+[2026-03-15T23:23:46.758Z] [INFO]   ⏳ Waiting 1000ms...
+[2026-03-15T23:23:47.758Z] [INFO]   ⏱ Execution time: 1000ms
+[2026-03-15T23:23:47.888Z] [BLOCK] ▶ Executing: Click [Scope: div.desktop-grid-content-view[9]]
+[2026-03-15T23:23:47.889Z] [INFO]   📋 Config: {"selector":{"type":"css","value":".a-size-base-plus","detected":{"css":".a-size-base-plus","xpath":...
+[2026-03-15T23:23:47.889Z] [INFO]   ⏱ Delay before: 1000ms
+[2026-03-15T23:23:48.892Z] [INFO]   🖱 Normal click
+[2026-03-15T23:23:48.892Z] [INFO]   🎯 Selector: .a-size-base-plus
+[2026-03-15T23:23:48.893Z] [INFO]   📌 Selector type: css
+[2026-03-15T23:23:48.893Z] [INFO]   🔍 Has scope: Yes
+[2026-03-15T23:23:49.259Z] [SUCCESS] ✓ Clicked: .a-size-base-plus
+[2026-03-15T23:23:49.590Z] [INFO]   🔀 URL changed after click, waiting for content script...
+[2026-03-15T23:23:51.942Z] [INFO]   ✓ Content script ready after navigation
+[2026-03-15T23:23:52.078Z] [INFO]   ⏱ Delay after: 1000ms
+[2026-03-15T23:23:53.081Z] [INFO]   ⏱ Execution time: 5191ms
+[2026-03-15T23:23:53.212Z] [BLOCK] ▶ Executing: Wait [Scope: div.desktop-grid-content-view[9]]
+[2026-03-15T23:23:53.212Z] [INFO]   📋 Config: {"type":"dom_content_loaded","timeout":2000}
+[2026-03-15T23:23:53.212Z] [INFO]   ⏱ Wait type: dom_content_loaded
+[2026-03-15T23:23:53.212Z] [INFO]   ⏳ Waiting for DOM content loaded (2000ms)...
+[2026-03-15T23:23:53.293Z] [INFO]   ✓ Content script is ready
+[2026-03-15T23:23:54.306Z] [INFO]   ⏱ Execution time: 1094ms
+[2026-03-15T23:23:54.448Z] [BLOCK] ▶ Executing: Extract Scope [Scope: div.desktop-grid-content-view[9]]
+[2026-03-15T23:23:54.448Z] [INFO]   📋 Config: {"fields":[{"key":"Titre","selector":{"type":"css","value":"#productTitle","detected":{"css":"#produ...
+[2026-03-15T23:23:54.448Z] [INFO]   📦 Extract Scope
+[2026-03-15T23:23:54.448Z] [INFO]   📊 Fields to extract: 9
+[2026-03-15T23:23:54.448Z] [INFO]   🔄 Reset scope: Yes
+[2026-03-15T23:23:54.448Z] [INFO]   🔍 Has parent scope: Yes
+[2026-03-15T23:23:54.448Z] [INFO]     1. Titre: selector="#productTitle" attr="text"
+[2026-03-15T23:23:54.448Z] [INFO]     2. URL image 1: selector="#landingImage" attr="src"
+[2026-03-15T23:23:54.448Z] [INFO]     3. Description: selector="#bookDescription_feature_div > div > div" attr="text"
+[2026-03-15T23:23:54.448Z] [INFO]     4. GTIN: selector=".detail-bullet-list" attr="innerHTML"
+[2026-03-15T23:23:54.448Z] [INFO]        🔧 Transformers (1):
+[2026-03-15T23:23:54.448Z] [INFO]     5. Pages: selector=".detail-bullet-list" attr="innerHTML"
+[2026-03-15T23:23:54.448Z] [INFO]        🔧 Transformers (1):
+[2026-03-15T23:23:54.448Z] [INFO]     6. Stock: [static] type="constant"
+[2026-03-15T23:23:54.448Z] [INFO]     7. PRIX: [static] type="constant"
+[2026-03-15T23:23:54.448Z] [INFO]        📐 Formula: {{Pages}}*0.50
+[2026-03-15T23:23:54.449Z] [INFO]     8. Référence vendeur: selector=".detail-bullet-list" attr="innerHTML"
+[2026-03-15T23:23:54.449Z] [INFO]        🔧 Transformers (1):
+[2026-03-15T23:23:54.449Z] [INFO]     9. Marque: [static] type="constant"
+[2026-03-15T23:23:54.449Z] [INFO]     🗄️ Static "Stock" = "20"
+[2026-03-15T23:23:54.449Z] [INFO]     🗄️ Static "PRIX" = ""
+[2026-03-15T23:23:54.449Z] [INFO]     🗄️ Static "Marque" = "BRANDBOOK"
+[2026-03-15T23:23:54.449Z] [INFO]   📤 Extraction fields being sent: Titre, URL image 1, Description, GTIN, Pages, Référence vendeur
+[2026-03-15T23:23:54.449Z] [INFO]      Field "GTIN" transformers: [{"type":"regex","pattern":"ISBN-13[\\s\\S]*?<span>(97[89][\\d-]+)<\\/span>","flags":"i","extractGroup":1}]
+[2026-03-15T23:23:54.449Z] [INFO]      Field "Pages" transformers: [{"type":"regex","pattern":"Print length[\\s\\S]*?<span>(\\d+)\\s*pages<\\/span>","flags":"i","extractGroup":1}]
+[2026-03-15T23:23:54.449Z] [INFO]      Field "Référence vendeur" transformers: [{"type":"regex","pattern":"ISBN-10[\\s\\S]*?<span>([\\dXx-]+)<\\/span>","flags":"i","extractGroup":1}]
+[2026-03-15T23:23:54.449Z] [INFO]   🔄 Resetting scope to document root
+[2026-03-15T23:23:54.449Z] [INFO]   📤 Sending extraction request...
+[2026-03-15T23:23:54.542Z] [INFO]     📐 Formula "PRIX": {{Pages}}*0.50 = 134
+[2026-03-15T23:23:54.542Z] [INFO]   📝 Extracted values:
+[2026-03-15T23:23:54.542Z] [INFO]     Stock: "20"
+[2026-03-15T23:23:54.543Z] [INFO]     PRIX: "134"
+[2026-03-15T23:23:54.543Z] [INFO]     Marque: "BRANDBOOK"
+[2026-03-15T23:23:54.543Z] [INFO]     Titre: "The Product-Minded Engineer: Building Impactful So..."
+[2026-03-15T23:23:54.543Z] [INFO]     URL image 1: "https://m.media-amazon.com/images/I/81lrDcKjY1L._S..."
+[2026-03-15T23:23:54.543Z] [INFO]     Description: "In the fast-paced world of software engineering, d..."
+[2026-03-15T23:23:54.543Z] [INFO]     GTIN: "978-1098173739"
+[2026-03-15T23:23:54.543Z] [INFO]     Pages: "268"
+[2026-03-15T23:23:54.543Z] [INFO]     Référence vendeur: "1098173732"
+[2026-03-15T23:23:54.543Z] [SUCCESS]   ✓ Extracted row #10
+[2026-03-15T23:23:54.543Z] [INFO]   📊 Total rows collected: 10
+[2026-03-15T23:23:54.595Z] [INFO]   ⏱ Execution time: 147ms
+[2026-03-15T23:23:54.634Z] [BLOCK] ▶ Executing: Wait [Scope: div.desktop-grid-content-view[9]]
+[2026-03-15T23:23:54.634Z] [INFO]   📋 Config: {"type":"timeout","timeout":1500}
+[2026-03-15T23:23:54.634Z] [INFO]   ⏱ Wait type: timeout
+[2026-03-15T23:23:54.634Z] [INFO]   ⏳ Waiting 1500ms...
+[2026-03-15T23:23:56.138Z] [INFO]   ⏱ Execution time: 1504ms
+[2026-03-15T23:23:56.248Z] [BLOCK] ▶ Executing: Go Back [Scope: div.desktop-grid-content-view[9]]
+[2026-03-15T23:23:56.249Z] [INFO]   📋 Config: {}
+[2026-03-15T23:23:56.249Z] [INFO] ↩ Going back...
+[2026-03-15T23:23:56.249Z] [INFO]   🎯 Current tab ID: 1348410698
+[2026-03-15T23:23:56.249Z] [INFO]   🔄 Navigating to stored URL: https://www.amazon.com/s?k=O%27Reilly+Media&rh=p_n_feature_browse-bin%3A2656022011&dc&ds=v1%3AIWcf%2FeyUttEkH3Ng%2BJJCsXNoqqd8z9q327KlMHPYW%2BI&crid=2HNCF2KNH11LV&qid=1773441713&rnid=618072011&sprefix=o%27reilly+media%2Caps%2C308&ref=sr_nr_p_n_feature_browse-bin_1
+[2026-03-15T23:23:56.338Z] [INFO]   ⏳ Waiting for navigation to complete...
+[2026-03-15T23:23:58.115Z] [INFO]   ⏳ Waiting for content script to be ready...
+[2026-03-15T23:23:58.248Z] [INFO]   ⏱ Waiting 500ms for page stabilization...
+[2026-03-15T23:23:58.753Z] [INFO]   📍 Current URL after go_back: https://www.amazon.com/s?k=O%27Reilly+Media&rh=p_n_feature_browse-bin%3A2656022011&dc&ds=v1%3AIWcf%2FeyUttEkH3Ng%2BJJCsXNoqqd8z9q327KlMHPYW%2BI&crid=2HNCF2KNH11LV&qid=1773441713&rnid=618072011&sprefix=o%27reilly+media%2Caps%2C308&ref=sr_nr_p_n_feature_browse-bin_1
+[2026-03-15T23:23:58.753Z] [SUCCESS] ✓ Went back
+[2026-03-15T23:23:58.798Z] [INFO]   ⏱ Execution time: 2549ms
+[2026-03-15T23:23:58.836Z] [INFO]   ━━━ Item 11/48 ━━━
+[2026-03-15T23:23:58.836Z] [INFO]     🔍 Checking if element at index 10 exists...
+[2026-03-15T23:23:58.875Z] [INFO]     ✓ Element exists (48 total elements, check attempt 1)
+[2026-03-15T23:23:58.911Z] [BLOCK] ▶ Executing: Wait [Scope: div.desktop-grid-content-view[10]]
+[2026-03-15T23:23:58.911Z] [INFO]   📋 Config: {"type":"timeout","timeout":1000}
+[2026-03-15T23:23:58.911Z] [INFO]   ⏱ Wait type: timeout
+[2026-03-15T23:23:58.911Z] [INFO]   ⏳ Waiting 1000ms...
+[2026-03-15T23:23:59.916Z] [INFO]   ⏱ Execution time: 1004ms
+[2026-03-15T23:24:00.051Z] [BLOCK] ▶ Executing: Click [Scope: div.desktop-grid-content-view[10]]
+[2026-03-15T23:24:00.051Z] [INFO]   📋 Config: {"selector":{"type":"css","value":".a-size-base-plus","detected":{"css":".a-size-base-plus","xpath":...
+[2026-03-15T23:24:00.051Z] [INFO]   ⏱ Delay before: 1000ms
+[2026-03-15T23:24:01.053Z] [INFO]   🖱 Normal click
+[2026-03-15T23:24:01.054Z] [INFO]   🎯 Selector: .a-size-base-plus
+[2026-03-15T23:24:01.054Z] [INFO]   📌 Selector type: css
+[2026-03-15T23:24:01.054Z] [INFO]   🔍 Has scope: Yes
+[2026-03-15T23:24:01.376Z] [SUCCESS] ✓ Clicked: .a-size-base-plus
+[2026-03-15T23:24:01.690Z] [INFO]   ⏱ Delay after: 1000ms
+[2026-03-15T23:24:02.693Z] [INFO]   ⏱ Execution time: 2641ms
+[2026-03-15T23:24:02.849Z] [BLOCK] ▶ Executing: Wait [Scope: div.desktop-grid-content-view[10]]
+[2026-03-15T23:24:02.849Z] [INFO]   📋 Config: {"type":"dom_content_loaded","timeout":2000}
+[2026-03-15T23:24:02.849Z] [INFO]   ⏱ Wait type: dom_content_loaded
+[2026-03-15T23:24:02.849Z] [INFO]   ⏳ Waiting for DOM content loaded (2000ms)...
+[2026-03-15T23:24:04.525Z] [INFO]   ✓ Content script is ready
+[2026-03-15T23:24:05.530Z] [INFO]   ⏱ Execution time: 2681ms
+[2026-03-15T23:24:05.652Z] [BLOCK] ▶ Executing: Extract Scope [Scope: div.desktop-grid-content-view[10]]
+[2026-03-15T23:24:05.652Z] [INFO]   📋 Config: {"fields":[{"key":"Titre","selector":{"type":"css","value":"#productTitle","detected":{"css":"#produ...
+[2026-03-15T23:24:05.652Z] [INFO]   📦 Extract Scope
+[2026-03-15T23:24:05.652Z] [INFO]   📊 Fields to extract: 9
+[2026-03-15T23:24:05.652Z] [INFO]   🔄 Reset scope: Yes
+[2026-03-15T23:24:05.652Z] [INFO]   🔍 Has parent scope: Yes
+[2026-03-15T23:24:05.652Z] [INFO]     1. Titre: selector="#productTitle" attr="text"
+[2026-03-15T23:24:05.653Z] [INFO]     2. URL image 1: selector="#landingImage" attr="src"
+[2026-03-15T23:24:05.653Z] [INFO]     3. Description: selector="#bookDescription_feature_div > div > div" attr="text"
+[2026-03-15T23:24:05.653Z] [INFO]     4. GTIN: selector=".detail-bullet-list" attr="innerHTML"
+[2026-03-15T23:24:05.653Z] [INFO]        🔧 Transformers (1):
+[2026-03-15T23:24:05.653Z] [INFO]     5. Pages: selector=".detail-bullet-list" attr="innerHTML"
+[2026-03-15T23:24:05.653Z] [INFO]        🔧 Transformers (1):
+[2026-03-15T23:24:05.653Z] [INFO]     6. Stock: [static] type="constant"
+[2026-03-15T23:24:05.653Z] [INFO]     7. PRIX: [static] type="constant"
+[2026-03-15T23:24:05.653Z] [INFO]        📐 Formula: {{Pages}}*0.50
+[2026-03-15T23:24:05.653Z] [INFO]     8. Référence vendeur: selector=".detail-bullet-list" attr="innerHTML"
+[2026-03-15T23:24:05.653Z] [INFO]        🔧 Transformers (1):
+[2026-03-15T23:24:05.653Z] [INFO]     9. Marque: [static] type="constant"
+[2026-03-15T23:24:05.653Z] [INFO]     🗄️ Static "Stock" = "20"
+[2026-03-15T23:24:05.653Z] [INFO]     🗄️ Static "PRIX" = ""
+[2026-03-15T23:24:05.653Z] [INFO]     🗄️ Static "Marque" = "BRANDBOOK"
+[2026-03-15T23:24:05.653Z] [INFO]   📤 Extraction fields being sent: Titre, URL image 1, Description, GTIN, Pages, Référence vendeur
+[2026-03-15T23:24:05.654Z] [INFO]      Field "GTIN" transformers: [{"type":"regex","pattern":"ISBN-13[\\s\\S]*?<span>(97[89][\\d-]+)<\\/span>","flags":"i","extractGroup":1}]
+[2026-03-15T23:24:05.654Z] [INFO]      Field "Pages" transformers: [{"type":"regex","pattern":"Print length[\\s\\S]*?<span>(\\d+)\\s*pages<\\/span>","flags":"i","extractGroup":1}]
+[2026-03-15T23:24:05.654Z] [INFO]      Field "Référence vendeur" transformers: [{"type":"regex","pattern":"ISBN-10[\\s\\S]*?<span>([\\dXx-]+)<\\/span>","flags":"i","extractGroup":1}]
+[2026-03-15T23:24:05.654Z] [INFO]   🔄 Resetting scope to document root
+[2026-03-15T23:24:05.654Z] [INFO]   📤 Sending extraction request...
+[2026-03-15T23:24:05.734Z] [INFO]     📐 Formula "PRIX": {{Pages}}*0.50 = 113.5
+[2026-03-15T23:24:05.734Z] [INFO]   📝 Extracted values:
+[2026-03-15T23:24:05.734Z] [INFO]     Stock: "20"
+[2026-03-15T23:24:05.734Z] [INFO]     PRIX: "113.5"
+[2026-03-15T23:24:05.735Z] [INFO]     Marque: "BRANDBOOK"
+[2026-03-15T23:24:05.735Z] [INFO]     Titre: "Building AI-Powered Products: The Essential Guide ..."
+[2026-03-15T23:24:05.735Z] [INFO]     URL image 1: "https://m.media-amazon.com/images/I/81X8Y+xZThL._S..."
+[2026-03-15T23:24:05.735Z] [INFO]     Description: "Drawing from her experience at Google and Meta, Dr..."
+[2026-03-15T23:24:05.735Z] [INFO]     GTIN: "978-1098152703"
+[2026-03-15T23:24:05.735Z] [INFO]     Pages: "227"
+[2026-03-15T23:24:05.735Z] [INFO]     Référence vendeur: "1098152700"
+[2026-03-15T23:24:05.735Z] [SUCCESS]   ✓ Extracted row #11
+[2026-03-15T23:24:05.735Z] [INFO]   📊 Total rows collected: 11
+[2026-03-15T23:24:05.789Z] [INFO]   ⏱ Execution time: 137ms
+[2026-03-15T23:24:05.829Z] [BLOCK] ▶ Executing: Wait [Scope: div.desktop-grid-content-view[10]]
+[2026-03-15T23:24:05.829Z] [INFO]   📋 Config: {"type":"timeout","timeout":1500}
+[2026-03-15T23:24:05.829Z] [INFO]   ⏱ Wait type: timeout
+[2026-03-15T23:24:05.829Z] [INFO]   ⏳ Waiting 1500ms...
+[2026-03-15T23:24:07.334Z] [INFO]   ⏱ Execution time: 1505ms
+[2026-03-15T23:24:07.499Z] [BLOCK] ▶ Executing: Go Back [Scope: div.desktop-grid-content-view[10]]
+[2026-03-15T23:24:07.499Z] [INFO]   📋 Config: {}
+[2026-03-15T23:24:07.499Z] [INFO] ↩ Going back...
+[2026-03-15T23:24:07.499Z] [INFO]   🎯 Current tab ID: 1348410698
+[2026-03-15T23:24:07.499Z] [INFO]   🔄 Navigating to stored URL: https://www.amazon.com/s?k=O%27Reilly+Media&rh=p_n_feature_browse-bin%3A2656022011&dc&ds=v1%3AIWcf%2FeyUttEkH3Ng%2BJJCsXNoqqd8z9q327KlMHPYW%2BI&crid=2HNCF2KNH11LV&qid=1773441713&rnid=618072011&sprefix=o%27reilly+media%2Caps%2C308&ref=sr_nr_p_n_feature_browse-bin_1
+[2026-03-15T23:24:07.628Z] [INFO]   ⏳ Waiting for navigation to complete...
+[2026-03-15T23:24:09.365Z] [INFO]   ⏳ Waiting for content script to be ready...
+[2026-03-15T23:24:09.515Z] [INFO]   ⏱ Waiting 500ms for page stabilization...
+[2026-03-15T23:24:10.017Z] [INFO]   📍 Current URL after go_back: https://www.amazon.com/s?k=O%27Reilly+Media&rh=p_n_feature_browse-bin%3A2656022011&dc&ds=v1%3AIWcf%2FeyUttEkH3Ng%2BJJCsXNoqqd8z9q327KlMHPYW%2BI&crid=2HNCF2KNH11LV&qid=1773441713&rnid=618072011&sprefix=o%27reilly+media%2Caps%2C308&ref=sr_nr_p_n_feature_browse-bin_1
+[2026-03-15T23:24:10.018Z] [SUCCESS] ✓ Went back
+[2026-03-15T23:24:10.062Z] [INFO]   ⏱ Execution time: 2563ms
+[2026-03-15T23:24:10.105Z] [INFO]   ━━━ Item 12/48 ━━━
+[2026-03-15T23:24:10.105Z] [INFO]     🔍 Checking if element at index 11 exists...
+[2026-03-15T23:24:10.155Z] [INFO]     ✓ Element exists (48 total elements, check attempt 1)
+[2026-03-15T23:24:10.201Z] [BLOCK] ▶ Executing: Wait [Scope: div.desktop-grid-content-view[11]]
+[2026-03-15T23:24:10.201Z] [INFO]   📋 Config: {"type":"timeout","timeout":1000}
+[2026-03-15T23:24:10.201Z] [INFO]   ⏱ Wait type: timeout
+[2026-03-15T23:24:10.201Z] [INFO]   ⏳ Waiting 1000ms...
+[2026-03-15T23:24:11.215Z] [INFO]   ⏱ Execution time: 1014ms
+[2026-03-15T23:24:11.351Z] [BLOCK] ▶ Executing: Click [Scope: div.desktop-grid-content-view[11]]
+[2026-03-15T23:24:11.351Z] [INFO]   📋 Config: {"selector":{"type":"css","value":".a-size-base-plus","detected":{"css":".a-size-base-plus","xpath":...
+[2026-03-15T23:24:11.351Z] [INFO]   ⏱ Delay before: 1000ms
+[2026-03-15T23:24:12.366Z] [INFO]   🖱 Normal click
+[2026-03-15T23:24:12.366Z] [INFO]   🎯 Selector: .a-size-base-plus
+[2026-03-15T23:24:12.366Z] [INFO]   📌 Selector type: css
+[2026-03-15T23:24:12.366Z] [INFO]   🔍 Has scope: Yes
+[2026-03-15T23:24:12.670Z] [SUCCESS] ✓ Clicked: .a-size-base-plus
+[2026-03-15T23:24:12.989Z] [INFO]   🔀 URL changed after click, waiting for content script...
+[2026-03-15T23:24:15.374Z] [INFO]   ✓ Content script ready after navigation
+[2026-03-15T23:24:15.511Z] [INFO]   ⏱ Delay after: 1000ms
+[2026-03-15T23:24:16.516Z] [INFO]   ⏱ Execution time: 5164ms
+[2026-03-15T23:24:16.658Z] [BLOCK] ▶ Executing: Wait [Scope: div.desktop-grid-content-view[11]]
+[2026-03-15T23:24:16.658Z] [INFO]   📋 Config: {"type":"dom_content_loaded","timeout":2000}
+[2026-03-15T23:24:16.658Z] [INFO]   ⏱ Wait type: dom_content_loaded
+[2026-03-15T23:24:16.658Z] [INFO]   ⏳ Waiting for DOM content loaded (2000ms)...
+[2026-03-15T23:24:16.741Z] [INFO]   ✓ Content script is ready
+[2026-03-15T23:24:17.748Z] [INFO]   ⏱ Execution time: 1090ms
+[2026-03-15T23:24:17.890Z] [BLOCK] ▶ Executing: Extract Scope [Scope: div.desktop-grid-content-view[11]]
+[2026-03-15T23:24:17.890Z] [INFO]   📋 Config: {"fields":[{"key":"Titre","selector":{"type":"css","value":"#productTitle","detected":{"css":"#produ...
+[2026-03-15T23:24:17.890Z] [INFO]   📦 Extract Scope
+[2026-03-15T23:24:17.890Z] [INFO]   📊 Fields to extract: 9
+[2026-03-15T23:24:17.890Z] [INFO]   🔄 Reset scope: Yes
+[2026-03-15T23:24:17.891Z] [INFO]   🔍 Has parent scope: Yes
+[2026-03-15T23:24:17.891Z] [INFO]     1. Titre: selector="#productTitle" attr="text"
+[2026-03-15T23:24:17.891Z] [INFO]     2. URL image 1: selector="#landingImage" attr="src"
+[2026-03-15T23:24:17.891Z] [INFO]     3. Description: selector="#bookDescription_feature_div > div > div" attr="text"
+[2026-03-15T23:24:17.891Z] [INFO]     4. GTIN: selector=".detail-bullet-list" attr="innerHTML"
+[2026-03-15T23:24:17.891Z] [INFO]        🔧 Transformers (1):
+[2026-03-15T23:24:17.891Z] [INFO]     5. Pages: selector=".detail-bullet-list" attr="innerHTML"
+[2026-03-15T23:24:17.891Z] [INFO]        🔧 Transformers (1):
+[2026-03-15T23:24:17.891Z] [INFO]     6. Stock: [static] type="constant"
+[2026-03-15T23:24:17.891Z] [INFO]     7. PRIX: [static] type="constant"
+[2026-03-15T23:24:17.891Z] [INFO]        📐 Formula: {{Pages}}*0.50
+[2026-03-15T23:24:17.891Z] [INFO]     8. Référence vendeur: selector=".detail-bullet-list" attr="innerHTML"
+[2026-03-15T23:24:17.891Z] [INFO]        🔧 Transformers (1):
+[2026-03-15T23:24:17.891Z] [INFO]     9. Marque: [static] type="constant"
+[2026-03-15T23:24:17.891Z] [INFO]     🗄️ Static "Stock" = "20"
+[2026-03-15T23:24:17.891Z] [INFO]     🗄️ Static "PRIX" = ""
+[2026-03-15T23:24:17.891Z] [INFO]     🗄️ Static "Marque" = "BRANDBOOK"
+[2026-03-15T23:24:17.891Z] [INFO]   📤 Extraction fields being sent: Titre, URL image 1, Description, GTIN, Pages, Référence vendeur
+[2026-03-15T23:24:17.891Z] [INFO]      Field "GTIN" transformers: [{"type":"regex","pattern":"ISBN-13[\\s\\S]*?<span>(97[89][\\d-]+)<\\/span>","flags":"i","extractGroup":1}]
+[2026-03-15T23:24:17.891Z] [INFO]      Field "Pages" transformers: [{"type":"regex","pattern":"Print length[\\s\\S]*?<span>(\\d+)\\s*pages<\\/span>","flags":"i","extractGroup":1}]
+[2026-03-15T23:24:17.891Z] [INFO]      Field "Référence vendeur" transformers: [{"type":"regex","pattern":"ISBN-10[\\s\\S]*?<span>([\\dXx-]+)<\\/span>","flags":"i","extractGroup":1}]
+[2026-03-15T23:24:17.891Z] [INFO]   🔄 Resetting scope to document root
+[2026-03-15T23:24:17.891Z] [INFO]   📤 Sending extraction request...
+[2026-03-15T23:24:17.987Z] [INFO]     📐 Formula "PRIX": {{Pages}}*0.50 = 584.5
+[2026-03-15T23:24:17.987Z] [INFO]   📝 Extracted values:
+[2026-03-15T23:24:17.987Z] [INFO]     Stock: "20"
+[2026-03-15T23:24:17.987Z] [INFO]     PRIX: "584.5"
+[2026-03-15T23:24:17.987Z] [INFO]     Marque: "BRANDBOOK"
+[2026-03-15T23:24:17.987Z] [INFO]     Titre: "Learning Python: Powerful Object-Oriented Programm..."
+[2026-03-15T23:24:17.987Z] [INFO]     URL image 1: "https://m.media-amazon.com/images/I/81uCXHuaHfL._S..."
+[2026-03-15T23:24:17.987Z] [INFO]     Description: "Get a comprehensive, in-depth introduction to the ..."
+[2026-03-15T23:24:17.987Z] [INFO]     GTIN: "978-1098171308"
+[2026-03-15T23:24:17.987Z] [INFO]     Pages: "1169"
+[2026-03-15T23:24:17.987Z] [INFO]     Référence vendeur: "1098171306"
+[2026-03-15T23:24:17.987Z] [SUCCESS]   ✓ Extracted row #12
+[2026-03-15T23:24:17.987Z] [INFO]   📊 Total rows collected: 12
+[2026-03-15T23:24:18.073Z] [INFO]   ⏱ Execution time: 183ms
+[2026-03-15T23:24:18.115Z] [BLOCK] ▶ Executing: Wait [Scope: div.desktop-grid-content-view[11]]
+[2026-03-15T23:24:18.115Z] [INFO]   📋 Config: {"type":"timeout","timeout":1500}
+[2026-03-15T23:24:18.115Z] [INFO]   ⏱ Wait type: timeout
+[2026-03-15T23:24:18.115Z] [INFO]   ⏳ Waiting 1500ms...
+[2026-03-15T23:24:19.621Z] [INFO]   ⏱ Execution time: 1506ms
+[2026-03-15T23:24:19.756Z] [BLOCK] ▶ Executing: Go Back [Scope: div.desktop-grid-content-view[11]]
+[2026-03-15T23:24:19.756Z] [INFO]   📋 Config: {}
+[2026-03-15T23:24:19.756Z] [INFO] ↩ Going back...
+[2026-03-15T23:24:19.756Z] [INFO]   🎯 Current tab ID: 1348410698
+[2026-03-15T23:24:19.756Z] [INFO]   🔄 Navigating to stored URL: https://www.amazon.com/s?k=O%27Reilly+Media&rh=p_n_feature_browse-bin%3A2656022011&dc&ds=v1%3AIWcf%2FeyUttEkH3Ng%2BJJCsXNoqqd8z9q327KlMHPYW%2BI&crid=2HNCF2KNH11LV&qid=1773441713&rnid=618072011&sprefix=o%27reilly+media%2Caps%2C308&ref=sr_nr_p_n_feature_browse-bin_1
+[2026-03-15T23:24:19.851Z] [INFO]   ⏳ Waiting for navigation to complete...
+[2026-03-15T23:24:21.691Z] [INFO]   ⏳ Waiting for content script to be ready...
+[2026-03-15T23:24:21.978Z] [INFO]   ⏱ Waiting 500ms for page stabilization...
+[2026-03-15T23:24:22.480Z] [INFO]   📍 Current URL after go_back: https://www.amazon.com/s?k=O%27Reilly+Media&rh=p_n_feature_browse-bin%3A2656022011&dc&ds=v1%3AIWcf%2FeyUttEkH3Ng%2BJJCsXNoqqd8z9q327KlMHPYW%2BI&crid=2HNCF2KNH11LV&qid=1773441713&rnid=618072011&sprefix=o%27reilly+media%2Caps%2C308&ref=sr_nr_p_n_feature_browse-bin_1
+[2026-03-15T23:24:22.480Z] [SUCCESS] ✓ Went back
+[2026-03-15T23:24:22.556Z] [INFO]   ⏱ Execution time: 2800ms
+[2026-03-15T23:24:22.610Z] [INFO]   ━━━ Item 13/48 ━━━
+[2026-03-15T23:24:22.610Z] [INFO]     🔍 Checking if element at index 12 exists...
+[2026-03-15T23:24:22.674Z] [INFO]     ✓ Element exists (48 total elements, check attempt 1)
+[2026-03-15T23:24:22.746Z] [BLOCK] ▶ Executing: Wait [Scope: div.desktop-grid-content-view[12]]
+[2026-03-15T23:24:22.746Z] [INFO]   📋 Config: {"type":"timeout","timeout":1000}
+[2026-03-15T23:24:22.746Z] [INFO]   ⏱ Wait type: timeout
+[2026-03-15T23:24:22.746Z] [INFO]   ⏳ Waiting 1000ms...
+[2026-03-15T23:24:23.748Z] [INFO]   ⏱ Execution time: 1002ms
+[2026-03-15T23:24:23.882Z] [BLOCK] ▶ Executing: Click [Scope: div.desktop-grid-content-view[12]]
+[2026-03-15T23:24:23.882Z] [INFO]   📋 Config: {"selector":{"type":"css","value":".a-size-base-plus","detected":{"css":".a-size-base-plus","xpath":...
+[2026-03-15T23:24:23.882Z] [INFO]   ⏱ Delay before: 1000ms
+[2026-03-15T23:24:24.894Z] [INFO]   🖱 Normal click
+[2026-03-15T23:24:24.895Z] [INFO]   🎯 Selector: .a-size-base-plus
+[2026-03-15T23:24:24.895Z] [INFO]   📌 Selector type: css
+[2026-03-15T23:24:24.895Z] [INFO]   🔍 Has scope: Yes
+[2026-03-15T23:24:25.237Z] [SUCCESS] ✓ Clicked: .a-size-base-plus
+[2026-03-15T23:24:25.559Z] [INFO]   🔀 URL changed after click, waiting for content script...
+[2026-03-15T23:24:27.980Z] [INFO]   ✓ Content script ready after navigation
+[2026-03-15T23:24:28.167Z] [INFO]   ⏱ Delay after: 1000ms
+[2026-03-15T23:24:29.177Z] [INFO]   ⏱ Execution time: 5295ms
+[2026-03-15T23:24:29.312Z] [BLOCK] ▶ Executing: Wait [Scope: div.desktop-grid-content-view[12]]
+[2026-03-15T23:24:29.312Z] [INFO]   📋 Config: {"type":"dom_content_loaded","timeout":2000}
+[2026-03-15T23:24:29.312Z] [INFO]   ⏱ Wait type: dom_content_loaded
+[2026-03-15T23:24:29.312Z] [INFO]   ⏳ Waiting for DOM content loaded (2000ms)...
+[2026-03-15T23:24:29.385Z] [INFO]   ✓ Content script is ready
+[2026-03-15T23:24:30.393Z] [INFO]   ⏱ Execution time: 1081ms
+[2026-03-15T23:24:30.520Z] [BLOCK] ▶ Executing: Extract Scope [Scope: div.desktop-grid-content-view[12]]
+[2026-03-15T23:24:30.520Z] [INFO]   📋 Config: {"fields":[{"key":"Titre","selector":{"type":"css","value":"#productTitle","detected":{"css":"#produ...
+[2026-03-15T23:24:30.520Z] [INFO]   📦 Extract Scope
+[2026-03-15T23:24:30.520Z] [INFO]   📊 Fields to extract: 9
+[2026-03-15T23:24:30.520Z] [INFO]   🔄 Reset scope: Yes
+[2026-03-15T23:24:30.520Z] [INFO]   🔍 Has parent scope: Yes
+[2026-03-15T23:24:30.520Z] [INFO]     1. Titre: selector="#productTitle" attr="text"
+[2026-03-15T23:24:30.520Z] [INFO]     2. URL image 1: selector="#landingImage" attr="src"
+[2026-03-15T23:24:30.520Z] [INFO]     3. Description: selector="#bookDescription_feature_div > div > div" attr="text"
+[2026-03-15T23:24:30.520Z] [INFO]     4. GTIN: selector=".detail-bullet-list" attr="innerHTML"
+[2026-03-15T23:24:30.521Z] [INFO]        🔧 Transformers (1):
+[2026-03-15T23:24:30.521Z] [INFO]     5. Pages: selector=".detail-bullet-list" attr="innerHTML"
+[2026-03-15T23:24:30.521Z] [INFO]        🔧 Transformers (1):
+[2026-03-15T23:24:30.521Z] [INFO]     6. Stock: [static] type="constant"
+[2026-03-15T23:24:30.521Z] [INFO]     7. PRIX: [static] type="constant"
+[2026-03-15T23:24:30.521Z] [INFO]        📐 Formula: {{Pages}}*0.50
+[2026-03-15T23:24:30.521Z] [INFO]     8. Référence vendeur: selector=".detail-bullet-list" attr="innerHTML"
+[2026-03-15T23:24:30.521Z] [INFO]        🔧 Transformers (1):
+[2026-03-15T23:24:30.521Z] [INFO]     9. Marque: [static] type="constant"
+[2026-03-15T23:24:30.521Z] [INFO]     🗄️ Static "Stock" = "20"
+[2026-03-15T23:24:30.521Z] [INFO]     🗄️ Static "PRIX" = ""
+[2026-03-15T23:24:30.521Z] [INFO]     🗄️ Static "Marque" = "BRANDBOOK"
+[2026-03-15T23:24:30.521Z] [INFO]   📤 Extraction fields being sent: Titre, URL image 1, Description, GTIN, Pages, Référence vendeur
+[2026-03-15T23:24:30.521Z] [INFO]      Field "GTIN" transformers: [{"type":"regex","pattern":"ISBN-13[\\s\\S]*?<span>(97[89][\\d-]+)<\\/span>","flags":"i","extractGroup":1}]
+[2026-03-15T23:24:30.521Z] [INFO]      Field "Pages" transformers: [{"type":"regex","pattern":"Print length[\\s\\S]*?<span>(\\d+)\\s*pages<\\/span>","flags":"i","extractGroup":1}]
+[2026-03-15T23:24:30.521Z] [INFO]      Field "Référence vendeur" transformers: [{"type":"regex","pattern":"ISBN-10[\\s\\S]*?<span>([\\dXx-]+)<\\/span>","flags":"i","extractGroup":1}]
+[2026-03-15T23:24:30.521Z] [INFO]   🔄 Resetting scope to document root
+[2026-03-15T23:24:30.521Z] [INFO]   📤 Sending extraction request...
+[2026-03-15T23:24:30.607Z] [INFO]     📐 Formula "PRIX": {{Pages}}*0.50 = 211
+[2026-03-15T23:24:30.607Z] [INFO]   📝 Extracted values:
+[2026-03-15T23:24:30.607Z] [INFO]     Stock: "20"
+[2026-03-15T23:24:30.607Z] [INFO]     PRIX: "211"
+[2026-03-15T23:24:30.607Z] [INFO]     Marque: "BRANDBOOK"
+[2026-03-15T23:24:30.607Z] [INFO]     Titre: "Prompt Engineering for Generative AI: Future-Proof..."
+[2026-03-15T23:24:30.607Z] [INFO]     URL image 1: "https://m.media-amazon.com/images/I/81wguvhZnpL._S..."
+[2026-03-15T23:24:30.607Z] [INFO]     Description: "Large language models (LLMs) and diffusion models ..."
+[2026-03-15T23:24:30.607Z] [INFO]     GTIN: "978-1098153434"
+[2026-03-15T23:24:30.607Z] [INFO]     Pages: "422"
+[2026-03-15T23:24:30.607Z] [INFO]     Référence vendeur: "109815343X"
+[2026-03-15T23:24:30.607Z] [SUCCESS]   ✓ Extracted row #13
+[2026-03-15T23:24:30.607Z] [INFO]   📊 Total rows collected: 13
+[2026-03-15T23:24:30.666Z] [INFO]   ⏱ Execution time: 145ms
+[2026-03-15T23:24:30.706Z] [BLOCK] ▶ Executing: Wait [Scope: div.desktop-grid-content-view[12]]
+[2026-03-15T23:24:30.706Z] [INFO]   📋 Config: {"type":"timeout","timeout":1500}
+[2026-03-15T23:24:30.706Z] [INFO]   ⏱ Wait type: timeout
+[2026-03-15T23:24:30.706Z] [INFO]   ⏳ Waiting 1500ms...
+[2026-03-15T23:24:32.210Z] [INFO]   ⏱ Execution time: 1504ms
+[2026-03-15T23:24:32.336Z] [BLOCK] ▶ Executing: Go Back [Scope: div.desktop-grid-content-view[12]]
+[2026-03-15T23:24:32.336Z] [INFO]   📋 Config: {}
+[2026-03-15T23:24:32.336Z] [INFO] ↩ Going back...
+[2026-03-15T23:24:32.336Z] [INFO]   🎯 Current tab ID: 1348410698
+[2026-03-15T23:24:32.336Z] [INFO]   🔄 Navigating to stored URL: https://www.amazon.com/s?k=O%27Reilly+Media&rh=p_n_feature_browse-bin%3A2656022011&dc&ds=v1%3AIWcf%2FeyUttEkH3Ng%2BJJCsXNoqqd8z9q327KlMHPYW%2BI&crid=2HNCF2KNH11LV&qid=1773441713&rnid=618072011&sprefix=o%27reilly+media%2Caps%2C308&ref=sr_nr_p_n_feature_browse-bin_1
+[2026-03-15T23:24:32.417Z] [INFO]   ⏳ Waiting for navigation to complete...
+[2026-03-15T23:24:33.945Z] [INFO]   ⏳ Waiting for content script to be ready...
+[2026-03-15T23:24:34.101Z] [INFO]   ⏱ Waiting 500ms for page stabilization...
+[2026-03-15T23:24:34.603Z] [INFO]   📍 Current URL after go_back: https://www.amazon.com/s?k=O%27Reilly+Media&rh=p_n_feature_browse-bin%3A2656022011&dc&ds=v1%3AIWcf%2FeyUttEkH3Ng%2BJJCsXNoqqd8z9q327KlMHPYW%2BI&crid=2HNCF2KNH11LV&qid=1773441713&rnid=618072011&sprefix=o%27reilly+media%2Caps%2C308&ref=sr_nr_p_n_feature_browse-bin_1
+[2026-03-15T23:24:34.603Z] [SUCCESS] ✓ Went back
+[2026-03-15T23:24:34.645Z] [INFO]   ⏱ Execution time: 2309ms
+[2026-03-15T23:24:34.685Z] [INFO]   ━━━ Item 14/48 ━━━
+[2026-03-15T23:24:34.685Z] [INFO]     🔍 Checking if element at index 13 exists...
+[2026-03-15T23:24:34.728Z] [INFO]     ✓ Element exists (48 total elements, check attempt 1)
+[2026-03-15T23:24:34.780Z] [BLOCK] ▶ Executing: Wait [Scope: div.desktop-grid-content-view[13]]
+[2026-03-15T23:24:34.780Z] [INFO]   📋 Config: {"type":"timeout","timeout":1000}
+[2026-03-15T23:24:34.780Z] [INFO]   ⏱ Wait type: timeout
+[2026-03-15T23:24:34.780Z] [INFO]   ⏳ Waiting 1000ms...
+[2026-03-15T23:24:35.788Z] [INFO]   ⏱ Execution time: 1008ms
+[2026-03-15T23:24:35.923Z] [BLOCK] ▶ Executing: Click [Scope: div.desktop-grid-content-view[13]]
+[2026-03-15T23:24:35.923Z] [INFO]   📋 Config: {"selector":{"type":"css","value":".a-size-base-plus","detected":{"css":".a-size-base-plus","xpath":...
+[2026-03-15T23:24:35.923Z] [INFO]   ⏱ Delay before: 1000ms
+[2026-03-15T23:24:36.925Z] [INFO]   🖱 Normal click
+[2026-03-15T23:24:36.925Z] [INFO]   🎯 Selector: .a-size-base-plus
+[2026-03-15T23:24:36.926Z] [INFO]   📌 Selector type: css
+[2026-03-15T23:24:36.926Z] [INFO]   🔍 Has scope: Yes
+[2026-03-15T23:24:37.255Z] [SUCCESS] ✓ Clicked: .a-size-base-plus
+[2026-03-15T23:24:37.562Z] [INFO]   🔀 Navigation detected after click, waiting for page load...
+[2026-03-15T23:24:39.138Z] [INFO]   ✓ Page loaded after click-triggered navigation
+[2026-03-15T23:24:39.290Z] [INFO]   ⏱ Delay after: 1000ms
+[2026-03-15T23:24:40.300Z] [INFO]   ⏱ Execution time: 4377ms
+[2026-03-15T23:24:40.438Z] [BLOCK] ▶ Executing: Wait [Scope: div.desktop-grid-content-view[13]]
+[2026-03-15T23:24:40.439Z] [INFO]   📋 Config: {"type":"dom_content_loaded","timeout":2000}
+[2026-03-15T23:24:40.439Z] [INFO]   ⏱ Wait type: dom_content_loaded
+[2026-03-15T23:24:40.439Z] [INFO]   ⏳ Waiting for DOM content loaded (2000ms)...
+[2026-03-15T23:24:40.507Z] [INFO]   ✓ Content script is ready
+[2026-03-15T23:24:41.518Z] [INFO]   ⏱ Execution time: 1078ms
+[2026-03-15T23:24:41.673Z] [BLOCK] ▶ Executing: Extract Scope [Scope: div.desktop-grid-content-view[13]]
+[2026-03-15T23:24:41.674Z] [INFO]   📋 Config: {"fields":[{"key":"Titre","selector":{"type":"css","value":"#productTitle","detected":{"css":"#produ...
+[2026-03-15T23:24:41.674Z] [INFO]   📦 Extract Scope
+[2026-03-15T23:24:41.674Z] [INFO]   📊 Fields to extract: 9
+[2026-03-15T23:24:41.674Z] [INFO]   🔄 Reset scope: Yes
+[2026-03-15T23:24:41.674Z] [INFO]   🔍 Has parent scope: Yes
+[2026-03-15T23:24:41.674Z] [INFO]     1. Titre: selector="#productTitle" attr="text"
+[2026-03-15T23:24:41.674Z] [INFO]     2. URL image 1: selector="#landingImage" attr="src"
+[2026-03-15T23:24:41.674Z] [INFO]     3. Description: selector="#bookDescription_feature_div > div > div" attr="text"
+[2026-03-15T23:24:41.674Z] [INFO]     4. GTIN: selector=".detail-bullet-list" attr="innerHTML"
+[2026-03-15T23:24:41.674Z] [INFO]        🔧 Transformers (1):
+[2026-03-15T23:24:41.674Z] [INFO]     5. Pages: selector=".detail-bullet-list" attr="innerHTML"
+[2026-03-15T23:24:41.674Z] [INFO]        🔧 Transformers (1):
+[2026-03-15T23:24:41.674Z] [INFO]     6. Stock: [static] type="constant"
+[2026-03-15T23:24:41.674Z] [INFO]     7. PRIX: [static] type="constant"
+[2026-03-15T23:24:41.674Z] [INFO]        📐 Formula: {{Pages}}*0.50
+[2026-03-15T23:24:41.674Z] [INFO]     8. Référence vendeur: selector=".detail-bullet-list" attr="innerHTML"
+[2026-03-15T23:24:41.674Z] [INFO]        🔧 Transformers (1):
+[2026-03-15T23:24:41.674Z] [INFO]     9. Marque: [static] type="constant"
+[2026-03-15T23:24:41.674Z] [INFO]     🗄️ Static "Stock" = "20"
+[2026-03-15T23:24:41.674Z] [INFO]     🗄️ Static "PRIX" = ""
+[2026-03-15T23:24:41.674Z] [INFO]     🗄️ Static "Marque" = "BRANDBOOK"
+[2026-03-15T23:24:41.674Z] [INFO]   📤 Extraction fields being sent: Titre, URL image 1, Description, GTIN, Pages, Référence vendeur
+[2026-03-15T23:24:41.674Z] [INFO]      Field "GTIN" transformers: [{"type":"regex","pattern":"ISBN-13[\\s\\S]*?<span>(97[89][\\d-]+)<\\/span>","flags":"i","extractGroup":1}]
+[2026-03-15T23:24:41.675Z] [INFO]      Field "Pages" transformers: [{"type":"regex","pattern":"Print length[\\s\\S]*?<span>(\\d+)\\s*pages<\\/span>","flags":"i","extractGroup":1}]
+[2026-03-15T23:24:41.675Z] [INFO]      Field "Référence vendeur" transformers: [{"type":"regex","pattern":"ISBN-10[\\s\\S]*?<span>([\\dXx-]+)<\\/span>","flags":"i","extractGroup":1}]
+[2026-03-15T23:24:41.675Z] [INFO]   🔄 Resetting scope to document root
+[2026-03-15T23:24:41.675Z] [INFO]   📤 Sending extraction request...
+[2026-03-15T23:24:41.757Z] [INFO]   🔄 Retry 1/3: fields [GTIN, Pages, Référence vendeur] empty (possible lazy-load), waiting 1.5s...
+[2026-03-15T23:24:43.281Z] [INFO]   🔄 Retry 2/3: fields [GTIN, Pages, Référence vendeur] empty (possible lazy-load), waiting 1.5s...
+[2026-03-15T23:24:44.792Z] [INFO]     📐 Formula "PRIX": {{Pages}}*0.50 = null
+[2026-03-15T23:24:44.793Z] [INFO]   📝 Extracted values:
+[2026-03-15T23:24:44.793Z] [INFO]     Stock: "20"
+[2026-03-15T23:24:44.793Z] [INFO]     PRIX: ""
+[2026-03-15T23:24:44.793Z] [INFO]     Marque: "BRANDBOOK"
+[2026-03-15T23:24:44.793Z] [INFO]     Titre: "Fundamentals of Software Engineering: From Coder t..."
+[2026-03-15T23:24:44.793Z] [INFO]     URL image 1: "https://m.media-amazon.com/images/I/81vKRdqcFzL._S..."
+[2026-03-15T23:24:44.793Z] [INFO]     Description: "What do you need to know to be a successful softwa..."
+[2026-03-15T23:24:44.793Z] [INFO]     GTIN: ""
+[2026-03-15T23:24:44.793Z] [INFO]     Pages: ""
+[2026-03-15T23:24:44.794Z] [INFO]     Référence vendeur: ""
+[2026-03-15T23:24:44.794Z] [SUCCESS]   ✓ Extracted row #14
+[2026-03-15T23:24:44.794Z] [INFO]   📊 Total rows collected: 14
+[2026-03-15T23:24:44.982Z] [INFO]   ⏱ Execution time: 3308ms
+[2026-03-15T23:24:45.029Z] [BLOCK] ▶ Executing: Wait [Scope: div.desktop-grid-content-view[13]]
+[2026-03-15T23:24:45.029Z] [INFO]   📋 Config: {"type":"timeout","timeout":1500}
+[2026-03-15T23:24:45.029Z] [INFO]   ⏱ Wait type: timeout
+[2026-03-15T23:24:45.029Z] [INFO]   ⏳ Waiting 1500ms...
+[2026-03-15T23:24:46.535Z] [INFO]   ⏱ Execution time: 1506ms
+[2026-03-15T23:24:46.676Z] [BLOCK] ▶ Executing: Go Back [Scope: div.desktop-grid-content-view[13]]
+[2026-03-15T23:24:46.676Z] [INFO]   📋 Config: {}
+[2026-03-15T23:24:46.676Z] [INFO] ↩ Going back...
+[2026-03-15T23:24:46.676Z] [INFO]   🎯 Current tab ID: 1348410698
+[2026-03-15T23:24:46.676Z] [INFO]   🔄 Navigating to stored URL: https://www.amazon.com/s?k=O%27Reilly+Media&rh=p_n_feature_browse-bin%3A2656022011&dc&ds=v1%3AIWcf%2FeyUttEkH3Ng%2BJJCsXNoqqd8z9q327KlMHPYW%2BI&crid=2HNCF2KNH11LV&qid=1773441713&rnid=618072011&sprefix=o%27reilly+media%2Caps%2C308&ref=sr_nr_p_n_feature_browse-bin_1
+[2026-03-15T23:24:46.749Z] [INFO]   ⏳ Waiting for navigation to complete...
+[2026-03-15T23:24:48.271Z] [INFO]   ⏳ Waiting for content script to be ready...
+[2026-03-15T23:24:48.438Z] [INFO]   ⏱ Waiting 500ms for page stabilization...
+[2026-03-15T23:24:48.943Z] [INFO]   📍 Current URL after go_back: https://www.amazon.com/s?k=O%27Reilly+Media&rh=p_n_feature_browse-bin%3A2656022011&dc&ds=v1%3AIWcf%2FeyUttEkH3Ng%2BJJCsXNoqqd8z9q327KlMHPYW%2BI&crid=2HNCF2KNH11LV&qid=1773441713&rnid=618072011&sprefix=o%27reilly+media%2Caps%2C308&ref=sr_nr_p_n_feature_browse-bin_1
+[2026-03-15T23:24:48.943Z] [SUCCESS] ✓ Went back
+[2026-03-15T23:24:49.005Z] [INFO]   ⏱ Execution time: 2329ms
+[2026-03-15T23:24:49.048Z] [INFO]   ━━━ Item 15/48 ━━━
+[2026-03-15T23:24:49.048Z] [INFO]     🔍 Checking if element at index 14 exists...
+[2026-03-15T23:24:49.096Z] [INFO]     ✓ Element exists (49 total elements, check attempt 1)
+[2026-03-15T23:24:49.138Z] [BLOCK] ▶ Executing: Wait [Scope: div.desktop-grid-content-view[14]]
+[2026-03-15T23:24:49.138Z] [INFO]   📋 Config: {"type":"timeout","timeout":1000}
+[2026-03-15T23:24:49.138Z] [INFO]   ⏱ Wait type: timeout
+[2026-03-15T23:24:49.138Z] [INFO]   ⏳ Waiting 1000ms...
+[2026-03-15T23:24:50.151Z] [INFO]   ⏱ Execution time: 1013ms
+[2026-03-15T23:24:50.289Z] [BLOCK] ▶ Executing: Click [Scope: div.desktop-grid-content-view[14]]
+[2026-03-15T23:24:50.289Z] [INFO]   📋 Config: {"selector":{"type":"css","value":".a-size-base-plus","detected":{"css":".a-size-base-plus","xpath":...
+[2026-03-15T23:24:50.289Z] [INFO]   ⏱ Delay before: 1000ms
+[2026-03-15T23:24:51.303Z] [INFO]   🖱 Normal click
+[2026-03-15T23:24:51.303Z] [INFO]   🎯 Selector: .a-size-base-plus
+[2026-03-15T23:24:51.303Z] [INFO]   📌 Selector type: css
+[2026-03-15T23:24:51.303Z] [INFO]   🔍 Has scope: Yes
+[2026-03-15T23:24:51.744Z] [SUCCESS] ✓ Clicked: .a-size-base-plus
+[2026-03-15T23:24:52.053Z] [INFO]   ⏱ Delay after: 1000ms
+[2026-03-15T23:24:53.058Z] [INFO]   ⏱ Execution time: 2768ms
+[2026-03-15T23:24:53.251Z] [BLOCK] ▶ Executing: Wait [Scope: div.desktop-grid-content-view[14]]
+[2026-03-15T23:24:53.251Z] [INFO]   📋 Config: {"type":"dom_content_loaded","timeout":2000}
+[2026-03-15T23:24:53.251Z] [INFO]   ⏱ Wait type: dom_content_loaded
+[2026-03-15T23:24:53.251Z] [INFO]   ⏳ Waiting for DOM content loaded (2000ms)...
+[2026-03-15T23:24:54.897Z] [INFO]   ✓ Content script is ready
+[2026-03-15T23:24:55.901Z] [INFO]   ⏱ Execution time: 2650ms
+[2026-03-15T23:24:56.096Z] [BLOCK] ▶ Executing: Extract Scope [Scope: div.desktop-grid-content-view[14]]
+[2026-03-15T23:24:56.097Z] [INFO]   📋 Config: {"fields":[{"key":"Titre","selector":{"type":"css","value":"#productTitle","detected":{"css":"#produ...
+[2026-03-15T23:24:56.097Z] [INFO]   📦 Extract Scope
+[2026-03-15T23:24:56.097Z] [INFO]   📊 Fields to extract: 9
+[2026-03-15T23:24:56.097Z] [INFO]   🔄 Reset scope: Yes
+[2026-03-15T23:24:56.097Z] [INFO]   🔍 Has parent scope: Yes
+[2026-03-15T23:24:56.097Z] [INFO]     1. Titre: selector="#productTitle" attr="text"
+[2026-03-15T23:24:56.097Z] [INFO]     2. URL image 1: selector="#landingImage" attr="src"
+[2026-03-15T23:24:56.097Z] [INFO]     3. Description: selector="#bookDescription_feature_div > div > div" attr="text"
+[2026-03-15T23:24:56.098Z] [INFO]     4. GTIN: selector=".detail-bullet-list" attr="innerHTML"
+[2026-03-15T23:24:56.098Z] [INFO]        🔧 Transformers (1):
+[2026-03-15T23:24:56.098Z] [INFO]     5. Pages: selector=".detail-bullet-list" attr="innerHTML"
+[2026-03-15T23:24:56.098Z] [INFO]        🔧 Transformers (1):
+[2026-03-15T23:24:56.098Z] [INFO]     6. Stock: [static] type="constant"
+[2026-03-15T23:24:56.098Z] [INFO]     7. PRIX: [static] type="constant"
+[2026-03-15T23:24:56.098Z] [INFO]        📐 Formula: {{Pages}}*0.50
+[2026-03-15T23:24:56.098Z] [INFO]     8. Référence vendeur: selector=".detail-bullet-list" attr="innerHTML"
+[2026-03-15T23:24:56.098Z] [INFO]        🔧 Transformers (1):
+[2026-03-15T23:24:56.099Z] [INFO]     9. Marque: [static] type="constant"
+[2026-03-15T23:24:56.099Z] [INFO]     🗄️ Static "Stock" = "20"
+[2026-03-15T23:24:56.099Z] [INFO]     🗄️ Static "PRIX" = ""
+[2026-03-15T23:24:56.099Z] [INFO]     🗄️ Static "Marque" = "BRANDBOOK"
+[2026-03-15T23:24:56.099Z] [INFO]   📤 Extraction fields being sent: Titre, URL image 1, Description, GTIN, Pages, Référence vendeur
+[2026-03-15T23:24:56.099Z] [INFO]      Field "GTIN" transformers: [{"type":"regex","pattern":"ISBN-13[\\s\\S]*?<span>(97[89][\\d-]+)<\\/span>","flags":"i","extractGroup":1}]
+[2026-03-15T23:24:56.099Z] [INFO]      Field "Pages" transformers: [{"type":"regex","pattern":"Print length[\\s\\S]*?<span>(\\d+)\\s*pages<\\/span>","flags":"i","extractGroup":1}]
+[2026-03-15T23:24:56.099Z] [INFO]      Field "Référence vendeur" transformers: [{"type":"regex","pattern":"ISBN-10[\\s\\S]*?<span>([\\dXx-]+)<\\/span>","flags":"i","extractGroup":1}]
+[2026-03-15T23:24:56.099Z] [INFO]   🔄 Resetting scope to document root
+[2026-03-15T23:24:56.099Z] [INFO]   📤 Sending extraction request...
+[2026-03-15T23:24:56.184Z] [INFO]     📐 Formula "PRIX": {{Pages}}*0.50 = 329
+[2026-03-15T23:24:56.184Z] [INFO]   📝 Extracted values:
+[2026-03-15T23:24:56.185Z] [INFO]     Stock: "20"
+[2026-03-15T23:24:56.185Z] [INFO]     PRIX: "329"
+[2026-03-15T23:24:56.185Z] [INFO]     Marque: "BRANDBOOK"
+[2026-03-15T23:24:56.185Z] [INFO]     Titre: "Introducing Python: Modern Computing in Simple Pac..."
+[2026-03-15T23:24:56.185Z] [INFO]     URL image 1: "https://m.media-amazon.com/images/I/81DRDTEQYRL._S..."
+[2026-03-15T23:24:56.185Z] [INFO]     Description: "Stuck in a coding conundrum? Whether you're an adv..."
+[2026-03-15T23:24:56.185Z] [INFO]     GTIN: "978-1098174408"
+[2026-03-15T23:24:56.185Z] [INFO]     Pages: "658"
+[2026-03-15T23:24:56.185Z] [INFO]     Référence vendeur: "1098174402"
+[2026-03-15T23:24:56.185Z] [SUCCESS]   ✓ Extracted row #15
+[2026-03-15T23:24:56.185Z] [INFO]   📊 Total rows collected: 15
+[2026-03-15T23:24:56.255Z] [INFO]   ⏱ Execution time: 158ms
+[2026-03-15T23:24:56.301Z] [BLOCK] ▶ Executing: Wait [Scope: div.desktop-grid-content-view[14]]
+[2026-03-15T23:24:56.301Z] [INFO]   📋 Config: {"type":"timeout","timeout":1500}
+[2026-03-15T23:24:56.301Z] [INFO]   ⏱ Wait type: timeout
+[2026-03-15T23:24:56.301Z] [INFO]   ⏳ Waiting 1500ms...
+[2026-03-15T23:24:57.816Z] [INFO]   ⏱ Execution time: 1515ms
+[2026-03-15T23:24:58.011Z] [BLOCK] ▶ Executing: Go Back [Scope: div.desktop-grid-content-view[14]]
+[2026-03-15T23:24:58.011Z] [INFO]   📋 Config: {}
+[2026-03-15T23:24:58.011Z] [INFO] ↩ Going back...
+[2026-03-15T23:24:58.011Z] [INFO]   🎯 Current tab ID: 1348410698
+[2026-03-15T23:24:58.011Z] [INFO]   🔄 Navigating to stored URL: https://www.amazon.com/s?k=O%27Reilly+Media&rh=p_n_feature_browse-bin%3A2656022011&dc&ds=v1%3AIWcf%2FeyUttEkH3Ng%2BJJCsXNoqqd8z9q327KlMHPYW%2BI&crid=2HNCF2KNH11LV&qid=1773441713&rnid=618072011&sprefix=o%27reilly+media%2Caps%2C308&ref=sr_nr_p_n_feature_browse-bin_1
+[2026-03-15T23:24:58.107Z] [INFO]   ⏳ Waiting for navigation to complete...
+[2026-03-15T23:24:59.893Z] [INFO]   ⏳ Waiting for content script to be ready...
+[2026-03-15T23:25:00.172Z] [INFO]   ⏱ Waiting 500ms for page stabilization...
+[2026-03-15T23:25:00.680Z] [INFO]   📍 Current URL after go_back: https://www.amazon.com/s?k=O%27Reilly+Media&rh=p_n_feature_browse-bin%3A2656022011&dc&ds=v1%3AIWcf%2FeyUttEkH3Ng%2BJJCsXNoqqd8z9q327KlMHPYW%2BI&crid=2HNCF2KNH11LV&qid=1773441713&rnid=618072011&sprefix=o%27reilly+media%2Caps%2C308&ref=sr_nr_p_n_feature_browse-bin_1
+[2026-03-15T23:25:00.680Z] [SUCCESS] ✓ Went back
+[2026-03-15T23:25:00.746Z] [INFO]   ⏱ Execution time: 2735ms
+[2026-03-15T23:25:00.800Z] [INFO]   ━━━ Item 16/48 ━━━
+[2026-03-15T23:25:00.800Z] [INFO]     🔍 Checking if element at index 15 exists...
+[2026-03-15T23:25:00.864Z] [INFO]     ✓ Element exists (48 total elements, check attempt 1)
+[2026-03-15T23:25:00.940Z] [BLOCK] ▶ Executing: Wait [Scope: div.desktop-grid-content-view[15]]
+[2026-03-15T23:25:00.940Z] [INFO]   📋 Config: {"type":"timeout","timeout":1000}
+[2026-03-15T23:25:00.940Z] [INFO]   ⏱ Wait type: timeout
+[2026-03-15T23:25:00.940Z] [INFO]   ⏳ Waiting 1000ms...
+[2026-03-15T23:25:01.945Z] [INFO]   ⏱ Execution time: 1004ms
+[2026-03-15T23:25:02.270Z] [BLOCK] ▶ Executing: Click [Scope: div.desktop-grid-content-view[15]]
+[2026-03-15T23:25:02.270Z] [INFO]   📋 Config: {"selector":{"type":"css","value":".a-size-base-plus","detected":{"css":".a-size-base-plus","xpath":...
+[2026-03-15T23:25:02.271Z] [INFO]   ⏱ Delay before: 1000ms
+[2026-03-15T23:25:03.275Z] [INFO]   🖱 Normal click
+[2026-03-15T23:25:03.275Z] [INFO]   🎯 Selector: .a-size-base-plus
+[2026-03-15T23:25:03.276Z] [INFO]   📌 Selector type: css
+[2026-03-15T23:25:03.276Z] [INFO]   🔍 Has scope: Yes
+[2026-03-15T23:25:03.649Z] [SUCCESS] ✓ Clicked: .a-size-base-plus
+[2026-03-15T23:25:03.962Z] [INFO]   ⏱ Delay after: 1000ms
+[2026-03-15T23:25:04.970Z] [INFO]   ⏱ Execution time: 2699ms
+[2026-03-15T23:25:05.168Z] [BLOCK] ▶ Executing: Wait [Scope: div.desktop-grid-content-view[15]]
+[2026-03-15T23:25:05.168Z] [INFO]   📋 Config: {"type":"dom_content_loaded","timeout":2000}
+[2026-03-15T23:25:05.168Z] [INFO]   ⏱ Wait type: dom_content_loaded
+[2026-03-15T23:25:05.168Z] [INFO]   ⏳ Waiting for DOM content loaded (2000ms)...
+[2026-03-15T23:25:06.764Z] [INFO]   ✓ Content script is ready
+[2026-03-15T23:25:07.773Z] [INFO]   ⏱ Execution time: 2605ms
+[2026-03-15T23:25:07.911Z] [BLOCK] ▶ Executing: Extract Scope [Scope: div.desktop-grid-content-view[15]]
+[2026-03-15T23:25:07.911Z] [INFO]   📋 Config: {"fields":[{"key":"Titre","selector":{"type":"css","value":"#productTitle","detected":{"css":"#produ...
+[2026-03-15T23:25:07.911Z] [INFO]   📦 Extract Scope
+[2026-03-15T23:25:07.911Z] [INFO]   📊 Fields to extract: 9
+[2026-03-15T23:25:07.911Z] [INFO]   🔄 Reset scope: Yes
+[2026-03-15T23:25:07.911Z] [INFO]   🔍 Has parent scope: Yes
+[2026-03-15T23:25:07.911Z] [INFO]     1. Titre: selector="#productTitle" attr="text"
+[2026-03-15T23:25:07.911Z] [INFO]     2. URL image 1: selector="#landingImage" attr="src"
+[2026-03-15T23:25:07.911Z] [INFO]     3. Description: selector="#bookDescription_feature_div > div > div" attr="text"
+[2026-03-15T23:25:07.911Z] [INFO]     4. GTIN: selector=".detail-bullet-list" attr="innerHTML"
+[2026-03-15T23:25:07.911Z] [INFO]        🔧 Transformers (1):
+[2026-03-15T23:25:07.911Z] [INFO]     5. Pages: selector=".detail-bullet-list" attr="innerHTML"
+[2026-03-15T23:25:07.911Z] [INFO]        🔧 Transformers (1):
+[2026-03-15T23:25:07.911Z] [INFO]     6. Stock: [static] type="constant"
+[2026-03-15T23:25:07.911Z] [INFO]     7. PRIX: [static] type="constant"
+[2026-03-15T23:25:07.911Z] [INFO]        📐 Formula: {{Pages}}*0.50
+[2026-03-15T23:25:07.911Z] [INFO]     8. Référence vendeur: selector=".detail-bullet-list" attr="innerHTML"
+[2026-03-15T23:25:07.911Z] [INFO]        🔧 Transformers (1):
+[2026-03-15T23:25:07.911Z] [INFO]     9. Marque: [static] type="constant"
+[2026-03-15T23:25:07.911Z] [INFO]     🗄️ Static "Stock" = "20"
+[2026-03-15T23:25:07.911Z] [INFO]     🗄️ Static "PRIX" = ""
+[2026-03-15T23:25:07.911Z] [INFO]     🗄️ Static "Marque" = "BRANDBOOK"
+[2026-03-15T23:25:07.911Z] [INFO]   📤 Extraction fields being sent: Titre, URL image 1, Description, GTIN, Pages, Référence vendeur
+[2026-03-15T23:25:07.911Z] [INFO]      Field "GTIN" transformers: [{"type":"regex","pattern":"ISBN-13[\\s\\S]*?<span>(97[89][\\d-]+)<\\/span>","flags":"i","extractGroup":1}]
+[2026-03-15T23:25:07.911Z] [INFO]      Field "Pages" transformers: [{"type":"regex","pattern":"Print length[\\s\\S]*?<span>(\\d+)\\s*pages<\\/span>","flags":"i","extractGroup":1}]
+[2026-03-15T23:25:07.912Z] [INFO]      Field "Référence vendeur" transformers: [{"type":"regex","pattern":"ISBN-10[\\s\\S]*?<span>([\\dXx-]+)<\\/span>","flags":"i","extractGroup":1}]
+[2026-03-15T23:25:07.912Z] [INFO]   🔄 Resetting scope to document root
+[2026-03-15T23:25:07.912Z] [INFO]   📤 Sending extraction request...
+[2026-03-15T23:25:07.977Z] [INFO]     📐 Formula "PRIX": {{Pages}}*0.50 = 186
+[2026-03-15T23:25:07.977Z] [INFO]   📝 Extracted values:
+[2026-03-15T23:25:07.978Z] [INFO]     Stock: "20"
+[2026-03-15T23:25:07.978Z] [INFO]     PRIX: "186"
+[2026-03-15T23:25:07.978Z] [INFO]     Marque: "BRANDBOOK"
+[2026-03-15T23:25:07.978Z] [INFO]     Titre: "Data Engineering Design Patterns: Recipes for Solv..."
+[2026-03-15T23:25:07.978Z] [INFO]     URL image 1: "https://m.media-amazon.com/images/I/81EYIj3lFYL._S..."
+[2026-03-15T23:25:07.978Z] [INFO]     Description: "Data projects are an intrinsic part of an organiza..."
+[2026-03-15T23:25:07.978Z] [INFO]     GTIN: "978-1098165819"
+[2026-03-15T23:25:07.978Z] [INFO]     Pages: "372"
+[2026-03-15T23:25:07.978Z] [INFO]     Référence vendeur: "1098165810"
+[2026-03-15T23:25:07.978Z] [SUCCESS]   ✓ Extracted row #16
+[2026-03-15T23:25:07.978Z] [INFO]   📊 Total rows collected: 16
+[2026-03-15T23:25:08.060Z] [INFO]   ⏱ Execution time: 149ms
+[2026-03-15T23:25:08.111Z] [BLOCK] ▶ Executing: Wait [Scope: div.desktop-grid-content-view[15]]
+[2026-03-15T23:25:08.111Z] [INFO]   📋 Config: {"type":"timeout","timeout":1500}
+[2026-03-15T23:25:08.111Z] [INFO]   ⏱ Wait type: timeout
+[2026-03-15T23:25:08.111Z] [INFO]   ⏳ Waiting 1500ms...
+[2026-03-15T23:25:09.613Z] [INFO]   ⏱ Execution time: 1502ms
+[2026-03-15T23:25:09.773Z] [BLOCK] ▶ Executing: Go Back [Scope: div.desktop-grid-content-view[15]]
+[2026-03-15T23:25:09.773Z] [INFO]   📋 Config: {}
+[2026-03-15T23:25:09.773Z] [INFO] ↩ Going back...
+[2026-03-15T23:25:09.773Z] [INFO]   🎯 Current tab ID: 1348410698
+[2026-03-15T23:25:09.773Z] [INFO]   🔄 Navigating to stored URL: https://www.amazon.com/s?k=O%27Reilly+Media&rh=p_n_feature_browse-bin%3A2656022011&dc&ds=v1%3AIWcf%2FeyUttEkH3Ng%2BJJCsXNoqqd8z9q327KlMHPYW%2BI&crid=2HNCF2KNH11LV&qid=1773441713&rnid=618072011&sprefix=o%27reilly+media%2Caps%2C308&ref=sr_nr_p_n_feature_browse-bin_1
+[2026-03-15T23:25:09.855Z] [INFO]   ⏳ Waiting for navigation to complete...
+[2026-03-15T23:25:11.590Z] [INFO]   ⏳ Waiting for content script to be ready...
+[2026-03-15T23:25:11.889Z] [INFO]   ⏱ Waiting 500ms for page stabilization...
+[2026-03-15T23:25:12.392Z] [INFO]   📍 Current URL after go_back: https://www.amazon.com/s?k=O%27Reilly+Media&rh=p_n_feature_browse-bin%3A2656022011&dc&ds=v1%3AIWcf%2FeyUttEkH3Ng%2BJJCsXNoqqd8z9q327KlMHPYW%2BI&crid=2HNCF2KNH11LV&qid=1773441713&rnid=618072011&sprefix=o%27reilly+media%2Caps%2C308&ref=sr_nr_p_n_feature_browse-bin_1
+[2026-03-15T23:25:12.392Z] [SUCCESS] ✓ Went back
+[2026-03-15T23:25:12.446Z] [INFO]   ⏱ Execution time: 2673ms
+[2026-03-15T23:25:12.506Z] [INFO]   ━━━ Item 17/48 ━━━
+[2026-03-15T23:25:12.506Z] [INFO]     🔍 Checking if element at index 16 exists...
+[2026-03-15T23:25:12.562Z] [INFO]     ✓ Element exists (48 total elements, check attempt 1)
+[2026-03-15T23:25:12.640Z] [BLOCK] ▶ Executing: Wait [Scope: div.desktop-grid-content-view[16]]
+[2026-03-15T23:25:12.641Z] [INFO]   📋 Config: {"type":"timeout","timeout":1000}
+[2026-03-15T23:25:12.641Z] [INFO]   ⏱ Wait type: timeout
+[2026-03-15T23:25:12.641Z] [INFO]   ⏳ Waiting 1000ms...
+[2026-03-15T23:25:13.644Z] [INFO]   ⏱ Execution time: 1002ms
+[2026-03-15T23:25:13.804Z] [BLOCK] ▶ Executing: Click [Scope: div.desktop-grid-content-view[16]]
+[2026-03-15T23:25:13.805Z] [INFO]   📋 Config: {"selector":{"type":"css","value":".a-size-base-plus","detected":{"css":".a-size-base-plus","xpath":...
+[2026-03-15T23:25:13.805Z] [INFO]   ⏱ Delay before: 1000ms
+[2026-03-15T23:25:14.812Z] [INFO]   🖱 Normal click
+[2026-03-15T23:25:14.812Z] [INFO]   🎯 Selector: .a-size-base-plus
+[2026-03-15T23:25:14.812Z] [INFO]   📌 Selector type: css
+[2026-03-15T23:25:14.812Z] [INFO]   🔍 Has scope: Yes
+[2026-03-15T23:25:15.202Z] [SUCCESS] ✓ Clicked: .a-size-base-plus
+[2026-03-15T23:25:15.524Z] [INFO]   🔀 URL changed after click, waiting for content script...
+[2026-03-15T23:25:17.937Z] [INFO]   ✓ Content script ready after navigation
+[2026-03-15T23:25:18.166Z] [INFO]   ⏱ Delay after: 1000ms
+[2026-03-15T23:25:19.169Z] [INFO]   ⏱ Execution time: 5364ms
+[2026-03-15T23:25:19.340Z] [BLOCK] ▶ Executing: Wait [Scope: div.desktop-grid-content-view[16]]
+[2026-03-15T23:25:19.340Z] [INFO]   📋 Config: {"type":"dom_content_loaded","timeout":2000}
+[2026-03-15T23:25:19.340Z] [INFO]   ⏱ Wait type: dom_content_loaded
+[2026-03-15T23:25:19.340Z] [INFO]   ⏳ Waiting for DOM content loaded (2000ms)...
+[2026-03-15T23:25:19.408Z] [INFO]   ✓ Content script is ready
+[2026-03-15T23:25:20.409Z] [INFO]   ⏱ Execution time: 1069ms
+[2026-03-15T23:25:20.567Z] [BLOCK] ▶ Executing: Extract Scope [Scope: div.desktop-grid-content-view[16]]
+[2026-03-15T23:25:20.567Z] [INFO]   📋 Config: {"fields":[{"key":"Titre","selector":{"type":"css","value":"#productTitle","detected":{"css":"#produ...
+[2026-03-15T23:25:20.567Z] [INFO]   📦 Extract Scope
+[2026-03-15T23:25:20.567Z] [INFO]   📊 Fields to extract: 9
+[2026-03-15T23:25:20.567Z] [INFO]   🔄 Reset scope: Yes
+[2026-03-15T23:25:20.567Z] [INFO]   🔍 Has parent scope: Yes
+[2026-03-15T23:25:20.567Z] [INFO]     1. Titre: selector="#productTitle" attr="text"
+[2026-03-15T23:25:20.567Z] [INFO]     2. URL image 1: selector="#landingImage" attr="src"
+[2026-03-15T23:25:20.567Z] [INFO]     3. Description: selector="#bookDescription_feature_div > div > div" attr="text"
+[2026-03-15T23:25:20.567Z] [INFO]     4. GTIN: selector=".detail-bullet-list" attr="innerHTML"
+[2026-03-15T23:25:20.567Z] [INFO]        🔧 Transformers (1):
+[2026-03-15T23:25:20.567Z] [INFO]     5. Pages: selector=".detail-bullet-list" attr="innerHTML"
+[2026-03-15T23:25:20.567Z] [INFO]        🔧 Transformers (1):
+[2026-03-15T23:25:20.567Z] [INFO]     6. Stock: [static] type="constant"
+[2026-03-15T23:25:20.567Z] [INFO]     7. PRIX: [static] type="constant"
+[2026-03-15T23:25:20.567Z] [INFO]        📐 Formula: {{Pages}}*0.50
+[2026-03-15T23:25:20.567Z] [INFO]     8. Référence vendeur: selector=".detail-bullet-list" attr="innerHTML"
+[2026-03-15T23:25:20.567Z] [INFO]        🔧 Transformers (1):
+[2026-03-15T23:25:20.567Z] [INFO]     9. Marque: [static] type="constant"
+[2026-03-15T23:25:20.568Z] [INFO]     🗄️ Static "Stock" = "20"
+[2026-03-15T23:25:20.568Z] [INFO]     🗄️ Static "PRIX" = ""
+[2026-03-15T23:25:20.568Z] [INFO]     🗄️ Static "Marque" = "BRANDBOOK"
+[2026-03-15T23:25:20.568Z] [INFO]   📤 Extraction fields being sent: Titre, URL image 1, Description, GTIN, Pages, Référence vendeur
+[2026-03-15T23:25:20.568Z] [INFO]      Field "GTIN" transformers: [{"type":"regex","pattern":"ISBN-13[\\s\\S]*?<span>(97[89][\\d-]+)<\\/span>","flags":"i","extractGroup":1}]
+[2026-03-15T23:25:20.568Z] [INFO]      Field "Pages" transformers: [{"type":"regex","pattern":"Print length[\\s\\S]*?<span>(\\d+)\\s*pages<\\/span>","flags":"i","extractGroup":1}]
+[2026-03-15T23:25:20.568Z] [INFO]      Field "Référence vendeur" transformers: [{"type":"regex","pattern":"ISBN-10[\\s\\S]*?<span>([\\dXx-]+)<\\/span>","flags":"i","extractGroup":1}]
+[2026-03-15T23:25:20.568Z] [INFO]   🔄 Resetting scope to document root
+[2026-03-15T23:25:20.568Z] [INFO]   📤 Sending extraction request...
+[2026-03-15T23:25:20.631Z] [INFO]     📐 Formula "PRIX": {{Pages}}*0.50 = 289.5
+[2026-03-15T23:25:20.631Z] [INFO]   📝 Extracted values:
+[2026-03-15T23:25:20.631Z] [INFO]     Stock: "20"
+[2026-03-15T23:25:20.631Z] [INFO]     PRIX: "289.5"
+[2026-03-15T23:25:20.631Z] [INFO]     Marque: "BRANDBOOK"
+[2026-03-15T23:25:20.631Z] [INFO]     Titre: "Python for Data Analysis: Data Wrangling with pand..."
+[2026-03-15T23:25:20.631Z] [INFO]     URL image 1: "https://m.media-amazon.com/images/I/91QBEYSpnLL._S..."
+[2026-03-15T23:25:20.631Z] [INFO]     Description: "Get the definitive handbook for manipulating, proc..."
+[2026-03-15T23:25:20.631Z] [INFO]     GTIN: "978-1098104030"
+[2026-03-15T23:25:20.631Z] [INFO]     Pages: "579"
+[2026-03-15T23:25:20.631Z] [INFO]     Référence vendeur: "109810403X"
+[2026-03-15T23:25:20.631Z] [SUCCESS]   ✓ Extracted row #17
+[2026-03-15T23:25:20.631Z] [INFO]   📊 Total rows collected: 17
+[2026-03-15T23:25:20.717Z] [INFO]   ⏱ Execution time: 150ms
+[2026-03-15T23:25:20.760Z] [BLOCK] ▶ Executing: Wait [Scope: div.desktop-grid-content-view[16]]
+[2026-03-15T23:25:20.760Z] [INFO]   📋 Config: {"type":"timeout","timeout":1500}
+[2026-03-15T23:25:20.760Z] [INFO]   ⏱ Wait type: timeout
+[2026-03-15T23:25:20.760Z] [INFO]   ⏳ Waiting 1500ms...
+[2026-03-15T23:25:22.264Z] [INFO]   ⏱ Execution time: 1503ms
+[2026-03-15T23:25:22.420Z] [BLOCK] ▶ Executing: Go Back [Scope: div.desktop-grid-content-view[16]]
+[2026-03-15T23:25:22.420Z] [INFO]   📋 Config: {}
+[2026-03-15T23:25:22.420Z] [INFO] ↩ Going back...
+[2026-03-15T23:25:22.420Z] [INFO]   🎯 Current tab ID: 1348410698
+[2026-03-15T23:25:22.420Z] [INFO]   🔄 Navigating to stored URL: https://www.amazon.com/s?k=O%27Reilly+Media&rh=p_n_feature_browse-bin%3A2656022011&dc&ds=v1%3AIWcf%2FeyUttEkH3Ng%2BJJCsXNoqqd8z9q327KlMHPYW%2BI&crid=2HNCF2KNH11LV&qid=1773441713&rnid=618072011&sprefix=o%27reilly+media%2Caps%2C308&ref=sr_nr_p_n_feature_browse-bin_1
+[2026-03-15T23:25:22.497Z] [INFO]   ⏳ Waiting for navigation to complete...
+[2026-03-15T23:25:24.012Z] [INFO]   ⏳ Waiting for content script to be ready...
+[2026-03-15T23:25:24.182Z] [INFO]   ⏱ Waiting 500ms for page stabilization...
+[2026-03-15T23:25:24.684Z] [INFO]   📍 Current URL after go_back: https://www.amazon.com/s?k=O%27Reilly+Media&rh=p_n_feature_browse-bin%3A2656022011&dc&ds=v1%3AIWcf%2FeyUttEkH3Ng%2BJJCsXNoqqd8z9q327KlMHPYW%2BI&crid=2HNCF2KNH11LV&qid=1773441713&rnid=618072011&sprefix=o%27reilly+media%2Caps%2C308&ref=sr_nr_p_n_feature_browse-bin_1
+[2026-03-15T23:25:24.684Z] [SUCCESS] ✓ Went back
+[2026-03-15T23:25:24.728Z] [INFO]   ⏱ Execution time: 2308ms
+[2026-03-15T23:25:24.772Z] [INFO]   ━━━ Item 18/48 ━━━
+[2026-03-15T23:25:24.772Z] [INFO]     🔍 Checking if element at index 17 exists...
+[2026-03-15T23:25:24.818Z] [INFO]     ✓ Element exists (48 total elements, check attempt 1)
+[2026-03-15T23:25:24.867Z] [BLOCK] ▶ Executing: Wait [Scope: div.desktop-grid-content-view[17]]
+[2026-03-15T23:25:24.868Z] [INFO]   📋 Config: {"type":"timeout","timeout":1000}
+[2026-03-15T23:25:24.868Z] [INFO]   ⏱ Wait type: timeout
+[2026-03-15T23:25:24.868Z] [INFO]   ⏳ Waiting 1000ms...
+[2026-03-15T23:25:25.868Z] [INFO]   ⏱ Execution time: 1000ms
+[2026-03-15T23:25:26.018Z] [BLOCK] ▶ Executing: Click [Scope: div.desktop-grid-content-view[17]]
+[2026-03-15T23:25:26.018Z] [INFO]   📋 Config: {"selector":{"type":"css","value":".a-size-base-plus","detected":{"css":".a-size-base-plus","xpath":...
+[2026-03-15T23:25:26.018Z] [INFO]   ⏱ Delay before: 1000ms
+[2026-03-15T23:25:27.024Z] [INFO]   🖱 Normal click
+[2026-03-15T23:25:27.024Z] [INFO]   🎯 Selector: .a-size-base-plus
+[2026-03-15T23:25:27.024Z] [INFO]   📌 Selector type: css
+[2026-03-15T23:25:27.024Z] [INFO]   🔍 Has scope: Yes
+[2026-03-15T23:25:27.387Z] [SUCCESS] ✓ Clicked: .a-size-base-plus
+[2026-03-15T23:25:27.691Z] [INFO]   ⏱ Delay after: 1000ms
+[2026-03-15T23:25:28.692Z] [INFO]   ⏱ Execution time: 2674ms
+[2026-03-15T23:25:28.862Z] [BLOCK] ▶ Executing: Wait [Scope: div.desktop-grid-content-view[17]]
+[2026-03-15T23:25:28.862Z] [INFO]   📋 Config: {"type":"dom_content_loaded","timeout":2000}
+[2026-03-15T23:25:28.862Z] [INFO]   ⏱ Wait type: dom_content_loaded
+[2026-03-15T23:25:28.862Z] [INFO]   ⏳ Waiting for DOM content loaded (2000ms)...
+[2026-03-15T23:25:30.512Z] [INFO]   ✓ Content script is ready
+[2026-03-15T23:25:31.519Z] [INFO]   ⏱ Execution time: 2657ms
+[2026-03-15T23:25:31.740Z] [BLOCK] ▶ Executing: Extract Scope [Scope: div.desktop-grid-content-view[17]]
+[2026-03-15T23:25:31.740Z] [INFO]   📋 Config: {"fields":[{"key":"Titre","selector":{"type":"css","value":"#productTitle","detected":{"css":"#produ...
+[2026-03-15T23:25:31.740Z] [INFO]   📦 Extract Scope
+[2026-03-15T23:25:31.740Z] [INFO]   📊 Fields to extract: 9
+[2026-03-15T23:25:31.740Z] [INFO]   🔄 Reset scope: Yes
+[2026-03-15T23:25:31.740Z] [INFO]   🔍 Has parent scope: Yes
+[2026-03-15T23:25:31.741Z] [INFO]     1. Titre: selector="#productTitle" attr="text"
+[2026-03-15T23:25:31.741Z] [INFO]     2. URL image 1: selector="#landingImage" attr="src"
+[2026-03-15T23:25:31.741Z] [INFO]     3. Description: selector="#bookDescription_feature_div > div > div" attr="text"
+[2026-03-15T23:25:31.741Z] [INFO]     4. GTIN: selector=".detail-bullet-list" attr="innerHTML"
+[2026-03-15T23:25:31.741Z] [INFO]        🔧 Transformers (1):
+[2026-03-15T23:25:31.741Z] [INFO]     5. Pages: selector=".detail-bullet-list" attr="innerHTML"
+[2026-03-15T23:25:31.741Z] [INFO]        🔧 Transformers (1):
+[2026-03-15T23:25:31.741Z] [INFO]     6. Stock: [static] type="constant"
+[2026-03-15T23:25:31.741Z] [INFO]     7. PRIX: [static] type="constant"
+[2026-03-15T23:25:31.741Z] [INFO]        📐 Formula: {{Pages}}*0.50
+[2026-03-15T23:25:31.741Z] [INFO]     8. Référence vendeur: selector=".detail-bullet-list" attr="innerHTML"
+[2026-03-15T23:25:31.741Z] [INFO]        🔧 Transformers (1):
+[2026-03-15T23:25:31.741Z] [INFO]     9. Marque: [static] type="constant"
+[2026-03-15T23:25:31.741Z] [INFO]     🗄️ Static "Stock" = "20"
+[2026-03-15T23:25:31.741Z] [INFO]     🗄️ Static "PRIX" = ""
+[2026-03-15T23:25:31.741Z] [INFO]     🗄️ Static "Marque" = "BRANDBOOK"
+[2026-03-15T23:25:31.741Z] [INFO]   📤 Extraction fields being sent: Titre, URL image 1, Description, GTIN, Pages, Référence vendeur
+[2026-03-15T23:25:31.741Z] [INFO]      Field "GTIN" transformers: [{"type":"regex","pattern":"ISBN-13[\\s\\S]*?<span>(97[89][\\d-]+)<\\/span>","flags":"i","extractGroup":1}]
+[2026-03-15T23:25:31.741Z] [INFO]      Field "Pages" transformers: [{"type":"regex","pattern":"Print length[\\s\\S]*?<span>(\\d+)\\s*pages<\\/span>","flags":"i","extractGroup":1}]
+[2026-03-15T23:25:31.741Z] [INFO]      Field "Référence vendeur" transformers: [{"type":"regex","pattern":"ISBN-10[\\s\\S]*?<span>([\\dXx-]+)<\\/span>","flags":"i","extractGroup":1}]
+[2026-03-15T23:25:31.741Z] [INFO]   🔄 Resetting scope to document root
+[2026-03-15T23:25:31.741Z] [INFO]   📤 Sending extraction request...
+[2026-03-15T23:25:31.820Z] [INFO]   🔄 Retry 1/3: fields [Référence vendeur] empty (possible lazy-load), waiting 1.5s...
+[2026-03-15T23:25:33.327Z] [INFO]   🔄 Retry 2/3: fields [Référence vendeur] empty (possible lazy-load), waiting 1.5s...
+[2026-03-15T23:25:34.846Z] [INFO]     📐 Formula "PRIX": {{Pages}}*0.50 = 230.5
+[2026-03-15T23:25:34.846Z] [INFO]   📝 Extracted values:
+[2026-03-15T23:25:34.846Z] [INFO]     Stock: "20"
+[2026-03-15T23:25:34.847Z] [INFO]     PRIX: "230.5"
+[2026-03-15T23:25:34.847Z] [INFO]     Marque: "BRANDBOOK"
+[2026-03-15T23:25:34.847Z] [INFO]     Titre: "Domain-Driven Transformation: Modernize Legacy Sys..."
+[2026-03-15T23:25:34.847Z] [INFO]     URL image 1: "https://m.media-amazon.com/images/I/81h2hIu2mUL._S..."
+[2026-03-15T23:25:34.847Z] [INFO]     Description: "To prepare legacy software for the future, it's es..."
+[2026-03-15T23:25:34.847Z] [INFO]     GTIN: "979-8341640122"
+[2026-03-15T23:25:34.847Z] [INFO]     Pages: "461"
+[2026-03-15T23:25:34.847Z] [INFO]     Référence vendeur: ""
+[2026-03-15T23:25:34.847Z] [SUCCESS]   ✓ Extracted row #18
+[2026-03-15T23:25:34.847Z] [INFO]   📊 Total rows collected: 18
+[2026-03-15T23:25:35.030Z] [INFO]   ⏱ Execution time: 3290ms
+[2026-03-15T23:25:35.087Z] [BLOCK] ▶ Executing: Wait [Scope: div.desktop-grid-content-view[17]]
+[2026-03-15T23:25:35.087Z] [INFO]   📋 Config: {"type":"timeout","timeout":1500}
+[2026-03-15T23:25:35.087Z] [INFO]   ⏱ Wait type: timeout
+[2026-03-15T23:25:35.087Z] [INFO]   ⏳ Waiting 1500ms...
+[2026-03-15T23:25:36.589Z] [INFO]   ⏱ Execution time: 1502ms
+[2026-03-15T23:25:36.783Z] [BLOCK] ▶ Executing: Go Back [Scope: div.desktop-grid-content-view[17]]
+[2026-03-15T23:25:36.783Z] [INFO]   📋 Config: {}
+[2026-03-15T23:25:36.783Z] [INFO] ↩ Going back...
+[2026-03-15T23:25:36.783Z] [INFO]   🎯 Current tab ID: 1348410698
+[2026-03-15T23:25:36.783Z] [INFO]   🔄 Navigating to stored URL: https://www.amazon.com/s?k=O%27Reilly+Media&rh=p_n_feature_browse-bin%3A2656022011&dc&ds=v1%3AIWcf%2FeyUttEkH3Ng%2BJJCsXNoqqd8z9q327KlMHPYW%2BI&crid=2HNCF2KNH11LV&qid=1773441713&rnid=618072011&sprefix=o%27reilly+media%2Caps%2C308&ref=sr_nr_p_n_feature_browse-bin_1
+[2026-03-15T23:25:36.857Z] [INFO]   ⏳ Waiting for navigation to complete...
+[2026-03-15T23:25:38.433Z] [INFO]   ⏳ Waiting for content script to be ready...
+[2026-03-15T23:25:38.615Z] [INFO]   ⏱ Waiting 500ms for page stabilization...
+[2026-03-15T23:25:39.121Z] [INFO]   📍 Current URL after go_back: https://www.amazon.com/s?k=O%27Reilly+Media&rh=p_n_feature_browse-bin%3A2656022011&dc&ds=v1%3AIWcf%2FeyUttEkH3Ng%2BJJCsXNoqqd8z9q327KlMHPYW%2BI&crid=2HNCF2KNH11LV&qid=1773441713&rnid=618072011&sprefix=o%27reilly+media%2Caps%2C308&ref=sr_nr_p_n_feature_browse-bin_1
+[2026-03-15T23:25:39.121Z] [SUCCESS] ✓ Went back
+[2026-03-15T23:25:39.167Z] [INFO]   ⏱ Execution time: 2384ms
+[2026-03-15T23:25:39.214Z] [INFO]   ━━━ Item 19/48 ━━━
+[2026-03-15T23:25:39.214Z] [INFO]     🔍 Checking if element at index 18 exists...
+[2026-03-15T23:25:39.268Z] [INFO]     ✓ Element exists (48 total elements, check attempt 1)
+[2026-03-15T23:25:39.320Z] [BLOCK] ▶ Executing: Wait [Scope: div.desktop-grid-content-view[18]]
+[2026-03-15T23:25:39.320Z] [INFO]   📋 Config: {"type":"timeout","timeout":1000}
+[2026-03-15T23:25:39.320Z] [INFO]   ⏱ Wait type: timeout
+[2026-03-15T23:25:39.320Z] [INFO]   ⏳ Waiting 1000ms...
+[2026-03-15T23:25:40.334Z] [INFO]   ⏱ Execution time: 1014ms
+[2026-03-15T23:25:40.510Z] [BLOCK] ▶ Executing: Click [Scope: div.desktop-grid-content-view[18]]
+[2026-03-15T23:25:40.510Z] [INFO]   📋 Config: {"selector":{"type":"css","value":".a-size-base-plus","detected":{"css":".a-size-base-plus","xpath":...
+[2026-03-15T23:25:40.511Z] [INFO]   ⏱ Delay before: 1000ms
+[2026-03-15T23:25:41.516Z] [INFO]   🖱 Normal click
+[2026-03-15T23:25:41.517Z] [INFO]   🎯 Selector: .a-size-base-plus
+[2026-03-15T23:25:41.517Z] [INFO]   📌 Selector type: css
+[2026-03-15T23:25:41.517Z] [INFO]   🔍 Has scope: Yes
+[2026-03-15T23:25:41.892Z] [SUCCESS] ✓ Clicked: .a-size-base-plus
+[2026-03-15T23:25:42.193Z] [INFO]   🔀 Navigation detected after click, waiting for page load...
+[2026-03-15T23:25:44.955Z] [INFO]   ✓ Page loaded after click-triggered navigation
+[2026-03-15T23:25:45.157Z] [INFO]   ⏱ Delay after: 1000ms
+[2026-03-15T23:25:46.164Z] [INFO]   ⏱ Execution time: 5654ms
+[2026-03-15T23:25:46.353Z] [BLOCK] ▶ Executing: Wait [Scope: div.desktop-grid-content-view[18]]
+[2026-03-15T23:25:46.353Z] [INFO]   📋 Config: {"type":"dom_content_loaded","timeout":2000}
+[2026-03-15T23:25:46.353Z] [INFO]   ⏱ Wait type: dom_content_loaded
+[2026-03-15T23:25:46.353Z] [INFO]   ⏳ Waiting for DOM content loaded (2000ms)...
+[2026-03-15T23:25:46.439Z] [INFO]   ✓ Content script is ready
+[2026-03-15T23:25:47.445Z] [INFO]   ⏱ Execution time: 1092ms
+[2026-03-15T23:25:47.607Z] [BLOCK] ▶ Executing: Extract Scope [Scope: div.desktop-grid-content-view[18]]
+[2026-03-15T23:25:47.607Z] [INFO]   📋 Config: {"fields":[{"key":"Titre","selector":{"type":"css","value":"#productTitle","detected":{"css":"#produ...
+[2026-03-15T23:25:47.607Z] [INFO]   📦 Extract Scope
+[2026-03-15T23:25:47.607Z] [INFO]   📊 Fields to extract: 9
+[2026-03-15T23:25:47.607Z] [INFO]   🔄 Reset scope: Yes
+[2026-03-15T23:25:47.607Z] [INFO]   🔍 Has parent scope: Yes
+[2026-03-15T23:25:47.607Z] [INFO]     1. Titre: selector="#productTitle" attr="text"
+[2026-03-15T23:25:47.607Z] [INFO]     2. URL image 1: selector="#landingImage" attr="src"
+[2026-03-15T23:25:47.607Z] [INFO]     3. Description: selector="#bookDescription_feature_div > div > div" attr="text"
+[2026-03-15T23:25:47.607Z] [INFO]     4. GTIN: selector=".detail-bullet-list" attr="innerHTML"
+[2026-03-15T23:25:47.607Z] [INFO]        🔧 Transformers (1):
+[2026-03-15T23:25:47.607Z] [INFO]     5. Pages: selector=".detail-bullet-list" attr="innerHTML"
+[2026-03-15T23:25:47.607Z] [INFO]        🔧 Transformers (1):
+[2026-03-15T23:25:47.607Z] [INFO]     6. Stock: [static] type="constant"
+[2026-03-15T23:25:47.607Z] [INFO]     7. PRIX: [static] type="constant"
+[2026-03-15T23:25:47.608Z] [INFO]        📐 Formula: {{Pages}}*0.50
+[2026-03-15T23:25:47.608Z] [INFO]     8. Référence vendeur: selector=".detail-bullet-list" attr="innerHTML"
+[2026-03-15T23:25:47.608Z] [INFO]        🔧 Transformers (1):
+[2026-03-15T23:25:47.608Z] [INFO]     9. Marque: [static] type="constant"
+[2026-03-15T23:25:47.608Z] [INFO]     🗄️ Static "Stock" = "20"
+[2026-03-15T23:25:47.608Z] [INFO]     🗄️ Static "PRIX" = ""
+[2026-03-15T23:25:47.608Z] [INFO]     🗄️ Static "Marque" = "BRANDBOOK"
+[2026-03-15T23:25:47.608Z] [INFO]   📤 Extraction fields being sent: Titre, URL image 1, Description, GTIN, Pages, Référence vendeur
+[2026-03-15T23:25:47.608Z] [INFO]      Field "GTIN" transformers: [{"type":"regex","pattern":"ISBN-13[\\s\\S]*?<span>(97[89][\\d-]+)<\\/span>","flags":"i","extractGroup":1}]
+[2026-03-15T23:25:47.608Z] [INFO]      Field "Pages" transformers: [{"type":"regex","pattern":"Print length[\\s\\S]*?<span>(\\d+)\\s*pages<\\/span>","flags":"i","extractGroup":1}]
+[2026-03-15T23:25:47.608Z] [INFO]      Field "Référence vendeur" transformers: [{"type":"regex","pattern":"ISBN-10[\\s\\S]*?<span>([\\dXx-]+)<\\/span>","flags":"i","extractGroup":1}]
+[2026-03-15T23:25:47.608Z] [INFO]   🔄 Resetting scope to document root
+[2026-03-15T23:25:47.608Z] [INFO]   📤 Sending extraction request...
+[2026-03-15T23:25:47.660Z] [INFO]     📐 Formula "PRIX": {{Pages}}*0.50 = 271.5
+[2026-03-15T23:25:47.660Z] [INFO]   📝 Extracted values:
+[2026-03-15T23:25:47.660Z] [INFO]     Stock: "20"
+[2026-03-15T23:25:47.660Z] [INFO]     PRIX: "271.5"
+[2026-03-15T23:25:47.660Z] [INFO]     Marque: "BRANDBOOK"
+[2026-03-15T23:25:47.660Z] [INFO]     Titre: "Fundamentals of Software Architecture: A Modern En..."
+[2026-03-15T23:25:47.660Z] [INFO]     URL image 1: "https://m.media-amazon.com/images/I/81L2JlIRjQL._S..."
+[2026-03-15T23:25:47.660Z] [INFO]     Description: "Salary surveys worldwide regularly place software ..."
+[2026-03-15T23:25:47.660Z] [INFO]     GTIN: "978-1098175511"
+[2026-03-15T23:25:47.661Z] [INFO]     Pages: "543"
+[2026-03-15T23:25:47.661Z] [INFO]     Référence vendeur: "1098175514"
+[2026-03-15T23:25:47.661Z] [SUCCESS]   ✓ Extracted row #19
+[2026-03-15T23:25:47.661Z] [INFO]   📊 Total rows collected: 19
+[2026-03-15T23:25:47.736Z] [INFO]   ⏱ Execution time: 129ms
+[2026-03-15T23:25:47.782Z] [BLOCK] ▶ Executing: Wait [Scope: div.desktop-grid-content-view[18]]
+[2026-03-15T23:25:47.782Z] [INFO]   📋 Config: {"type":"timeout","timeout":1500}
+[2026-03-15T23:25:47.782Z] [INFO]   ⏱ Wait type: timeout
+[2026-03-15T23:25:47.782Z] [INFO]   ⏳ Waiting 1500ms...
+[2026-03-15T23:25:49.283Z] [INFO]   ⏱ Execution time: 1501ms
+[2026-03-15T23:25:49.482Z] [BLOCK] ▶ Executing: Go Back [Scope: div.desktop-grid-content-view[18]]
+[2026-03-15T23:25:49.482Z] [INFO]   📋 Config: {}
+[2026-03-15T23:25:49.482Z] [INFO] ↩ Going back...
+[2026-03-15T23:25:49.482Z] [INFO]   🎯 Current tab ID: 1348410698
+[2026-03-15T23:25:49.482Z] [INFO]   🔄 Navigating to stored URL: https://www.amazon.com/s?k=O%27Reilly+Media&rh=p_n_feature_browse-bin%3A2656022011&dc&ds=v1%3AIWcf%2FeyUttEkH3Ng%2BJJCsXNoqqd8z9q327KlMHPYW%2BI&crid=2HNCF2KNH11LV&qid=1773441713&rnid=618072011&sprefix=o%27reilly+media%2Caps%2C308&ref=sr_nr_p_n_feature_browse-bin_1
+[2026-03-15T23:25:49.543Z] [INFO]   ⏳ Waiting for navigation to complete...
+[2026-03-15T23:25:51.139Z] [INFO]   ⏳ Waiting for content script to be ready...
+[2026-03-15T23:25:51.323Z] [INFO]   ⏱ Waiting 500ms for page stabilization...
+[2026-03-15T23:25:51.832Z] [INFO]   📍 Current URL after go_back: https://www.amazon.com/s?k=O%27Reilly+Media&rh=p_n_feature_browse-bin%3A2656022011&dc&ds=v1%3AIWcf%2FeyUttEkH3Ng%2BJJCsXNoqqd8z9q327KlMHPYW%2BI&crid=2HNCF2KNH11LV&qid=1773441713&rnid=618072011&sprefix=o%27reilly+media%2Caps%2C308&ref=sr_nr_p_n_feature_browse-bin_1
+[2026-03-15T23:25:51.833Z] [SUCCESS] ✓ Went back
+[2026-03-15T23:25:51.917Z] [INFO]   ⏱ Execution time: 2435ms
+[2026-03-15T23:25:51.964Z] [INFO]   ━━━ Item 20/48 ━━━
+[2026-03-15T23:25:51.964Z] [INFO]     🔍 Checking if element at index 19 exists...
+[2026-03-15T23:25:52.021Z] [INFO]     ✓ Element exists (48 total elements, check attempt 1)
+[2026-03-15T23:25:52.070Z] [BLOCK] ▶ Executing: Wait [Scope: div.desktop-grid-content-view[19]]
+[2026-03-15T23:25:52.070Z] [INFO]   📋 Config: {"type":"timeout","timeout":1000}
+[2026-03-15T23:25:52.070Z] [INFO]   ⏱ Wait type: timeout
+[2026-03-15T23:25:52.070Z] [INFO]   ⏳ Waiting 1000ms...
+[2026-03-15T23:25:53.076Z] [INFO]   ⏱ Execution time: 1006ms
+[2026-03-15T23:25:53.277Z] [BLOCK] ▶ Executing: Click [Scope: div.desktop-grid-content-view[19]]
+[2026-03-15T23:25:53.277Z] [INFO]   📋 Config: {"selector":{"type":"css","value":".a-size-base-plus","detected":{"css":".a-size-base-plus","xpath":...
+[2026-03-15T23:25:53.277Z] [INFO]   ⏱ Delay before: 1000ms
+[2026-03-15T23:25:54.281Z] [INFO]   🖱 Normal click
+[2026-03-15T23:25:54.282Z] [INFO]   🎯 Selector: .a-size-base-plus
+[2026-03-15T23:25:54.282Z] [INFO]   📌 Selector type: css
+[2026-03-15T23:25:54.283Z] [INFO]   🔍 Has scope: Yes
+[2026-03-15T23:25:54.680Z] [SUCCESS] ✓ Clicked: .a-size-base-plus
+[2026-03-15T23:25:55.000Z] [INFO]   🔀 URL changed after click, waiting for content script...
+[2026-03-15T23:25:57.383Z] [INFO]   ✓ Content script ready after navigation
+[2026-03-15T23:25:57.573Z] [INFO]   ⏱ Delay after: 1000ms
+[2026-03-15T23:25:58.573Z] [INFO]   ⏱ Execution time: 5296ms
+[2026-03-15T23:25:58.734Z] [BLOCK] ▶ Executing: Wait [Scope: div.desktop-grid-content-view[19]]
+[2026-03-15T23:25:58.734Z] [INFO]   📋 Config: {"type":"dom_content_loaded","timeout":2000}
+[2026-03-15T23:25:58.734Z] [INFO]   ⏱ Wait type: dom_content_loaded
+[2026-03-15T23:25:58.734Z] [INFO]   ⏳ Waiting for DOM content loaded (2000ms)...
+[2026-03-15T23:25:58.793Z] [INFO]   ✓ Content script is ready
+[2026-03-15T23:25:59.796Z] [INFO]   ⏱ Execution time: 1062ms
+[2026-03-15T23:25:59.966Z] [BLOCK] ▶ Executing: Extract Scope [Scope: div.desktop-grid-content-view[19]]
+[2026-03-15T23:25:59.966Z] [INFO]   📋 Config: {"fields":[{"key":"Titre","selector":{"type":"css","value":"#productTitle","detected":{"css":"#produ...
+[2026-03-15T23:25:59.966Z] [INFO]   📦 Extract Scope
+[2026-03-15T23:25:59.967Z] [INFO]   📊 Fields to extract: 9
+[2026-03-15T23:25:59.967Z] [INFO]   🔄 Reset scope: Yes
+[2026-03-15T23:25:59.967Z] [INFO]   🔍 Has parent scope: Yes
+[2026-03-15T23:25:59.967Z] [INFO]     1. Titre: selector="#productTitle" attr="text"
+[2026-03-15T23:25:59.967Z] [INFO]     2. URL image 1: selector="#landingImage" attr="src"
+[2026-03-15T23:25:59.967Z] [INFO]     3. Description: selector="#bookDescription_feature_div > div > div" attr="text"
+[2026-03-15T23:25:59.967Z] [INFO]     4. GTIN: selector=".detail-bullet-list" attr="innerHTML"
+[2026-03-15T23:25:59.967Z] [INFO]        🔧 Transformers (1):
+[2026-03-15T23:25:59.967Z] [INFO]     5. Pages: selector=".detail-bullet-list" attr="innerHTML"
+[2026-03-15T23:25:59.967Z] [INFO]        🔧 Transformers (1):
+[2026-03-15T23:25:59.967Z] [INFO]     6. Stock: [static] type="constant"
+[2026-03-15T23:25:59.967Z] [INFO]     7. PRIX: [static] type="constant"
+[2026-03-15T23:25:59.967Z] [INFO]        📐 Formula: {{Pages}}*0.50
+[2026-03-15T23:25:59.967Z] [INFO]     8. Référence vendeur: selector=".detail-bullet-list" attr="innerHTML"
+[2026-03-15T23:25:59.968Z] [INFO]        🔧 Transformers (1):
+[2026-03-15T23:25:59.968Z] [INFO]     9. Marque: [static] type="constant"
+[2026-03-15T23:25:59.968Z] [INFO]     🗄️ Static "Stock" = "20"
+[2026-03-15T23:25:59.968Z] [INFO]     🗄️ Static "PRIX" = ""
+[2026-03-15T23:25:59.968Z] [INFO]     🗄️ Static "Marque" = "BRANDBOOK"
+[2026-03-15T23:25:59.968Z] [INFO]   📤 Extraction fields being sent: Titre, URL image 1, Description, GTIN, Pages, Référence vendeur
+[2026-03-15T23:25:59.968Z] [INFO]      Field "GTIN" transformers: [{"type":"regex","pattern":"ISBN-13[\\s\\S]*?<span>(97[89][\\d-]+)<\\/span>","flags":"i","extractGroup":1}]
+[2026-03-15T23:25:59.968Z] [INFO]      Field "Pages" transformers: [{"type":"regex","pattern":"Print length[\\s\\S]*?<span>(\\d+)\\s*pages<\\/span>","flags":"i","extractGroup":1}]
+[2026-03-15T23:25:59.968Z] [INFO]      Field "Référence vendeur" transformers: [{"type":"regex","pattern":"ISBN-10[\\s\\S]*?<span>([\\dXx-]+)<\\/span>","flags":"i","extractGroup":1}]
+[2026-03-15T23:25:59.968Z] [INFO]   🔄 Resetting scope to document root
+[2026-03-15T23:25:59.968Z] [INFO]   📤 Sending extraction request...
+[2026-03-15T23:26:00.048Z] [INFO]     📐 Formula "PRIX": {{Pages}}*0.50 = 140
+[2026-03-15T23:26:00.049Z] [INFO]   📝 Extracted values:
+[2026-03-15T23:26:00.049Z] [INFO]     Stock: "20"
+[2026-03-15T23:26:00.049Z] [INFO]     PRIX: "140"
+[2026-03-15T23:26:00.049Z] [INFO]     Marque: "BRANDBOOK"
+[2026-03-15T23:26:00.049Z] [INFO]     Titre: "Prompt Engineering for LLMs: The Art and Science o..."
+[2026-03-15T23:26:00.049Z] [INFO]     URL image 1: "https://m.media-amazon.com/images/I/81NDdjyjeuL._S..."
+[2026-03-15T23:26:00.049Z] [INFO]     Description: "Large language models (LLMs) are revolutionizing t..."
+[2026-03-15T23:26:00.049Z] [INFO]     GTIN: "978-1098156152"
+[2026-03-15T23:26:00.049Z] [INFO]     Pages: "280"
+[2026-03-15T23:26:00.049Z] [INFO]     Référence vendeur: "1098156153"
+[2026-03-15T23:26:00.049Z] [SUCCESS]   ✓ Extracted row #20
+[2026-03-15T23:26:00.049Z] [INFO]   📊 Total rows collected: 20
+[2026-03-15T23:26:00.156Z] [INFO]   ⏱ Execution time: 190ms
+[2026-03-15T23:26:00.205Z] [BLOCK] ▶ Executing: Wait [Scope: div.desktop-grid-content-view[19]]
+[2026-03-15T23:26:00.205Z] [INFO]   📋 Config: {"type":"timeout","timeout":1500}
+[2026-03-15T23:26:00.205Z] [INFO]   ⏱ Wait type: timeout
+[2026-03-15T23:26:00.205Z] [INFO]   ⏳ Waiting 1500ms...
+[2026-03-15T23:26:01.712Z] [INFO]   ⏱ Execution time: 1507ms
+[2026-03-15T23:26:01.888Z] [BLOCK] ▶ Executing: Go Back [Scope: div.desktop-grid-content-view[19]]
+[2026-03-15T23:26:01.889Z] [INFO]   📋 Config: {}
+[2026-03-15T23:26:01.889Z] [INFO] ↩ Going back...
+[2026-03-15T23:26:01.889Z] [INFO]   🎯 Current tab ID: 1348410698
+[2026-03-15T23:26:01.889Z] [INFO]   🔄 Navigating to stored URL: https://www.amazon.com/s?k=O%27Reilly+Media&rh=p_n_feature_browse-bin%3A2656022011&dc&ds=v1%3AIWcf%2FeyUttEkH3Ng%2BJJCsXNoqqd8z9q327KlMHPYW%2BI&crid=2HNCF2KNH11LV&qid=1773441713&rnid=618072011&sprefix=o%27reilly+media%2Caps%2C308&ref=sr_nr_p_n_feature_browse-bin_1
+[2026-03-15T23:26:01.954Z] [INFO]   ⏳ Waiting for navigation to complete...
+[2026-03-15T23:26:03.392Z] [INFO]   ⏳ Waiting for content script to be ready...
+[2026-03-15T23:26:03.651Z] [INFO]   ⏱ Waiting 500ms for page stabilization...
+[2026-03-15T23:26:04.165Z] [INFO]   📍 Current URL after go_back: https://www.amazon.com/s?k=O%27Reilly+Media&rh=p_n_feature_browse-bin%3A2656022011&dc&ds=v1%3AIWcf%2FeyUttEkH3Ng%2BJJCsXNoqqd8z9q327KlMHPYW%2BI&crid=2HNCF2KNH11LV&qid=1773441713&rnid=618072011&sprefix=o%27reilly+media%2Caps%2C308&ref=sr_nr_p_n_feature_browse-bin_1
+[2026-03-15T23:26:04.165Z] [SUCCESS] ✓ Went back
+[2026-03-15T23:26:04.239Z] [INFO]   ⏱ Execution time: 2350ms
+[2026-03-15T23:26:04.286Z] [INFO]   ━━━ Item 21/48 ━━━
+[2026-03-15T23:26:04.287Z] [INFO]     🔍 Checking if element at index 20 exists...
+[2026-03-15T23:26:04.339Z] [INFO]     ✓ Element exists (48 total elements, check attempt 1)
+[2026-03-15T23:26:04.393Z] [BLOCK] ▶ Executing: Wait [Scope: div.desktop-grid-content-view[20]]
+[2026-03-15T23:26:04.393Z] [INFO]   📋 Config: {"type":"timeout","timeout":1000}
+[2026-03-15T23:26:04.393Z] [INFO]   ⏱ Wait type: timeout
+[2026-03-15T23:26:04.393Z] [INFO]   ⏳ Waiting 1000ms...
+[2026-03-15T23:26:05.394Z] [INFO]   ⏱ Execution time: 1001ms
+[2026-03-15T23:26:05.584Z] [BLOCK] ▶ Executing: Click [Scope: div.desktop-grid-content-view[20]]
+[2026-03-15T23:26:05.584Z] [INFO]   📋 Config: {"selector":{"type":"css","value":".a-size-base-plus","detected":{"css":".a-size-base-plus","xpath":...
+[2026-03-15T23:26:05.584Z] [INFO]   ⏱ Delay before: 1000ms
+[2026-03-15T23:26:06.590Z] [INFO]   🖱 Normal click
+[2026-03-15T23:26:06.590Z] [INFO]   🎯 Selector: .a-size-base-plus
+[2026-03-15T23:26:06.590Z] [INFO]   📌 Selector type: css
+[2026-03-15T23:26:06.590Z] [INFO]   🔍 Has scope: Yes
+[2026-03-15T23:26:07.017Z] [SUCCESS] ✓ Clicked: .a-size-base-plus
+[2026-03-15T23:26:07.332Z] [INFO]   ⏱ Delay after: 1000ms
+[2026-03-15T23:26:08.334Z] [INFO]   ⏱ Execution time: 2749ms
+[2026-03-15T23:26:08.640Z] [BLOCK] ▶ Executing: Wait [Scope: div.desktop-grid-content-view[20]]
+[2026-03-15T23:26:08.640Z] [INFO]   📋 Config: {"type":"dom_content_loaded","timeout":2000}
+[2026-03-15T23:26:08.640Z] [INFO]   ⏱ Wait type: dom_content_loaded
+[2026-03-15T23:26:08.640Z] [INFO]   ⏳ Waiting for DOM content loaded (2000ms)...
+[2026-03-15T23:26:10.284Z] [INFO]   ✓ Content script is ready
+[2026-03-15T23:26:11.293Z] [INFO]   ⏱ Execution time: 2653ms
+[2026-03-15T23:26:11.477Z] [BLOCK] ▶ Executing: Extract Scope [Scope: div.desktop-grid-content-view[20]]
+[2026-03-15T23:26:11.477Z] [INFO]   📋 Config: {"fields":[{"key":"Titre","selector":{"type":"css","value":"#productTitle","detected":{"css":"#produ...
+[2026-03-15T23:26:11.477Z] [INFO]   📦 Extract Scope
+[2026-03-15T23:26:11.477Z] [INFO]   📊 Fields to extract: 9
+[2026-03-15T23:26:11.477Z] [INFO]   🔄 Reset scope: Yes
+[2026-03-15T23:26:11.477Z] [INFO]   🔍 Has parent scope: Yes
+[2026-03-15T23:26:11.477Z] [INFO]     1. Titre: selector="#productTitle" attr="text"
+[2026-03-15T23:26:11.477Z] [INFO]     2. URL image 1: selector="#landingImage" attr="src"
+[2026-03-15T23:26:11.477Z] [INFO]     3. Description: selector="#bookDescription_feature_div > div > div" attr="text"
+[2026-03-15T23:26:11.477Z] [INFO]     4. GTIN: selector=".detail-bullet-list" attr="innerHTML"
+[2026-03-15T23:26:11.477Z] [INFO]        🔧 Transformers (1):
+[2026-03-15T23:26:11.477Z] [INFO]     5. Pages: selector=".detail-bullet-list" attr="innerHTML"
+[2026-03-15T23:26:11.477Z] [INFO]        🔧 Transformers (1):
+[2026-03-15T23:26:11.477Z] [INFO]     6. Stock: [static] type="constant"
+[2026-03-15T23:26:11.477Z] [INFO]     7. PRIX: [static] type="constant"
+[2026-03-15T23:26:11.477Z] [INFO]        📐 Formula: {{Pages}}*0.50
+[2026-03-15T23:26:11.477Z] [INFO]     8. Référence vendeur: selector=".detail-bullet-list" attr="innerHTML"
+[2026-03-15T23:26:11.477Z] [INFO]        🔧 Transformers (1):
+[2026-03-15T23:26:11.478Z] [INFO]     9. Marque: [static] type="constant"
+[2026-03-15T23:26:11.478Z] [INFO]     🗄️ Static "Stock" = "20"
+[2026-03-15T23:26:11.478Z] [INFO]     🗄️ Static "PRIX" = ""
+[2026-03-15T23:26:11.478Z] [INFO]     🗄️ Static "Marque" = "BRANDBOOK"
+[2026-03-15T23:26:11.478Z] [INFO]   📤 Extraction fields being sent: Titre, URL image 1, Description, GTIN, Pages, Référence vendeur
+[2026-03-15T23:26:11.478Z] [INFO]      Field "GTIN" transformers: [{"type":"regex","pattern":"ISBN-13[\\s\\S]*?<span>(97[89][\\d-]+)<\\/span>","flags":"i","extractGroup":1}]
+[2026-03-15T23:26:11.478Z] [INFO]      Field "Pages" transformers: [{"type":"regex","pattern":"Print length[\\s\\S]*?<span>(\\d+)\\s*pages<\\/span>","flags":"i","extractGroup":1}]
+[2026-03-15T23:26:11.478Z] [INFO]      Field "Référence vendeur" transformers: [{"type":"regex","pattern":"ISBN-10[\\s\\S]*?<span>([\\dXx-]+)<\\/span>","flags":"i","extractGroup":1}]
+[2026-03-15T23:26:11.478Z] [INFO]   🔄 Resetting scope to document root
+[2026-03-15T23:26:11.478Z] [INFO]   📤 Sending extraction request...
+[2026-03-15T23:26:11.547Z] [INFO]   🔄 Retry 1/3: fields [Référence vendeur] empty (possible lazy-load), waiting 1.5s...
+[2026-03-15T23:26:13.071Z] [INFO]   🔄 Retry 2/3: fields [Référence vendeur] empty (possible lazy-load), waiting 1.5s...
+[2026-03-15T23:26:14.584Z] [INFO]     📐 Formula "PRIX": {{Pages}}*0.50 = 241
+[2026-03-15T23:26:14.584Z] [INFO]   📝 Extracted values:
+[2026-03-15T23:26:14.584Z] [INFO]     Stock: "20"
+[2026-03-15T23:26:14.585Z] [INFO]     PRIX: "241"
+[2026-03-15T23:26:14.585Z] [INFO]     Marque: "BRANDBOOK"
+[2026-03-15T23:26:14.585Z] [INFO]     Titre: "Building Event-Driven Microservices: Leveraging Or..."
+[2026-03-15T23:26:14.585Z] [INFO]     URL image 1: "https://m.media-amazon.com/images/I/81lAC1PpJXL._S..."
+[2026-03-15T23:26:14.585Z] [INFO]     Description: "Event-driven microservices offer an optimal approa..."
+[2026-03-15T23:26:14.585Z] [INFO]     GTIN: "979-8341622197"
+[2026-03-15T23:26:14.585Z] [INFO]     Pages: "482"
+[2026-03-15T23:26:14.585Z] [INFO]     Référence vendeur: ""
+[2026-03-15T23:26:14.585Z] [SUCCESS]   ✓ Extracted row #21
+[2026-03-15T23:26:14.585Z] [INFO]   📊 Total rows collected: 21
+[2026-03-15T23:26:14.801Z] [INFO]   ⏱ Execution time: 3324ms
+[2026-03-15T23:26:14.860Z] [BLOCK] ▶ Executing: Wait [Scope: div.desktop-grid-content-view[20]]
+[2026-03-15T23:26:14.860Z] [INFO]   📋 Config: {"type":"timeout","timeout":1500}
+[2026-03-15T23:26:14.860Z] [INFO]   ⏱ Wait type: timeout
+[2026-03-15T23:26:14.860Z] [INFO]   ⏳ Waiting 1500ms...
+[2026-03-15T23:26:16.362Z] [INFO]   ⏱ Execution time: 1502ms
+[2026-03-15T23:26:16.584Z] [BLOCK] ▶ Executing: Go Back [Scope: div.desktop-grid-content-view[20]]
+[2026-03-15T23:26:16.584Z] [INFO]   📋 Config: {}
+[2026-03-15T23:26:16.584Z] [INFO] ↩ Going back...
+[2026-03-15T23:26:16.584Z] [INFO]   🎯 Current tab ID: 1348410698
+[2026-03-15T23:26:16.584Z] [INFO]   🔄 Navigating to stored URL: https://www.amazon.com/s?k=O%27Reilly+Media&rh=p_n_feature_browse-bin%3A2656022011&dc&ds=v1%3AIWcf%2FeyUttEkH3Ng%2BJJCsXNoqqd8z9q327KlMHPYW%2BI&crid=2HNCF2KNH11LV&qid=1773441713&rnid=618072011&sprefix=o%27reilly+media%2Caps%2C308&ref=sr_nr_p_n_feature_browse-bin_1
+[2026-03-15T23:26:16.668Z] [INFO]   ⏳ Waiting for navigation to complete...

@@ -68,7 +68,7 @@ function extractValueFromElement(el: Element, attribute: string): string | null 
     if (attribute === 'text') {
         const val = (el as HTMLElement).innerText?.trim();
         return val ? normalizeText(val) : null;
-    } else if (attribute === 'html') {
+    } else if (attribute === 'html' || attribute === 'innerHTML') {
         const val = el.innerHTML;
         return val ? normalizeText(val) : null;
     } else if (attribute === 'href' || attribute === 'src') {
