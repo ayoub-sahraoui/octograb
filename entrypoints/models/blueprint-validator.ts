@@ -237,14 +237,27 @@ export class BlueprintValidator {
                 }
                 break;
 
-            case 'loop_pagination':
-                if (!config.nextButtonSelector?.value) {
-                    this.addError(
-                        'Loop Pagination requires next button selector',
-                        block.id,
-                        block.label,
-                        path
-                    );
+            case 'loop_pagination': {
+                const pagType = config.paginationType || 'button';
+                if (pagType === 'button') {
+                    if (!config.nextButtonSelector?.value) {
+                        this.addError(
+                            'Loop Pagination (button) requires next button selector',
+                            block.id,
+                            block.label,
+                            path
+                        );
+                    }
+                } else if (pagType === 'scroll') {
+                    const strategy = config.scrollStrategy || 'fixed_amount';
+                    if (strategy === 'scroll_to_last_item' && !config.itemSelector?.value) {
+                        this.addError(
+                            'Scroll to last item strategy requires item selector',
+                            block.id,
+                            block.label,
+                            path
+                        );
+                    }
                 }
                 if (config.maxPages && config.maxPages <= 0) {
                     this.addError(
@@ -263,6 +276,7 @@ export class BlueprintValidator {
                     );
                 }
                 break;
+            }
 
             case 'extract_scope':
                 if (!config.fields || config.fields.length === 0) {

@@ -11,6 +11,8 @@ import { Block } from "./types";
 export type StaticFieldType = 'constant' | 'uuid' | 'random_number' | 'date' | 'auto_increment';
 
 export interface ExtractionField {
+    /** Unique ID for stable reordering (auto-generated if missing) */
+    id?: string;
     key: string;
     label?: string;
     selector: Selector;

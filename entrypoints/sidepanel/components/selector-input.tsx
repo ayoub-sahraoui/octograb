@@ -124,26 +124,37 @@ export const SelectorInput = observer(({
         }
 
         const success = await store.startPicking((css, xpath) => {
-            // Build a new selector with detected alternatives
+            // Update pending preview — don't commit to block config yet
             runInAction(() => {
-                const updatedSelector: Selector = {
-                    ...(selector || { type: SelectorType.CSS, value: '' }),
-                    detected: {
-                        css: css,
-                        xpath: xpath,
-                    },
-                };
-
-                // Set the value based on the currently selected type
-                if (updatedSelector.type === SelectorType.XPath) {
-                    updatedSelector.value = xpath || css;
-                } else {
-                    updatedSelector.value = css;
-                }
-
-                onSelectorChange(updatedSelector);
+                store.pendingCss = css;
+                store.pendingXpath = xpath;
             });
-        }, computedParentSelector);
+        }, computedParentSelector, (doneSuccess) => {
+            // Called when user clicks "Done Selecting" or "Cancel" in the page overlay
+            if (doneSuccess && store.pendingCss) {
+                runInAction(() => {
+                    const updatedSelector: Selector = {
+                        ...(selector || { type: SelectorType.CSS, value: '' }),
+                        detected: {
+                            css: store.pendingCss,
+                            xpath: store.pendingXpath,
+                        },
+                    };
+
+                    // Set the value based on the currently selected type
+                    if (updatedSelector.type === SelectorType.XPath) {
+                        updatedSelector.value = store.pendingXpath || store.pendingCss;
+                    } else {
+                        updatedSelector.value = store.pendingCss;
+                    }
+
+                    onSelectorChange(updatedSelector);
+                    store.pendingCss = '';
+                    store.pendingXpath = '';
+                });
+            }
+            // If cancelled, pendingCss/pendingXpath are already cleared by the store
+        });
 
         if (!success) {
             alert('Failed to start element picker. Make sure you have a web page open and the content script is loaded.');
@@ -198,14 +209,30 @@ export const SelectorInput = observer(({
 
             {/* Selector Value Input */}
             <div className="flex flex-col gap-1.5">
-                <Input
-                    id={`${id}-value`}
-                    type="text"
-                    placeholder={placeholder}
-                    value={currentValue}
-                    onChange={(e) => handleValueChange(e.target.value)}
-                    className="font-mono text-sm h-9"
-                />
+                {store.isPicking && store.pendingCss ? (
+                    <div className="relative">
+                        <Input
+                            id={`${id}-value`}
+                            type="text"
+                            value={currentType === SelectorType.XPath ? (store.pendingXpath || store.pendingCss) : store.pendingCss}
+                            readOnly
+                            className="font-mono text-sm h-9 border-blue-300 bg-blue-50/50 text-blue-700"
+                        />
+                        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-blue-500 font-medium">
+                            preview
+                        </span>
+                    </div>
+                ) : (
+                    <Input
+                        id={`${id}-value`}
+                        type="text"
+                        placeholder={placeholder}
+                        value={currentValue}
+                        onChange={(e) => handleValueChange(e.target.value)}
+                        disabled={store.isPicking}
+                        className="font-mono text-sm h-9"
+                    />
+                )}
                 {helpText && (
                     <p className="text-xs text-muted-foreground">{helpText}</p>
                 )}

@@ -16,6 +16,7 @@ export class SelectorEngine {
     this.handleMouseMove = this.handleMouseMove.bind(this);
     this.handleClick = this.handleClick.bind(this);
     this.handleKeyDown = this.handleKeyDown.bind(this);
+    this.handleScroll = this.handleScroll.bind(this);
   }
 
   parentSelector: string | null = null;
@@ -97,6 +98,7 @@ export class SelectorEngine {
     document.addEventListener('mousemove', this.handleMouseMove, true);
     document.addEventListener('click', this.handleClick, true);
     document.addEventListener('keydown', this.handleKeyDown, true);
+    window.addEventListener('scroll', this.handleScroll, true);
   }
 
   createControlPanel() {
@@ -150,10 +152,12 @@ export class SelectorEngine {
 
   finish(success: boolean) {
     console.log('[OctoGrab] SelectorEngine finish called, success:', success);
+    // Save callback before stop() clears state
+    const callback = this.onFinishCallback;
     this.stop();
-    if (this.onFinishCallback) {
+    if (callback) {
       console.log('[OctoGrab] Calling onFinishCallback');
-      this.onFinishCallback(success);
+      callback(success);
     }
   }
 
@@ -171,6 +175,7 @@ export class SelectorEngine {
     document.removeEventListener('mousemove', this.handleMouseMove, true);
     document.removeEventListener('click', this.handleClick, true);
     document.removeEventListener('keydown', this.handleKeyDown, true);
+    window.removeEventListener('scroll', this.handleScroll, true);
   }
 
   createOverlayElement(border: string, bg: string): HTMLElement {
@@ -251,8 +256,10 @@ export class SelectorEngine {
     this.isKeyboardNavigating = false;
 
     const el = document.elementFromPoint(e.clientX, e.clientY);
-    if (!el || el === this.hoverOverlay || el === this.maskOverlay || this.matchOverlays.includes(el as HTMLElement) || this.selectionOverlays.includes(el as HTMLElement)) return;
+    if (!el || el === this.hoverOverlay || el === this.maskOverlay || el === this.label || this.matchOverlays.includes(el as HTMLElement) || this.selectionOverlays.includes(el as HTMLElement)) return;
     if (this.controlPanel && this.controlPanel.contains(el)) return;
+    if (this.hoverOverlay && this.hoverOverlay.contains(el)) return;
+    if (this.maskOverlay && this.maskOverlay.contains(el)) return;
 
     if (this.scopeElement && !this.scopeElement.contains(el)) {
       if (this.hoverOverlay) this.hoverOverlay.style.display = 'none';
@@ -343,11 +350,13 @@ export class SelectorEngine {
         this.infoSpan.style.color = '#334155';
       }
     } else {
+      // All elements deselected — clear visuals and reset info, don't send empty selector
       this.clearMatchOverlays();
       if (this.infoSpan) {
-        this.infoSpan.textContent = `${this.selectedElements.length} elements manually selected`;
+        this.infoSpan.textContent = 'Select elements (Arrow keys to navigate)';
         this.infoSpan.style.color = '#334155';
       }
+      return;
     }
 
     if (this.onSelectCallback) this.onSelectCallback(finalSelector, finalXPath);
@@ -373,42 +382,73 @@ export class SelectorEngine {
   }
 
   handleKeyDown(e: KeyboardEvent) {
-    if (e.key === 'Escape') this.stop();
+    if (e.key === 'Escape') {
+      this.finish(false);
+      return;
+    }
 
     if (this.hoveredEl && !this.selectedElements.includes(this.hoveredEl)) {
       if (e.key === 'ArrowUp') {
         e.preventDefault();
         this.isKeyboardNavigating = true;
-        if (this.hoveredEl.parentElement && this.hoveredEl.parentElement !== document.body) {
-          this.hoveredEl = this.hoveredEl.parentElement;
-          this.drawOverlay(this.hoveredEl.getBoundingClientRect(), 'hover');
-          this.updateLabel(this.hoveredEl);
+        const parent = this.hoveredEl.parentElement;
+        if (parent && parent !== document.body) {
+          if (!this.scopeElement || this.scopeElement.contains(parent)) {
+            this.hoveredEl = parent;
+            this.drawOverlay(this.hoveredEl.getBoundingClientRect(), 'hover');
+            this.updateLabel(this.hoveredEl);
+          }
         }
       } else if (e.key === 'ArrowDown') {
         e.preventDefault();
         this.isKeyboardNavigating = true;
-        if (this.hoveredEl.firstElementChild) {
-          this.hoveredEl = this.hoveredEl.firstElementChild;
-          this.drawOverlay(this.hoveredEl.getBoundingClientRect(), 'hover');
-          this.updateLabel(this.hoveredEl);
+        const child = this.hoveredEl.firstElementChild;
+        if (child) {
+          if (!this.scopeElement || this.scopeElement.contains(child)) {
+            this.hoveredEl = child;
+            this.drawOverlay(this.hoveredEl.getBoundingClientRect(), 'hover');
+            this.updateLabel(this.hoveredEl);
+          }
         }
       } else if (e.key === 'ArrowLeft') {
         e.preventDefault();
         this.isKeyboardNavigating = true;
-        if (this.hoveredEl.previousElementSibling) {
-          this.hoveredEl = this.hoveredEl.previousElementSibling;
-          this.drawOverlay(this.hoveredEl.getBoundingClientRect(), 'hover');
-          this.updateLabel(this.hoveredEl);
+        const prev = this.hoveredEl.previousElementSibling;
+        if (prev) {
+          if (!this.scopeElement || this.scopeElement.contains(prev)) {
+            this.hoveredEl = prev;
+            this.drawOverlay(this.hoveredEl.getBoundingClientRect(), 'hover');
+            this.updateLabel(this.hoveredEl);
+          }
         }
       } else if (e.key === 'ArrowRight') {
         e.preventDefault();
         this.isKeyboardNavigating = true;
-        if (this.hoveredEl.nextElementSibling) {
-          this.hoveredEl = this.hoveredEl.nextElementSibling;
-          this.drawOverlay(this.hoveredEl.getBoundingClientRect(), 'hover');
-          this.updateLabel(this.hoveredEl);
+        const next = this.hoveredEl.nextElementSibling;
+        if (next) {
+          if (!this.scopeElement || this.scopeElement.contains(next)) {
+            this.hoveredEl = next;
+            this.drawOverlay(this.hoveredEl.getBoundingClientRect(), 'hover');
+            this.updateLabel(this.hoveredEl);
+          }
         }
       }
+    }
+  }
+
+  handleScroll() {
+    // Update all overlay positions on scroll
+    this.updateSelectionVisuals();
+    if (this.hoveredEl && this.hoverOverlay) {
+      const rect = this.hoveredEl.getBoundingClientRect();
+      this.drawOverlay(rect, 'hover');
+    }
+    if (this.scopeElement && this.maskOverlay) {
+      const rect = this.scopeElement.getBoundingClientRect();
+      Object.assign(this.maskOverlay.style, {
+        top: `${rect.top + window.scrollY}px`, left: `${rect.left + window.scrollX}px`,
+        width: `${rect.width}px`, height: `${rect.height}px`
+      });
     }
   }
 

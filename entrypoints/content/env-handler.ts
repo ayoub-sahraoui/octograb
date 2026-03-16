@@ -70,7 +70,10 @@ function extractValueFromElement(el: Element, attribute: string): string | null 
         return val ? normalizeText(val) : null;
     } else if (attribute === 'html' || attribute === 'innerHTML') {
         const val = el.innerHTML;
-        return val ? normalizeText(val) : null;
+        return val || null;
+    } else if (attribute === 'outerHTML') {
+        const val = el.outerHTML;
+        return val || null;
     } else if (attribute === 'href' || attribute === 'src') {
         const val = (el as any)[attribute] || el.getAttribute(attribute);
         return val || null;
@@ -82,15 +85,12 @@ function extractValueFromElement(el: Element, attribute: string): string | null 
 
 function applyTransformers(value: any, transformers: any[]): any {
     if (!value || !transformers) return value;
-    console.log('[applyTransformers] Starting with value:', String(value).substring(0, 100));
-    console.log('[applyTransformers] Transformers:', transformers);
 
     for (const transform of transformers) {
         if (typeof value !== 'string') value = String(value);
         const beforeValue = value;
 
         try {
-            console.log(`[applyTransformers] Applying transformer type: ${transform.type}`);
             switch (transform.type) {
                 case 'trim':
                     value = value.trim();
@@ -115,18 +115,14 @@ function applyTransformers(value: any, transformers: any[]): any {
                     }
                     break;
                 case 'regex':
-                    console.log('[applyTransformers] Regex transformer:', { pattern: transform.pattern, flags: transform.flags, replacement: transform.replacement });
                     if (transform.pattern) {
                         const pattern = transform.pattern;
                         const flags = transform.flags || '';
                         const regex = new RegExp(pattern, flags);
-                        console.log('[applyTransformers] Created regex:', regex);
 
                         // If replacement is provided, use replace mode
                         if (transform.replacement !== undefined) {
-                            console.log('[applyTransformers] Using replace mode with replacement:', transform.replacement);
                             value = value.replace(regex, transform.replacement);
-                            console.log('[applyTransformers] After replace:', String(value).substring(0, 100));
                         } else if (transform.extractGroup !== undefined) {
                             // Extract specific group
                             const match = value.match(regex);
@@ -229,27 +225,14 @@ function applyTransformers(value: any, transformers: any[]): any {
                     }
                     break;
                 case 'custom':
-                    // Execute custom JavaScript function
-                    try {
-                        if (transform.functionBody) {
-                            // Create function from string and execute
-                            const customFn = new Function('value', transform.functionBody);
-                            value = customFn(value);
-                        }
-                    } catch (e) {
-                        console.warn('Custom transformer failed:', e);
-                    }
+                    // Custom JS transformers are not supported in Chrome extensions (CSP blocks new Function())
+                    console.warn('[OctoGrab] Custom transformer is not supported in Chrome extensions due to CSP restrictions.');
                     break;
             }
-            console.log(`[applyTransformers] ${transform.type} result:`, { before: String(beforeValue).substring(0, 50), after: String(value).substring(0, 50) });
         } catch (e) {
-            console.warn(`Transformer ${transform.type} failed:`, e);
-            if (!transform.skipOnError) {
-                // Continue with original value if skipOnError is not set
-            }
+            console.warn(`[OctoGrab] Transformer ${transform.type} failed:`, e);
         }
     }
-    console.log('[applyTransformers] Final value:', String(value).substring(0, 100));
     return value;
 }
 
@@ -309,8 +292,6 @@ function findClickableElement(el: Element): Element {
 }
 
 export function initEnvHandler() {
-    console.log('[OctoGrab] Initializing Environment Handler');
-
     registerRpcHandler(async (msg: Message): Promise<MessageResponse | null> => {
         try {
             switch (msg.type) {
@@ -318,51 +299,39 @@ export function initEnvHandler() {
                 case 'PING':
                     return { success: true, message: 'Pong' };
 
+                case 'ENV_ABORT':
+                    // Signal long-running operations to cancel
+                    (window as any).__octoGrabAborted__ = true;
+                    return { success: true };
+
                 case 'ENV_CLICK': {
                     const { selector, selectorType, scope, openInNewTab } = msg.data;
-                    console.log('[ENV_CLICK] Starting click operation', { selector, selectorType, hasScope: !!scope, openInNewTab });
-
                     const scopeEl = resolveScope(scope);
-                    console.log('[ENV_CLICK] Scope resolved:', scopeEl.tagName, scopeEl.className);
                     let target = scopeEl;
 
                     if (selector && selector.trim()) {
-                        console.log('[ENV_CLICK] Finding element with selector:', selector);
                         const el = getElement(selector, selectorType || 'css', scopeEl);
-                        if (!el) {
-                            console.error('[ENV_CLICK] Element not found:', selector);
-                            throw new Error(`Element not found: ${selector}`);
-                        }
-                        console.log('[ENV_CLICK] Element found:', el.tagName, el.className);
+                        if (!el) throw new Error(`Element not found: ${selector}`);
                         target = el;
-                    } else {
-                        console.log('[ENV_CLICK] Using scope element as target');
                     }
 
                     // Find the best clickable element — if target isn't natively clickable,
                     // walk up to find the nearest <a>, <button>, or element with cursor:pointer/onclick
                     const clickableTarget = findClickableElement(target);
-                    if (clickableTarget !== target) {
-                        console.log('[ENV_CLICK] Found clickable ancestor:', clickableTarget.tagName, clickableTarget.className);
-                    }
 
                     // Scroll into view and wait for it to settle
-                    console.log('[ENV_CLICK] Scrolling element into view');
                     clickableTarget.scrollIntoView({ behavior: 'smooth', block: 'center' });
                     await new Promise(r => setTimeout(r, 150));
 
                     // Click logic
                     if (openInNewTab) {
-                        console.log('[ENV_CLICK] Opening in new tab');
                         // Attempt to open in new tab — check target and clickable ancestor for href
                         const anchor = clickableTarget.tagName === 'A' ? clickableTarget
                             : clickableTarget.closest('a') || (target.tagName === 'A' ? target : target.closest('a'));
                         if (anchor) {
                             const href = (anchor as HTMLAnchorElement).href;
-                            console.log('[ENV_CLICK] Link element, opening URL:', href);
                             window.open(href, '_blank');
                         } else {
-                            console.log('[ENV_CLICK] Non-link element, simulating Ctrl+Click');
                             const mouseEvent = new MouseEvent('click', {
                                 bubbles: true,
                                 cancelable: true,
@@ -373,60 +342,42 @@ export function initEnvHandler() {
                             clickableTarget.dispatchEvent(mouseEvent);
                         }
                     } else {
-                        console.log('[ENV_CLICK] Normal click');
                         if (clickableTarget instanceof HTMLElement) {
                             clickableTarget.click();
                         } else {
-                            console.log('[ENV_CLICK] Non-HTMLElement, using fallback click');
                             (clickableTarget as any).click?.() || clickableTarget.dispatchEvent(new MouseEvent('click', { bubbles: true }));
                         }
                     }
-                    console.log('[ENV_CLICK] Click completed successfully');
                     return { success: true };
                 }
 
                 case 'ENV_INPUT': {
                     const { selector, selectorType, value, scope } = msg.data;
-                    console.log('[ENV_INPUT] Starting input operation', { selector, selectorType, value, hasScope: !!scope });
-
                     const scopeEl = resolveScope(scope);
                     let target = scopeEl;
 
                     if (selector && selector.trim()) {
-                        console.log('[ENV_INPUT] Finding element with selector:', selector);
                         const el = getElement(selector, selectorType || 'css', scopeEl);
-                        if (!el) {
-                            console.error('[ENV_INPUT] Element not found:', selector);
-                            throw new Error(`Element not found: ${selector}`);
-                        }
-                        console.log('[ENV_INPUT] Element found:', el.tagName, el.className);
+                        if (!el) throw new Error(`Element not found: ${selector}`);
                         target = el;
-                    } else {
-                        console.log('[ENV_INPUT] Using scope element as target');
                     }
 
                     if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement) {
-                        console.log('[ENV_INPUT] Input/Textarea element, setting value:', value);
                         target.focus();
                         target.value = value;
                         target.dispatchEvent(new Event('input', { bubbles: true }));
                         target.dispatchEvent(new Event('change', { bubbles: true }));
                         target.blur();
                     } else {
-                        console.log('[ENV_INPUT] Content editable element, setting innerText');
-                        // Content editable?
                         (target as HTMLElement).innerText = value;
                     }
-                    console.log('[ENV_INPUT] Input completed successfully');
                     return { success: true };
                 }
 
                 case 'ENV_COUNT': {
                     const { selector, selectorType, scope } = msg.data;
-                    console.log('[ENV_COUNT] Counting elements', { selector, selectorType, hasScope: !!scope });
                     const scopeEl = resolveScope(scope);
                     const elements = getElements(selector, selectorType, scopeEl);
-                    console.log('[ENV_COUNT] Found', elements.length, 'elements');
                     return { success: true, data: elements.length };
                 }
 
@@ -461,42 +412,27 @@ export function initEnvHandler() {
 
                 case 'ENV_SCROLL': {
                     const { target, behavior, amount, selector, selectorType, scope, elementIndex } = msg.data;
-                    console.log('[ENV_SCROLL] Starting scroll', { target, behavior, amount, selector, elementIndex });
 
                     let scrollTarget: Element | Window = window;
 
                     if (target === 'element') {
                         const scopeEl = resolveScope(scope);
                         if (selector && selector.trim()) {
-                            console.log('[ENV_SCROLL] Finding scroll target element:', selector);
-
                             // If elementIndex is provided, get all elements and select by index
                             if (elementIndex !== undefined && elementIndex !== null) {
                                 const elements = getElements(selector, selectorType || 'css', scopeEl);
-
-                                console.log(`[ENV_SCROLL] Found ${elements.length} elements, selecting index ${elementIndex}`);
-
                                 if (elementIndex >= elements.length || elementIndex < 0) {
                                     throw new Error(`Element index ${elementIndex} out of range (0-${elements.length - 1})`);
                                 }
-
                                 scrollTarget = elements[elementIndex];
-                                const tagName = (scrollTarget as Element).tagName || 'Element';
-                                console.log('[ENV_SCROLL] Scroll target found at index:', elementIndex, tagName);
                             } else {
                                 const el = getElement(selector, selectorType || 'css', scopeEl);
                                 if (!el) throw new Error(`Scroll target element not found: ${selector}`);
-                                const tagName = (el as Element).tagName || 'Element';
-                                console.log('[ENV_SCROLL] Scroll target found:', tagName);
                                 scrollTarget = el;
                             }
                         } else {
-                            console.log('[ENV_SCROLL] Using scope as scroll target');
-                            // If scope is the element to scroll (e.g. a list container)
                             scrollTarget = scopeEl;
                         }
-                    } else {
-                        console.log('[ENV_SCROLL] Scrolling window');
                     }
 
                     // Get current scroll position before scrolling
@@ -512,7 +448,6 @@ export function initEnvHandler() {
                     }
 
                     if (behavior === 'bottom') {
-                        console.log('[ENV_SCROLL] Scrolling to bottom');
                         if (scrollTarget === window) {
                             window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
                         } else {
@@ -520,7 +455,6 @@ export function initEnvHandler() {
                             el.scrollTop = el.scrollHeight;
                         }
                     } else if (behavior === 'top') {
-                        console.log('[ENV_SCROLL] Scrolling to top');
                         if (scrollTarget === window) {
                             window.scrollTo({ top: 0, behavior: 'smooth' });
                         } else {
@@ -528,7 +462,6 @@ export function initEnvHandler() {
                             el.scrollTop = 0;
                         }
                     } else if (behavior === 'pixels') {
-                        console.log('[ENV_SCROLL] Scrolling by pixels:', amount);
                         if (scrollTarget === window) {
                             // Use instant scroll for accurate measurement
                             window.scrollBy({ top: amount || 0, behavior: 'auto' });
@@ -538,7 +471,6 @@ export function initEnvHandler() {
                             el.scrollTop = el.scrollTop + (amount || 0);
                         }
                     } else if (behavior === 'element_into_view') {
-                        console.log('[ENV_SCROLL] Scrolling element into view');
                         if (scrollTarget !== window && scrollTarget instanceof Element) {
                             scrollTarget.scrollIntoView({ behavior: 'smooth', block: 'center' });
                         }
@@ -560,16 +492,11 @@ export function initEnvHandler() {
                         remainingScroll: beforeScrollHeight - afterScrollTop
                     };
 
-                    console.log('[ENV_SCROLL] Scroll completed', scrollInfo);
-                    console.log(`[ENV_SCROLL] 📊 Position: ${afterScrollTop}px / ${beforeScrollHeight}px (${Math.round((afterScrollTop / beforeScrollHeight) * 100)}%)`);
-                    console.log(`[ENV_SCROLL] 📏 Scrolled: ${scrollInfo.scrolled}px | Remaining: ${scrollInfo.remainingScroll}px`);
-
                     return { success: true, data: scrollInfo };
                 }
 
                 case 'ENV_EXTRACT_RECORD': {
                     const { fields, scope } = msg.data;
-                    console.log('[ENV_EXTRACT_RECORD] Starting extraction', { fieldCount: fields.length, hasScope: !!scope });
                     const scopeEl = resolveScope(scope);
                     const result: Record<string, any> = {};
 
@@ -580,12 +507,10 @@ export function initEnvHandler() {
                         try {
                             const fieldSelector = field.selector || '';
                             const fieldType = field.selectorType || 'css';
-                            console.log(`[ENV_EXTRACT_RECORD] Extracting field "${key}"`, { selector: fieldSelector, attribute: field.attribute, multiple: field.multiple });
 
                             // Handle multiple: true - extract from all matching elements
                             if (field.multiple && fieldSelector && fieldSelector.trim()) {
                                 const elements = getElements(fieldSelector, fieldType, scopeEl);
-                                console.log(`[ENV_EXTRACT_RECORD] Multiple mode: found ${elements.length} elements for "${key}"`);
                                 const values: string[] = [];
                                 for (const el of elements) {
                                     let v = extractValueFromElement(el, field.attribute);
@@ -595,49 +520,57 @@ export function initEnvHandler() {
                                     if (v !== null && v !== undefined) values.push(String(v));
                                 }
                                 value = values.join(', ');
-                                console.log(`[ENV_EXTRACT_RECORD] Extracted "${key}" (multiple):`, String(value).substring(0, 50));
                             } else {
                                 // Single element extraction
                                 let el: Element | null = scopeEl;
                                 if (fieldSelector && fieldSelector.trim()) {
                                     el = getElement(fieldSelector, fieldType, scopeEl);
-                                    if (!el) {
-                                        console.warn(`[ENV_EXTRACT_RECORD] Element not found for field "${key}":`, fieldSelector);
-                                    }
-                                } else {
-                                    console.log(`[ENV_EXTRACT_RECORD] Using scope element for field "${key}"`);
                                 }
 
                                 if (el) {
                                     value = extractValueFromElement(el, field.attribute);
-                                    console.log(`[ENV_EXTRACT_RECORD] Extracted "${key}":`, String(value).substring(0, 50));
                                 }
 
                                 // Apply Transformers
-                                console.log(`[ENV_EXTRACT_RECORD] Field "${key}" - value exists: ${!!value}, transformers exists: ${!!field.transformers}, transformers type: ${typeof field.transformers}, transformers length: ${field.transformers?.length}`);
                                 if (value && field.transformers && field.transformers.length > 0) {
-                                    console.log(`[ENV_EXTRACT_RECORD] ✅ Applying ${field.transformers.length} transformers to "${key}"`, field.transformers);
-                                    const beforeTransform = value;
                                     value = applyTransformers(value, field.transformers);
-                                    console.log(`[ENV_EXTRACT_RECORD] Transform result for "${key}":`, { before: String(beforeTransform).substring(0, 100), after: String(value).substring(0, 100) });
-                                } else {
-                                    console.log(`[ENV_EXTRACT_RECORD] ❌ NOT applying transformers to "${key}" - condition failed`);
                                 }
                             }
 
                         } catch (err) {
-                            console.error(`[ENV_EXTRACT_RECORD] Failed to extract field ${key}`, err);
+                            console.warn(`[OctoGrab] Failed to extract field ${key}:`, err);
                         }
 
                         result[key] = value;
                     }
-                    console.log('[ENV_EXTRACT_RECORD] Extraction complete:', Object.keys(result).length, 'fields');
                     return { success: true, data: result };
+                }
+
+                case 'ENV_GET_SCOPE': {
+                    const { selector, selectorType, scope } = msg.data;
+                    const scopeEl = resolveScope(scope);
+                    const el = selector && selector.trim()
+                        ? getElement(selector, selectorType || 'css', scopeEl)
+                        : scopeEl;
+                    if (!el) {
+                        return { success: false, error: `Scope element not found: ${selector}` };
+                    }
+                    // Return a Scope object that the executor can pass back in future messages
+                    // We use a unique attribute to re-locate this element later
+                    const scopeId = `__octo_scope_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+                    el.setAttribute('data-octo-scope', scopeId);
+                    return {
+                        success: true,
+                        data: {
+                            selector: `[data-octo-scope="${scopeId}"]`,
+                            selectorType: 'css',
+                            index: 0,
+                        }
+                    };
                 }
 
                 case 'ENV_IS_VISIBLE': {
                     const { selector, selectorType, scope } = msg.data;
-                    console.log('[ENV_IS_VISIBLE] Checking visibility', { selector, hasScope: !!scope });
                     const scopeEl = resolveScope(scope);
 
                     let target: Element | null = scopeEl;
@@ -646,7 +579,6 @@ export function initEnvHandler() {
                     }
 
                     if (!target) {
-                        console.log('[ENV_IS_VISIBLE] Element not found, returning false');
                         return { success: true, data: false };
                     }
 

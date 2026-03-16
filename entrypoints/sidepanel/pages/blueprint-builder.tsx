@@ -187,7 +187,7 @@ export default observer(function BlueprintBuilder() {
 
     const AddNewBlock = () => {
         return <Drawer open={isAddBlockDrawerOpen} onOpenChange={setIsAddBlockDrawerOpen}>
-            <DrawerTrigger>
+            <DrawerTrigger asChild>
                 <Button className='w-40 rounded-full px-3 py-2'>
                     <div className='flex gap-2 items-center'>
                         <CopyPlus />

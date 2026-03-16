@@ -132,9 +132,15 @@ export class BlueprintExecutorStore {
      * Send a message to the locked target tab (not the active tab).
      * This prevents commands going to the wrong tab if the user switches tabs.
      */
-    private async send(message: any) {
+    private async send(message: any, timeout: number = 30000) {
         if (!this._targetTabId) throw new Error('No target tab set');
-        return sendToTab(this._targetTabId, message);
+        const result = await Promise.race([
+            sendToTab(this._targetTabId, message),
+            new Promise<never>((_, reject) =>
+                setTimeout(() => reject(new Error(`Message timeout (${timeout}ms) for ${message.type}`)), timeout)
+            )
+        ]);
+        return result;
     }
 
     /**
@@ -163,14 +169,23 @@ export class BlueprintExecutorStore {
             // Clear any old resumable checkpoint for this blueprint
             this.clearResumableCheckpoint(blueprint.id);
         }
-        this.status = 'running';
-        this.runningBlueprintId = blueprint.id;
-        this.runningBlueprintName = blueprint.name;
-        if (!resumeFromCheckpoint) {
-            this.traces = []; // Ensure traces are cleared
-        }
-        this.startTime = this.startTime || Date.now();
+        runInAction(() => {
+            this.status = 'running';
+            this.runningBlueprintId = blueprint.id;
+            this.runningBlueprintName = blueprint.name;
+            if (!resumeFromCheckpoint) {
+                this.traces = []; // Ensure traces are cleared
+            }
+            this.startTime = this.startTime || Date.now();
+        });
         this._abortController = new AbortController();
+
+        // Overall execution timeout (2 hours max to prevent runaway blueprints)
+        const maxExecutionMs = 2 * 60 * 60 * 1000;
+        const executionTimer = setTimeout(() => {
+            this.log('error', `❌ Execution timeout: exceeded ${maxExecutionMs / 60000} minutes`);
+            this.stop();
+        }, maxExecutionMs);
 
         // Lock to the currently active tab — all commands go here
         const tabs = await browser.tabs.query({ active: true, currentWindow: true });
@@ -224,6 +239,9 @@ export class BlueprintExecutorStore {
         }
 
         this.log('info', `▶ Starting blueprint: ${blueprint.name} (tab ${this._targetTabId})`);
+
+        // Cleanup old execution history to prevent unbounded storage growth
+        try { await db.cleanupExecutionHistory(100, 30); } catch { /* non-critical */ }
 
         try {
             // Execute top-level blocks sequentially with NO scope
@@ -288,6 +306,7 @@ export class BlueprintExecutorStore {
                 console.error('Failed to save execution history', e);
             }
         } finally {
+            clearTimeout(executionTimer);
             if (this._targetTabId) {
                 browser.tabs.onRemoved.removeListener(onTabRemoved);
             }
@@ -298,14 +317,18 @@ export class BlueprintExecutorStore {
     pause() {
         if (this.status !== 'running') return;
         this._paused = true;
-        this.status = 'paused';
+        runInAction(() => {
+            this.status = 'paused';
+        });
         this.log('warn', '⏸ Execution paused');
     }
 
     resume() {
         if (this.status !== 'paused') return;
         this._paused = false;
-        this.status = 'running';
+        runInAction(() => {
+            this.status = 'running';
+        });
         this.log('info', '▶ Execution resumed');
         if (this._pauseResolve) {
             this._pauseResolve();
@@ -320,8 +343,14 @@ export class BlueprintExecutorStore {
             this._pauseResolve();
             this._pauseResolve = null;
         }
-        this.status = 'stopped';
-        this.endTime = Date.now();
+        // Signal content script to cancel any long-running operations
+        if (this._targetTabId) {
+            try { await sendToTab(this._targetTabId, { type: 'ENV_ABORT' } as any); } catch { /* ignore */ }
+        }
+        runInAction(() => {
+            this.status = 'stopped';
+            this.endTime = Date.now();
+        });
         this.log('warn', '⏹ Execution stopped by user');
 
         // Save extracted data and checkpoint for resume
@@ -344,7 +373,7 @@ export class BlueprintExecutorStore {
                         planId: this.runningBlueprintId,
                         executionId: this.currentExecutionId,
                         blockId: this.currentBlock.id,
-                        loopState: Object.keys(this._loopState).length > 0 ? this._loopState : undefined,
+                        loopState: Object.keys(this._loopState).length > 0 ? toJS(this._loopState) : undefined,
                         timestamp: Date.now(),
                         url: currentUrl,
                         completed: false
@@ -1453,15 +1482,58 @@ export class BlueprintExecutorStore {
             this.log('info', `    ✓ Next button found`);
             this.log('info', `    👆 Clicking next button: ${sel.value}`);
 
+            // Capture URL before click to detect full-page navigation
+            let urlBeforePagination: string | undefined;
+            try {
+                const tabBefore = await browser.tabs.get(this._targetTabId!);
+                urlBeforePagination = tabBefore.url;
+            } catch { /* ignore */ }
+
+            // Listen for navigation
+            let paginationNavDetected = false;
+            const onPagNav = (tabId: number, changeInfo: any) => {
+                if (tabId === this._targetTabId && changeInfo.status === 'loading') {
+                    paginationNavDetected = true;
+                }
+            };
+            browser.tabs.onUpdated.addListener(onPagNav);
+
             await this.send({
                 type: 'ENV_CLICK',
                 data: { selector: sel.value, selectorType: sel.type || 'css', scope: scope || undefined }
             });
 
-            // Wait for page to load
-            this.log('info', `    ⏱ Waiting ${delayBetween}ms for page transition...`);
-            await this.delay(delayBetween);
-            this.log('info', `    ⏳ Waiting for page to load...`);
+            // Give browser a moment to start navigating
+            await this.delay(300);
+            browser.tabs.onUpdated.removeListener(onPagNav);
+
+            if (paginationNavDetected) {
+                // Full page navigation — wait for it to complete
+                this.log('info', `    🔀 Page navigation detected, waiting for load...`);
+                let alreadyDone = false;
+                try {
+                    const tabNow = await browser.tabs.get(this._targetTabId!);
+                    alreadyDone = tabNow.status === 'complete';
+                } catch { /* ignore */ }
+                if (!alreadyDone) {
+                    try { await this.waitForNavigation(this._targetTabId!, 30000); } catch { /* may have completed */ }
+                }
+                await this.waitForTab(30000);
+                this.log('info', `    ✓ Page loaded after pagination navigation`);
+            } else {
+                // SPA-style or no navigation — use delay + waitForTab
+                this.log('info', `    ⏱ Waiting ${delayBetween}ms for page transition...`);
+                await this.delay(delayBetween);
+                // Double-check URL change
+                try {
+                    const tabAfter = await browser.tabs.get(this._targetTabId!);
+                    if (urlBeforePagination && tabAfter.url !== urlBeforePagination) {
+                        this.log('info', `    🔀 URL changed, waiting for content script...`);
+                        await this.waitForTab(30000);
+                    }
+                } catch { /* ignore */ }
+            }
+            this.log('info', `    ⏳ Verifying page is ready...`);
             await this.waitForTab(15000);
         }
 
@@ -2031,13 +2103,30 @@ export class BlueprintExecutorStore {
             }
         }
 
+        // Deduplication: skip if an identical record already exists
+        const isDuplicate = this.extractedData.some(existing => {
+            const keys = Object.keys(record);
+            if (keys.length !== Object.keys(existing).length) return false;
+            return keys.every(k => existing[k] === record[k]);
+        });
+
+        if (isDuplicate) {
+            this.log('warn', `  ⏭ Duplicate record skipped`);
+            return;
+        }
+
         // Update extracted data
         runInAction(() => {
             this.extractedData.push(record);
 
-            // Auto-detect columns from the first record
-            const newKeys = Object.keys(record);
-            for (const key of newKeys) {
+            // Add columns in the order defined by block.config.fields (respects user reordering)
+            for (const f of fields) {
+                if (f.key && !this.extractedColumns.includes(f.key)) {
+                    this.extractedColumns.push(f.key);
+                }
+            }
+            // Also add any extra keys from record not in fields (safety fallback)
+            for (const key of Object.keys(record)) {
                 if (!this.extractedColumns.includes(key)) {
                     this.extractedColumns.push(key);
                 }
@@ -2065,7 +2154,7 @@ export class BlueprintExecutorStore {
         // Check if any referenced field is null/empty — if so, return null
         // (formula can't produce a meaningful result from missing data)
         let hasNullReference = false;
-        const expression = formula.replace(/\{\{(\w+)\}\}/g, (_, key) => {
+        const expression = formula.replace(/\{\{([^}]+)\}\}/g, (_, key) => {
             const val = record[key];
             if (val === null || val === undefined || val === '') {
                 hasNullReference = true;
@@ -2271,8 +2360,9 @@ export class BlueprintExecutorStore {
 
     // ─── Helpers ────────────────────────────────────────────────────────────
 
+    private static readonly MAX_LOG_ENTRIES = 5000;
+
     private log(type: ExecutionLog['type'], message: string, blockId?: string, blockLabel?: string) {
-        console.log('log', type, message, blockId, blockLabel);
         if (!this.enableLogs) return;
         runInAction(() => {
             this.logs.push({
@@ -2282,6 +2372,10 @@ export class BlueprintExecutorStore {
                 blockId,
                 blockLabel,
             });
+            // Cap log size to prevent unbounded memory growth during long runs
+            if (this.logs.length > BlueprintExecutorStore.MAX_LOG_ENTRIES) {
+                this.logs.splice(0, this.logs.length - BlueprintExecutorStore.MAX_LOG_ENTRIES);
+            }
         });
     }
 

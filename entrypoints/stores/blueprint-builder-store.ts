@@ -18,11 +18,15 @@ export class BlueprintBuilderStore {
     // Element picker state
     isPicking: boolean = false;
     pickingCallback: ((css: string, xpath: string) => void) | null = null;
+    pickingDoneCallback: ((success: boolean) => void) | null = null;
+    pendingCss: string = '';
+    pendingXpath: string = '';
     private _messageCleanup: (() => void) | null = null;
 
     constructor() {
         makeAutoObservable(this, {
             pickingCallback: false,
+            pickingDoneCallback: false,
         });
         this.initMessageListener();
         this.loadBlueprints();
@@ -108,10 +112,18 @@ export class BlueprintBuilderStore {
             }
 
             if (message.type === 'PICKING_DONE') {
+                const doneCallback = this.pickingDoneCallback;
+                const success = message.data?.success ?? false;
                 runInAction(() => {
                     this.isPicking = false;
                     this.pickingCallback = null;
+                    this.pickingDoneCallback = null;
+                    if (!success) {
+                        this.pendingCss = '';
+                        this.pendingXpath = '';
+                    }
                 });
+                if (doneCallback) doneCallback(success);
             }
         });
     }
@@ -123,10 +135,14 @@ export class BlueprintBuilderStore {
      */
     async startPicking(
         onSelect: (css: string, xpath: string) => void,
-        parentSelector: string | null = null
+        parentSelector: string | null = null,
+        onDone?: (success: boolean) => void
     ) {
         this.isPicking = true;
         this.pickingCallback = onSelect;
+        this.pickingDoneCallback = onDone || null;
+        this.pendingCss = '';
+        this.pendingXpath = '';
 
         const response = await sendToContentScript({
             type: 'START_PICKING',
@@ -137,6 +153,9 @@ export class BlueprintBuilderStore {
             runInAction(() => {
                 this.isPicking = false;
                 this.pickingCallback = null;
+                this.pickingDoneCallback = null;
+                this.pendingCss = '';
+                this.pendingXpath = '';
             });
             console.error('[OctoGrab] Failed to start picking:', response.error);
             return false;
@@ -149,6 +168,9 @@ export class BlueprintBuilderStore {
         runInAction(() => {
             this.isPicking = false;
             this.pickingCallback = null;
+            this.pickingDoneCallback = null;
+            this.pendingCss = '';
+            this.pendingXpath = '';
         });
     }
 

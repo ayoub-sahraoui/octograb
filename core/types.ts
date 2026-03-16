@@ -1,16 +1,45 @@
 export type BlockType = 'navigate' | 'click' | 'input' | 'loop_elements' | 'loop_pagination' | 'extract_scope' | 'go_back' | 'scroll' | 'wait' | 'condition';
 export type SelectorType = 'css' | 'xpath';
 
-export type TransformerType = 'trim' | 'uppercase' | 'lowercase' | 'replace' | 'regex';
+export type TransformerType =
+  | 'trim'
+  | 'uppercase'
+  | 'lowercase'
+  | 'capitalize'
+  | 'title_case'
+  | 'replace'
+  | 'regex'
+  | 'split'
+  | 'parse_number'
+  | 'currency_convert'
+  | 'parse_json'
+  | 'join'
+  | 'parse_date'
+  | 'custom';
 
 export interface Transformer {
   type: TransformerType;
-  config?: {
-    searchValue?: string;
-    replaceValue?: string;
-    regexPattern?: string;
-    regexFlags?: string;
-  };
+  // replace
+  searchValue?: string;
+  replaceValue?: string;
+  // regex
+  pattern?: string;
+  flags?: string;
+  replacement?: string;
+  extractGroup?: number;
+  // split
+  delimiter?: string;
+  index?: number;
+  // currency_convert
+  fixedRate?: number;
+  // parse_json
+  path?: string;
+  // parse_date
+  outputFormat?: string;
+  // custom (not supported in Chrome extensions due to CSP)
+  functionBody?: string;
+  // error handling
+  skipOnError?: boolean;
 }
 
 export interface ExtractionField {
@@ -44,7 +73,7 @@ export interface ScrollConfig {
 }
 
 export interface WaitConfig {
-  type: 'timeout' | 'selector_visible' | 'selector_hidden';
+  type: 'timeout' | 'selector_visible' | 'selector_hidden' | 'dom_content_loaded' | 'network_idle';
   timeout?: number; // ms
   selector?: string;
   selectorType?: SelectorType;
@@ -57,8 +86,9 @@ export interface ConditionConfig {
   selectorType?: SelectorType;
   detectedCssSelector?: string;
   detectedXpathSelector?: string;
-  check: 'exists' | 'not_exists' | 'visible' | 'text_contains' | 'text_equals';
-  value?: string; // For text checks
+  check: 'exists' | 'not_exists' | 'visible' | 'hidden' | 'text_contains' | 'text_equals' | 'text_regex' | 'count_equals' | 'count_greater_than';
+  value?: string; // For text/count checks
+  negate?: boolean;
 }
 
 export interface Block {

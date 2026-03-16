@@ -152,6 +152,41 @@ export class OctoGrabDatabase extends Dexie {
         await this.executionHistory.delete(id);
     }
 
+    /**
+     * Clean up old execution history, keeping only the most recent N entries.
+     * Also strips full results from entries older than `keepResultsDays` days to save storage.
+     */
+    async cleanupExecutionHistory(maxEntries: number = 100, keepResultsDays: number = 30): Promise<number> {
+        const all = await this.executionHistory.orderBy('startedAt').reverse().toArray();
+        let cleaned = 0;
+
+        // Delete entries beyond maxEntries
+        if (all.length > maxEntries) {
+            const toDelete = all.slice(maxEntries);
+            for (const exec of toDelete) {
+                if (exec.id) {
+                    await this.executionHistory.delete(exec.id);
+                    await this.progress.where('executionId').equals(exec.id).delete();
+                    cleaned++;
+                }
+            }
+        }
+
+        // Strip results from old entries to save space (keep metadata)
+        const cutoff = new Date();
+        cutoff.setDate(cutoff.getDate() - keepResultsDays);
+        const cutoffStr = cutoff.toISOString();
+
+        const remaining = await this.executionHistory.toArray();
+        for (const exec of remaining) {
+            if (exec.id && exec.startedAt < cutoffStr && exec.results && exec.results.length > 0) {
+                await this.executionHistory.update(exec.id, { results: [], logs: [] });
+            }
+        }
+
+        return cleaned;
+    }
+
     // Helper methods for Settings
     async getSetting(key: string): Promise<any> {
         const setting = await this.settings.get({ key });
