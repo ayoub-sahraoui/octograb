@@ -25,6 +25,18 @@ export interface UserSettings {
     updatedAt: string;
 }
 
+export interface AppNotification {
+    id?: number;
+    type: 'success' | 'error' | 'warning' | 'info' | 'tip';
+    category: 'execution' | 'system' | 'tip';
+    title: string;
+    description: string;
+    read: boolean;
+    dismissed: boolean;
+    createdAt: string;
+    metadata?: Record<string, any>;
+}
+
 export interface ScraperProgress {
     id?: number;
     planId: string;
@@ -44,6 +56,7 @@ export class OctoGrabDatabase extends Dexie {
     executionHistory!: Table<ExecutionHistory, number>;
     settings!: Table<UserSettings, number>;
     progress!: Table<ScraperProgress, number>;
+    notifications!: Table<AppNotification, number>;
 
     constructor() {
         super('OctoGrabDB');
@@ -55,6 +68,15 @@ export class OctoGrabDatabase extends Dexie {
             executionHistory: '++id, planId, startedAt, status',
             settings: '++id, &key, updatedAt',
             progress: '++id, planId, executionId, blockId, timestamp'
+        });
+
+        this.version(2).stores({
+            plans: 'id, name, updatedAt',
+            jobs: 'id, planName, status, submittedAt',
+            executionHistory: '++id, planId, startedAt, status',
+            settings: '++id, &key, updatedAt',
+            progress: '++id, planId, executionId, blockId, timestamp',
+            notifications: '++id, type, category, read, dismissed, createdAt'
         });
     }
 
@@ -185,6 +207,54 @@ export class OctoGrabDatabase extends Dexie {
         }
 
         return cleaned;
+    }
+
+    // Helper methods for Notifications
+    async addNotification(notification: Omit<AppNotification, 'id'>): Promise<number> {
+        return await this.notifications.add(notification as AppNotification);
+    }
+
+    async getNotifications(limit: number = 50): Promise<AppNotification[]> {
+        return await this.notifications
+            .where('dismissed').equals(0)
+            .reverse()
+            .sortBy('createdAt');
+    }
+
+    async getAllNotifications(limit: number = 50): Promise<AppNotification[]> {
+        return await this.notifications
+            .orderBy('createdAt')
+            .reverse()
+            .limit(limit)
+            .toArray();
+    }
+
+    async markNotificationRead(id: number): Promise<void> {
+        await this.notifications.update(id, { read: true });
+    }
+
+    async markAllNotificationsRead(): Promise<void> {
+        await this.notifications.where('read').equals(0).modify({ read: true });
+    }
+
+    async dismissNotification(id: number): Promise<void> {
+        await this.notifications.update(id, { dismissed: true });
+    }
+
+    async getUnreadCount(): Promise<number> {
+        return await this.notifications
+            .where('dismissed').equals(0)
+            .and(n => !n.read)
+            .count();
+    }
+
+    async cleanupOldNotifications(maxAge: number = 30): Promise<number> {
+        const cutoff = new Date();
+        cutoff.setDate(cutoff.getDate() - maxAge);
+        const cutoffStr = cutoff.toISOString();
+        return await this.notifications
+            .where('createdAt').below(cutoffStr)
+            .delete();
     }
 
     // Helper methods for Settings

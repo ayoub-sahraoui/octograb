@@ -8,6 +8,9 @@ import { toJS } from "mobx";
 import { db } from "@/core/database";
 import { v4 as uuidv4 } from 'uuid';
 import * as XLSX from 'xlsx';
+import { useNotificationStore } from './notification-store';
+import { preRunCheck } from '@/core/license';
+import { isDevMode } from '@/core/dev-mode';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -164,6 +167,54 @@ export class BlueprintExecutorStore {
     async execute(blueprint: Blueprint, resumeFromCheckpoint: boolean = false) {
         if (this.status === 'running') return;
 
+        // ─── Server-side license verification before execution ─────────
+        if (!isDevMode()) {
+            try {
+                const check = await preRunCheck();
+                if (!check.allowed) {
+                    runInAction(() => {
+                        this.status = 'error';
+                        this.error = check.error || 'License verification failed. Please check your license.';
+                    });
+                    try {
+                        useNotificationStore().push({
+                            type: 'error',
+                            category: 'system',
+                            title: 'Execution Blocked',
+                            description: check.error || 'Your license is no longer valid. Please re-activate or check your subscription.',
+                        });
+                    } catch { /* non-critical */ }
+                    return;
+                }
+
+                // Validate blueprint block count against server-enforced limits
+                if (check.limits && check.limits.maxBlocksPerBlueprint > 0) {
+                    const blockCount = this.countBlocks(blueprint.blocks);
+                    if (blockCount > check.limits.maxBlocksPerBlueprint) {
+                        runInAction(() => {
+                            this.status = 'error';
+                            this.error = `Blueprint exceeds ${check.plan || 'free'} plan limit of ${check.limits!.maxBlocksPerBlueprint} blocks (has ${blockCount}). Upgrade to run larger blueprints.`;
+                        });
+                        try {
+                            useNotificationStore().push({
+                                type: 'error',
+                                category: 'system',
+                                title: 'Block Limit Exceeded',
+                                description: `Your blueprint has ${blockCount} blocks but the ${check.plan || 'free'} plan allows ${check.limits!.maxBlocksPerBlueprint}. Upgrade to remove limits.`,
+                            });
+                        } catch { /* non-critical */ }
+                        return;
+                    }
+                }
+
+                this.log('info', `✓ License verified (plan: ${check.plan || 'unknown'})`);
+            } catch {
+                // If pre-run check itself throws, log but allow execution (graceful degradation)
+                this.log('warn', '⚠ Could not verify license — proceeding with cached state');
+            }
+        }
+        // ───────────────────────────────────────────────────────────────
+
         if (!resumeFromCheckpoint) {
             this.resetState();
             // Clear any old resumable checkpoint for this blueprint
@@ -257,6 +308,19 @@ export class BlueprintExecutorStore {
                 });
                 this.log('success', `✅ Blueprint completed. ${this.extractedData.length} rows extracted in ${this.durationFormatted}`);
 
+                // Push notification
+                try {
+                    const notifStore = useNotificationStore();
+                    await notifStore.notifyExecutionCompleted(blueprint.name, this.extractedData.length, this.durationFormatted);
+                    // Tip: first successful extraction
+                    if (this.extractedData.length > 0) {
+                        await notifStore.pushTipOnce('export_data', {
+                            title: 'Tip: Export your data',
+                            description: 'You can export extracted data to CSV, JSON, or Excel from the Extracted Data page.',
+                        });
+                    }
+                } catch { /* non-critical */ }
+
                 // Save history
                 try {
                     if (this.currentExecutionId) {
@@ -289,6 +353,12 @@ export class BlueprintExecutorStore {
                 this.endTime = Date.now();
             });
             this.log('error', `❌ Execution failed: ${err.message}`);
+
+            // Push notification
+            try {
+                const notifStore = useNotificationStore();
+                await notifStore.notifyExecutionFailed(blueprint.name, err.message);
+            } catch { /* non-critical */ }
 
             // Save history (failed)
             try {
@@ -397,6 +467,15 @@ export class BlueprintExecutorStore {
                     this.log('info', '💾 Checkpoint saved for resume');
                     this.log('info', `  📊 Loop state: ${JSON.stringify(this._loopState)}`);
                 }
+
+                // Push notification
+                try {
+                    const notifStore = useNotificationStore();
+                    await notifStore.notifyExecutionStopped(
+                        this.runningBlueprintName || 'Blueprint',
+                        this.extractedData.length
+                    );
+                } catch { /* non-critical */ }
             } catch (e) {
                 console.error('Failed to save execution state', e);
             }
@@ -405,6 +484,18 @@ export class BlueprintExecutorStore {
 
     clearResults() {
         this.resetState();
+    }
+
+    async deleteExecution(executionId: number) {
+        try {
+            await db.deleteExecution(executionId);
+            await db.progress.where('executionId').equals(executionId).delete();
+        } catch (e) {
+            console.error('Failed to delete execution', e);
+        }
+        if (this.currentExecutionId === executionId) {
+            this.resetState();
+        }
     }
 
     async loadResumableBlueprints() {

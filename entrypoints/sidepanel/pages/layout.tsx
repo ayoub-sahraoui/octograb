@@ -1,10 +1,15 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { CirclePlus, Database, Settings, House, Bot, Bell, Sparkles, Menu, X, Check, CircleAlert } from 'lucide-react'
+import { CirclePlus, Database, Settings, House, Bot, Bell, Sparkles, Menu, X, Check, CircleAlert, AlertTriangle, CheckCircle2, XCircle, Info, Lightbulb, Trash2 } from 'lucide-react'
 import { Outlet, useNavigate } from 'react-router-dom'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { useBlueprintBuilderStore } from '@/entrypoints/stores/blueprint-builder-store'
+import { useNotificationStore } from '@/entrypoints/stores/notification-store'
+import { FREE_TIER_LIMITS } from '@/entrypoints/stores/license-store'
+import { toast } from 'sonner'
+import { observer } from 'mobx-react-lite'
+import { AppNotification } from '@/core/database'
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -23,66 +28,58 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
-interface Notification {
-    id: number;
-    title: string;
-    description: string;
-    time: string;
-    type: 'success' | 'info' | 'warning';
-    read: boolean;
+function formatRelativeTime(dateStr: string): string {
+    const now = Date.now();
+    const date = new Date(dateStr).getTime();
+    const diffMs = now - date;
+    const diffSec = Math.floor(diffMs / 1000);
+    const diffMin = Math.floor(diffSec / 60);
+    const diffHr = Math.floor(diffMin / 60);
+    const diffDay = Math.floor(diffHr / 24);
+
+    if (diffSec < 60) return 'Just now';
+    if (diffMin < 60) return `${diffMin}m ago`;
+    if (diffHr < 24) return `${diffHr}h ago`;
+    if (diffDay < 7) return `${diffDay}d ago`;
+    return new Date(dateStr).toLocaleDateString();
 }
 
-const initialNotifications: Notification[] = [
-    {
-        id: 1,
-        title: "Welcome to OctoGrab!",
-        description: "Get started by creating your first automation blueprint.",
-        time: "Just now",
-        type: "info",
-        read: false,
-    },
-    {
-        id: 2,
-        title: "AI Chat coming soon",
-        description: "Our AI assistant will help you build blueprints using natural language.",
-        time: "Today",
-        type: "info",
-        read: false,
-    },
-    {
-        id: 3,
-        title: "Tip: Export your data",
-        description: "You can export extracted data to CSV or JSON from the Extracted Data page.",
-        time: "Today",
-        type: "success",
-        read: false,
-    },
-];
+function getNotificationIcon(n: AppNotification) {
+    switch (n.type) {
+        case 'success': return <CheckCircle2 className="h-4 w-4" />;
+        case 'error': return <XCircle className="h-4 w-4" />;
+        case 'warning': return <AlertTriangle className="h-4 w-4" />;
+        case 'tip': return <Lightbulb className="h-4 w-4" />;
+        default: return <Info className="h-4 w-4" />;
+    }
+}
 
-export default function Layout() {
+function getNotificationStyles(n: AppNotification) {
+    switch (n.type) {
+        case 'success': return { bg: 'bg-green-100', text: 'text-green-600' };
+        case 'error': return { bg: 'bg-red-100', text: 'text-red-600' };
+        case 'warning': return { bg: 'bg-amber-100', text: 'text-amber-600' };
+        case 'tip': return { bg: 'bg-purple-100', text: 'text-purple-600' };
+        default: return { bg: 'bg-emerald-100', text: 'text-emerald-600' };
+    }
+}
+
+export default observer(function Layout() {
     const blueprintBuilderStore = useBlueprintBuilderStore();
+    const notificationStore = useNotificationStore();
     const navigate = useNavigate();
     const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
     const [isAiDialogOpen, setIsAiDialogOpen] = useState(false);
     const [newBlueprintName, setNewBlueprintName] = useState('');
     const [newBlueprintDescription, setNewBlueprintDescription] = useState('');
-    const [notifications, setNotifications] = useState<Notification[]>(initialNotifications);
-
-    const unreadCount = notifications.filter(n => !n.read).length;
-
-    const markAsRead = (id: number) => {
-        setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
-    };
-
-    const markAllAsRead = () => {
-        setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-    };
-
-    const dismissNotification = (id: number) => {
-        setNotifications(prev => prev.filter(n => n.id !== id));
-    };
 
     const blueprintBuilderRoute = () => {
+        if (!blueprintBuilderStore.canCreateBlueprint) {
+            toast.error('Free plan limit reached', {
+                description: `Free plan allows ${FREE_TIER_LIMITS.maxBlueprints} blueprint. Upgrade to create more.`,
+            });
+            return;
+        }
         setNewBlueprintName('');
         setNewBlueprintDescription('');
         setIsCreateDialogOpen(true);
@@ -93,7 +90,13 @@ export default function Layout() {
             alert('Please enter a blueprint name');
             return;
         }
-        blueprintBuilderStore.createBlueprint(newBlueprintName.trim(), newBlueprintDescription.trim());
+        const created = blueprintBuilderStore.createBlueprint(newBlueprintName.trim(), newBlueprintDescription.trim());
+        if (!created) {
+            toast.error('Free plan limit reached', {
+                description: `Free plan allows ${FREE_TIER_LIMITS.maxBlueprints} blueprint. Upgrade to create more.`,
+            });
+            return;
+        }
         setIsCreateDialogOpen(false);
         navigate('/blueprint-builder');
     };
@@ -155,9 +158,9 @@ export default function Layout() {
                                     <PopoverTrigger asChild>
                                         <Button size="icon" className="h-9 w-9 relative">
                                             <Bell className="h-4 w-4" />
-                                            {unreadCount > 0 && (
-                                                <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 text-[10px] font-bold text-white flex items-center justify-center">
-                                                    {unreadCount}
+                                            {notificationStore.unreadCount > 0 && (
+                                                <span className="absolute -top-1 -right-1 h-4 min-w-4 px-1 rounded-full bg-red-500 text-[10px] font-bold text-white flex items-center justify-center">
+                                                    {notificationStore.unreadCount > 99 ? '99+' : notificationStore.unreadCount}
                                                 </span>
                                             )}
                                         </Button>
@@ -167,50 +170,71 @@ export default function Layout() {
                                     <p>Notifications</p>
                                 </TooltipContent>
                             </Tooltip>
-                            <PopoverContent align="end" className="w-80 p-0">
-                                <div className="flex items-center justify-between px-4 py-3 border-b">
-                                    <h3 className="text-sm font-semibold">Notifications</h3>
-                                    {unreadCount > 0 && (
-                                        <button
-                                            onClick={markAllAsRead}
-                                            className="text-xs text-blue-600 hover:text-blue-800 font-medium"
-                                        >
-                                            Mark all as read
-                                        </button>
-                                    )}
+                            <PopoverContent align="end" className="w-80 p-0 bg-white border border-gray-200 shadow-lg rounded-lg overflow-hidden">
+                                <div className="flex items-center justify-between px-4 py-2.5 bg-gray-50 border-b border-gray-200">
+                                    <h3 className="text-sm font-semibold text-gray-800">Notifications</h3>
+                                    <div className="flex items-center gap-2">
+                                        {notificationStore.unreadCount > 0 && (
+                                            <button
+                                                onClick={() => notificationStore.markAllRead()}
+                                                className="text-xs text-emerald-600 hover:text-emerald-800 font-medium transition-colors"
+                                            >
+                                                Mark all read
+                                            </button>
+                                        )}
+                                        {notificationStore.notifications.length > 0 && (
+                                            <button
+                                                onClick={() => notificationStore.clearAll()}
+                                                className="p-1 rounded hover:bg-gray-200 text-gray-400 hover:text-gray-600 transition-colors"
+                                                title="Clear all"
+                                            >
+                                                <Trash2 className="h-3.5 w-3.5" />
+                                            </button>
+                                        )}
+                                    </div>
                                 </div>
-                                <div className="max-h-72 overflow-y-auto">
-                                    {notifications.length === 0 ? (
-                                        <div className="flex flex-col items-center justify-center py-8 text-gray-400">
-                                            <Bell className="h-8 w-8 mb-2 opacity-40" />
-                                            <p className="text-sm">No notifications</p>
+                                <div className="max-h-80 overflow-y-auto" style={{ scrollbarWidth: 'thin', scrollbarColor: '#d1d5db #f3f4f6' }}>
+                                    {notificationStore.notifications.length === 0 ? (
+                                        <div className="flex flex-col items-center justify-center py-10 text-gray-400">
+                                            <Bell className="h-8 w-8 mb-2 opacity-30" />
+                                            <p className="text-sm font-medium">All caught up!</p>
+                                            <p className="text-xs mt-0.5">No notifications</p>
                                         </div>
                                     ) : (
-                                        notifications.map((n) => (
-                                            <div
-                                                key={n.id}
-                                                className={`flex items-start gap-3 px-4 py-3 border-b last:border-b-0 transition-colors cursor-pointer hover:bg-gray-50 ${!n.read ? 'bg-blue-50/50' : ''}`}
-                                                onClick={() => markAsRead(n.id)}
-                                            >
-                                                <div className={`mt-0.5 shrink-0 rounded-full p-1.5 ${n.type === 'success' ? 'bg-green-100 text-green-600' : n.type === 'warning' ? 'bg-amber-100 text-amber-600' : 'bg-blue-100 text-blue-600'}`}>
-                                                    {n.type === 'warning' ? <CircleAlert className="h-3.5 w-3.5" /> : n.type === 'success' ? <Check className="h-3.5 w-3.5" /> : <Sparkles className="h-3.5 w-3.5" />}
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <div className="flex items-center gap-2">
-                                                        <p className={`text-sm truncate ${!n.read ? 'font-semibold' : 'font-medium text-gray-700'}`}>{n.title}</p>
-                                                        {!n.read && <span className="shrink-0 h-2 w-2 rounded-full bg-blue-500" />}
-                                                    </div>
-                                                    <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{n.description}</p>
-                                                    <p className="text-[10px] text-gray-400 mt-1">{n.time}</p>
-                                                </div>
-                                                <button
-                                                    onClick={(e) => { e.stopPropagation(); dismissNotification(n.id); }}
-                                                    className="shrink-0 mt-0.5 p-1 rounded hover:bg-gray-200 text-gray-400 hover:text-gray-600 transition-colors"
+                                        notificationStore.notifications.map((n) => {
+                                            const styles = getNotificationStyles(n);
+                                            return (
+                                                <div
+                                                    key={n.id}
+                                                    className={`flex items-start gap-3 px-4 py-3 border-b border-gray-100 last:border-b-0 transition-colors cursor-pointer hover:bg-gray-50 ${!n.read ? 'bg-emerald-50/40' : ''}`}
+                                                    onClick={() => n.id && notificationStore.markRead(n.id)}
                                                 >
-                                                    <X className="h-3.5 w-3.5" />
-                                                </button>
-                                            </div>
-                                        ))
+                                                    <div className={`mt-0.5 shrink-0 rounded-full p-1.5 ${styles.bg} ${styles.text}`}>
+                                                        {getNotificationIcon(n)}
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex items-center gap-2">
+                                                            <p className={`text-sm leading-tight ${!n.read ? 'font-semibold text-gray-900' : 'font-medium text-gray-700'}`}>{n.title}</p>
+                                                            {!n.read && <span className="shrink-0 h-1.5 w-1.5 rounded-full bg-emerald-500" />}
+                                                        </div>
+                                                        <p className="text-xs text-gray-500 mt-0.5 line-clamp-2 leading-relaxed">{n.description}</p>
+                                                        <div className="flex items-center gap-2 mt-1">
+                                                            <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${styles.bg} ${styles.text}`}>
+                                                                {n.category}
+                                                            </span>
+                                                            <span className="text-[10px] text-gray-400">{formatRelativeTime(n.createdAt)}</span>
+                                                        </div>
+                                                    </div>
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); n.id && notificationStore.dismiss(n.id); }}
+                                                        className="shrink-0 mt-0.5 p-1 rounded hover:bg-gray-200 text-gray-400 hover:text-gray-600 transition-colors"
+                                                        title="Dismiss"
+                                                    >
+                                                        <X className="h-3.5 w-3.5" />
+                                                    </button>
+                                                </div>
+                                            );
+                                        })
                                     )}
                                 </div>
                             </PopoverContent>
@@ -314,4 +338,4 @@ export default function Layout() {
             </div>
         </TooltipProvider>
     )
-}
+})

@@ -6,13 +6,25 @@ import LicenseActivation from "./pages/license-activation";
 import { isTampered } from "@/core/integrity";
 import { Loader2, ShieldAlert } from "lucide-react";
 
+import { isDevMode } from '@/core/dev-mode';
+
 export default observer(function App() {
   const licenseStore = useLicenseStore();
   const [tampered, setTampered] = useState(false);
+  const devMode = isDevMode();
 
   useEffect(() => {
     isTampered().then(setTampered);
   }, []);
+
+  // In dev mode, skip tamper check and license wall entirely
+  if (devMode) {
+    return (
+      <div className="w-full h-screen bg-gray-200 p-2 flex flex-col gap-2 overflow-hidden">
+        <Router />
+      </div>
+    );
+  }
 
   // Tampered — block completely
   if (tampered) {
@@ -34,16 +46,16 @@ export default observer(function App() {
     );
   }
 
-  // Not activated — show activation screen
-  if (!licenseStore.isActivated) {
+  // Not activated and not free — show activation screen
+  if (!licenseStore.isActivated && !licenseStore.isFreeUser) {
     return (
       <div className="w-full h-screen bg-gray-200 p-2 flex flex-col gap-2 overflow-hidden">
-        <LicenseActivation onActivated={() => licenseStore.markActivated()} />
+        <LicenseActivation onActivated={() => licenseStore.markActivated()} onContinueFree={() => licenseStore.continueFree()} />
       </div>
     );
   }
 
-  // Activated — show normal app
+  // Activated or free user — show normal app
   return (
     <div className="w-full h-screen bg-gray-200 p-2 flex flex-col gap-2 overflow-hidden">
       <Router />

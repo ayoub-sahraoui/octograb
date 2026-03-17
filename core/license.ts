@@ -319,6 +319,120 @@ export async function getLicenseState(): Promise<LicenseState> {
   };
 }
 
+// ─── Pre-Run Check ───────────────────────────────────────────
+
+export interface PreRunCheckResult {
+  allowed: boolean;
+  plan: string | null;
+  status: string;
+  error?: string;
+  limits?: {
+    maxBlueprints: number;
+    maxBlocksPerBlueprint: number;
+    canExport: boolean;
+    canResume: boolean;
+  };
+}
+
+/**
+ * Verify license with the server before each blueprint execution.
+ * This prevents cracked extensions from running blueprints without a valid license.
+ * Free users (no license key) get limited capabilities enforced server-side.
+ */
+export async function preRunCheck(): Promise<PreRunCheckResult> {
+  const stored = await browser.storage.local.get([
+    STORAGE_KEYS.LICENSE_KEY,
+    STORAGE_KEYS.DEVICE_FINGERPRINT,
+  ]);
+
+  const licenseKey = (stored[STORAGE_KEYS.LICENSE_KEY] as string) || null;
+  const fingerprint = (stored[STORAGE_KEYS.DEVICE_FINGERPRINT] as string) || null;
+
+  if (!fingerprint) {
+    // No fingerprint yet — allow as free tier (first run edge case)
+    return {
+      allowed: true,
+      plan: 'free',
+      status: 'active',
+      limits: {
+        maxBlueprints: 1,
+        maxBlocksPerBlueprint: 10,
+        canExport: true,
+        canResume: false,
+      },
+    };
+  }
+
+  try {
+    const body: Record<string, string> = { deviceFingerprint: fingerprint };
+    if (licenseKey) {
+      body.licenseKey = licenseKey;
+    }
+
+    const result = await apiCall('/api/licenses/pre-run-check', body);
+
+    // Update cached token if provided
+    if (result.token) {
+      await browser.storage.local.set({ [STORAGE_KEYS.VERIFY_TOKEN]: result.token });
+    }
+
+    // If server says license is invalid, update local state
+    if (!result.allowed && licenseKey) {
+      await browser.storage.local.set({
+        [STORAGE_KEYS.LICENSE_STATUS]: result.status || 'expired',
+      });
+    }
+
+    return {
+      allowed: result.allowed,
+      plan: result.plan || null,
+      status: result.status || 'unknown',
+      error: result.error,
+      limits: result.limits,
+    };
+  } catch (err: any) {
+    // Server unreachable — check if we have a valid cached token
+    const tokenStr = stored[STORAGE_KEYS.VERIFY_TOKEN as keyof typeof stored] as string | undefined;
+    if (licenseKey && tokenStr) {
+      // We have a cached token; allow execution (grace behavior)
+      return {
+        allowed: true,
+        plan: null,
+        status: 'grace',
+        limits: {
+          maxBlueprints: -1,
+          maxBlocksPerBlueprint: -1,
+          canExport: true,
+          canResume: true,
+        },
+      };
+    }
+
+    // No license key = free user, allow even offline
+    if (!licenseKey) {
+      return {
+        allowed: true,
+        plan: 'free',
+        status: 'active',
+        limits: {
+          maxBlueprints: 1,
+          maxBlocksPerBlueprint: 10,
+          canExport: true,
+          canResume: false,
+        },
+      };
+    }
+
+    // Licensed user with no cached token and server unreachable — block
+    return {
+      allowed: false,
+      plan: null,
+      status: 'error',
+      error: 'Cannot verify license. Please check your internet connection.',
+    };
+  }
+}
+
 // Background heartbeat — call from service worker / background script
 export async function startHeartbeat(): Promise<void> {
   // Run verification immediately

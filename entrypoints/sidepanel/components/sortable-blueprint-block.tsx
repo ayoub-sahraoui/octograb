@@ -25,7 +25,7 @@ export function SortableBlueprintBlock({ block }: SortableBlueprintBlockProps) {
     };
 
     return (
-        <div ref={setNodeRef} style={style} className="relative">
+        <div ref={setNodeRef} style={style} className="relative" onPointerDown={(e) => e.stopPropagation()}>
             <div className="absolute left-0 top-0 bottom-0 flex items-center -ml-8 z-10">
                 <div
                     {...attributes}

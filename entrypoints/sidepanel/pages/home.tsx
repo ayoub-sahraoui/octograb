@@ -1,9 +1,11 @@
 import { Button } from "@/components/ui/button";
-import { Play, Pause, Square, SquarePen, Plus, Trash2, Upload, Database, Eye, RotateCcw, Copy } from "lucide-react";
+import { Play, Pause, Square, SquarePen, Plus, Trash2, Upload, Database, Eye, RotateCcw, Copy, Lock } from "lucide-react";
 import { useBlueprintBuilderStore } from '@/entrypoints/stores/blueprint-builder-store';
 import { useBlueprintExecutorStore } from '@/entrypoints/stores/blueprint-executor-store';
+import { useLicenseStore, FREE_TIER_LIMITS } from '@/entrypoints/stores/license-store';
 import { observer } from 'mobx-react-lite';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import { useEffect, useState, useRef } from 'react';
 import {
     Dialog,
@@ -20,6 +22,7 @@ import { Textarea } from "@/components/ui/textarea";
 export default observer(function Home() {
     const blueprintBuilderStore = useBlueprintBuilderStore();
     const executorStore = useBlueprintExecutorStore();
+    const licenseStore = useLicenseStore();
     const navigate = useNavigate();
     const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
     const [newBlueprintName, setNewBlueprintName] = useState('');
@@ -85,11 +88,22 @@ export default observer(function Home() {
     const handleDuplicate = async (blueprintId: string) => {
         const blueprint = blueprintBuilderStore.blueprints.find(b => b.id === blueprintId);
         if (blueprint) {
-            await blueprintBuilderStore.duplicateBlueprint(blueprint);
+            const duplicated = await blueprintBuilderStore.duplicateBlueprint(blueprint);
+            if (!duplicated) {
+                toast.error('Free plan limit reached', {
+                    description: `Free plan allows ${FREE_TIER_LIMITS.maxBlueprints} blueprint. Upgrade to duplicate.`,
+                });
+            }
         }
     };
 
     const handleCreateNew = () => {
+        if (!blueprintBuilderStore.canCreateBlueprint) {
+            toast.error('Free plan limit reached', {
+                description: `Free plan allows ${FREE_TIER_LIMITS.maxBlueprints} blueprint. Upgrade to create more.`,
+            });
+            return;
+        }
         setNewBlueprintName('');
         setNewBlueprintDescription('');
         setIsCreateDialogOpen(true);
@@ -100,12 +114,24 @@ export default observer(function Home() {
             alert('Please enter a blueprint name');
             return;
         }
-        blueprintBuilderStore.createBlueprint(newBlueprintName.trim(), newBlueprintDescription.trim());
+        const created = blueprintBuilderStore.createBlueprint(newBlueprintName.trim(), newBlueprintDescription.trim());
+        if (!created) {
+            toast.error('Free plan limit reached', {
+                description: `Free plan allows ${FREE_TIER_LIMITS.maxBlueprints} blueprint. Upgrade to create more.`,
+            });
+            return;
+        }
         setIsCreateDialogOpen(false);
         navigate('/blueprint-builder');
     };
 
     const handleImportClick = () => {
+        if (!blueprintBuilderStore.canCreateBlueprint) {
+            toast.error('Free plan limit reached', {
+                description: `Free plan allows ${FREE_TIER_LIMITS.maxBlueprints} blueprint. Upgrade to import more.`,
+            });
+            return;
+        }
         fileInputRef.current?.click();
     };
 
@@ -143,6 +169,15 @@ export default observer(function Home() {
 
     return (
         <div className="h-full flex-1 flex flex-col gap-2 min-h-0 overflow-hidden">
+            {blueprintBuilderStore.isFreeTier && (
+                <div className="mx-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg flex items-center gap-2 shrink-0">
+                    <Lock className="w-4 h-4 text-amber-600 shrink-0" />
+                    <p className="text-xs text-amber-700">
+                        <span className="font-medium">Free Plan:</span> {FREE_TIER_LIMITS.maxBlueprints} blueprint, {FREE_TIER_LIMITS.maxBlocksPerBlueprint} blocks max.
+                        <a href="https://octograb.online/pricing.html" target="_blank" rel="noopener noreferrer" className="ml-1 text-emerald-600 hover:underline font-medium">Upgrade</a>
+                    </p>
+                </div>
+            )}
             <div className="flex justify-between items-center shrink-0">
                 <h1 className="text-lg font-semibold ml-1">Blueprints</h1>
                 <div className="flex gap-1">
@@ -186,7 +221,7 @@ export default observer(function Home() {
                         return (
                             <div
                                 key={blueprint.id}
-                                className={`bg-white p-4 border rounded-lg flex flex-col gap-2 transition-all ${isThisRunning ? 'border-blue-400 ring-2 ring-blue-200' :
+                                className={`bg-white p-4 border rounded-lg flex flex-col gap-2 transition-all ${isThisRunning ? 'border-emerald-400 ring-2 ring-emerald-200' :
                                     isThisPaused ? 'border-amber-400 ring-2 ring-amber-200' :
                                         'border-gray-300 hover:ring-2'
                                     }`}
@@ -199,8 +234,8 @@ export default observer(function Home() {
                                         <div className="flex items-center gap-2">
                                             <h1 className="text-lg font-semibold">{blueprint.name}</h1>
                                             {isThisRunning && (
-                                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
-                                                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+                                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                                                     Running
                                                 </span>
                                             )}
@@ -256,7 +291,7 @@ export default observer(function Home() {
                                                 variant="outline"
                                                 onClick={() => handleResume(blueprint.id)}
                                                 title={`Resume from last checkpoint (${executorStore.resumableBlueprints[blueprint.id]?.itemsScraped || 0} rows)`}
-                                                className="border-blue-500 text-blue-500 hover:bg-blue-50"
+                                                className="border-emerald-500 text-emerald-500 hover:bg-emerald-50"
                                             >
                                                 <RotateCcw className="w-4 h-4" />
                                             </Button>
@@ -300,7 +335,7 @@ export default observer(function Home() {
                                 {isThisActive && (
                                     <div className="mt-1 w-full min-w-0">
                                         <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1 min-w-0">
-                                            <span className={`truncate ${isThisRunning ? 'text-blue-600' : 'text-amber-600'}`}>
+                                            <span className={`truncate ${isThisRunning ? 'text-emerald-600' : 'text-amber-600'}`}>
                                                 {executorStore.currentBlock?.label || 'Starting...'}
                                             </span>
                                             <span className="ml-auto shrink-0">
@@ -312,7 +347,7 @@ export default observer(function Home() {
                                         </div>
                                         <div className="w-full bg-gray-200 rounded-full h-1.5 overflow-hidden">
                                             <div
-                                                className={`h-1.5 rounded-full transition-all duration-300 ${isThisPaused ? 'bg-amber-500' : 'bg-blue-600'}`}
+                                                className={`h-1.5 rounded-full transition-all duration-300 ${isThisPaused ? 'bg-amber-500' : 'bg-emerald-600'}`}
                                                 style={{ width: `${executorStore.progress.total > 0 ? (executorStore.progress.current / executorStore.progress.total) * 100 : 0}%` }}
                                             />
                                         </div>
@@ -325,7 +360,7 @@ export default observer(function Home() {
                                         <Database className="w-3 h-3" />
                                         <span>{executorStore.extractedData.length} rows extracted</span>
                                         {executorStore.hasResumableCheckpoint(blueprint.id) && (
-                                            <span className="text-blue-600 font-medium">• Can resume</span>
+                                            <span className="text-emerald-600 font-medium">• Can resume</span>
                                         )}
                                         <span className="ml-auto">{executorStore.durationFormatted}</span>
                                     </div>
@@ -335,7 +370,7 @@ export default observer(function Home() {
                                     <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
                                         <Database className="w-3 h-3" />
                                         <span>{executorStore.resumableBlueprints[blueprint.id]?.itemsScraped || 0} rows extracted</span>
-                                        <span className="text-blue-600 font-medium">• Can resume</span>
+                                        <span className="text-emerald-600 font-medium">• Can resume</span>
                                     </div>
                                 )}
                             </div>

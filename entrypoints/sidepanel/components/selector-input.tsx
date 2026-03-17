@@ -188,8 +188,8 @@ export const SelectorInput = observer(({
                     variant={store.isPicking ? 'default' : 'outline'}
                     size="sm"
                     className={`h-9 gap-1.5 shrink-0 transition-all ${store.isPicking
-                        ? 'bg-blue-600 hover:bg-blue-700 text-white ring-2 ring-blue-300 animate-pulse'
-                        : 'hover:border-blue-400 hover:text-blue-600'
+                        ? 'bg-emerald-600 hover:bg-emerald-700 text-white ring-2 ring-emerald-300 animate-pulse'
+                        : 'hover:border-emerald-400 hover:text-emerald-600'
                         }`}
                     onClick={handlePickElement}
                 >
@@ -216,9 +216,9 @@ export const SelectorInput = observer(({
                             type="text"
                             value={currentType === SelectorType.XPath ? (store.pendingXpath || store.pendingCss) : store.pendingCss}
                             readOnly
-                            className="font-mono text-sm h-9 border-blue-300 bg-blue-50/50 text-blue-700"
+                            className="font-mono text-sm h-9 border-emerald-300 bg-emerald-50/50 text-emerald-700"
                         />
-                        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-blue-500 font-medium">
+                        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-emerald-500 font-medium">
                             preview
                         </span>
                     </div>
@@ -238,7 +238,7 @@ export const SelectorInput = observer(({
                 )}
                 {/* Scope indicator */}
                 {computedParentSelector && (
-                    <p className="text-[10px] text-blue-500 font-mono">
+                    <p className="text-[10px] text-emerald-500 font-mono">
                         ↳ scoped to: {computedParentSelector}
                     </p>
                 )}
@@ -249,7 +249,7 @@ export const SelectorInput = observer(({
                             <button
                                 type="button"
                                 onClick={() => handleTypeChange(SelectorType.CSS)}
-                                className="text-[10px] px-1.5 py-0.5 bg-gray-100 hover:bg-blue-50 hover:text-blue-600 rounded border border-gray-200 transition-colors cursor-pointer font-mono truncate max-w-[200px]"
+                                className="text-[10px] px-1.5 py-0.5 bg-gray-100 hover:bg-emerald-50 hover:text-emerald-600 rounded border border-gray-200 transition-colors cursor-pointer font-mono truncate max-w-[200px]"
                                 title={`Switch to CSS: ${selector.detected.css}`}
                             >
                                 CSS: {selector.detected.css}
@@ -259,7 +259,7 @@ export const SelectorInput = observer(({
                             <button
                                 type="button"
                                 onClick={() => handleTypeChange(SelectorType.XPath)}
-                                className="text-[10px] px-1.5 py-0.5 bg-gray-100 hover:bg-blue-50 hover:text-blue-600 rounded border border-gray-200 transition-colors cursor-pointer font-mono truncate max-w-[200px]"
+                                className="text-[10px] px-1.5 py-0.5 bg-gray-100 hover:bg-emerald-50 hover:text-emerald-600 rounded border border-gray-200 transition-colors cursor-pointer font-mono truncate max-w-[200px]"
                                 title={`Switch to XPath: ${selector.detected.xpath}`}
                             >
                                 XPath: {selector.detected.xpath}

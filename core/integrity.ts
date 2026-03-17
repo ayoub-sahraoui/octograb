@@ -4,6 +4,7 @@
  */
 
 import { activateLicense, verifyLicense, deactivateLicense, getLicenseState } from './license';
+import { isDevMode } from './dev-mode';
 
 /**
  * Verify that license functions are real implementations, not stubs.
@@ -62,17 +63,6 @@ export async function isTampered(): Promise<boolean> {
   } catch {
     return false;
   }
-}
-
-/**
- * Detect if running in development mode.
- * In dev mode, code isn't obfuscated so integrity checks will fail.
- */
-function isDevMode(): boolean {
-  // Check if running from unpacked extension (dev mode)
-  // In production, extension ID is stable; in dev it changes or is from local path
-  const manifest = browser.runtime.getManifest();
-  return !('update_url' in manifest); // No update_url = unpacked/dev mode
 }
 
 /**

@@ -5,6 +5,23 @@ import { sendToContentScript, onMessageFromContentScript } from "@/core/messagin
 import { db } from "@/core/database";
 import { createBlockFromJSON } from "../models/block-factory";
 import { validateBlueprint, ValidationResult } from "../models/blueprint-validator";
+import { useLicenseStore, FREE_TIER_LIMITS } from "./license-store";
+import { useNotificationStore } from "./notification-store";
+import { isDevMode } from '@/core/dev-mode';
+
+function countBlocksRecursive(blocks: Block[]): number {
+    let count = 0;
+    for (const block of blocks) {
+        count++;
+        if (block.children && block.children.length > 0) {
+            count += countBlocksRecursive(block.children);
+        }
+        if ((block as any).elseChildren && (block as any).elseChildren.length > 0) {
+            count += countBlocksRecursive((block as any).elseChildren);
+        }
+    }
+    return count;
+}
 
 export class BlueprintBuilderStore {
     blueprints: Blueprint[] = [];
@@ -174,11 +191,40 @@ export class BlueprintBuilderStore {
         });
     }
 
-    createBlueprint(name: string, description: string) {
+    get isFreeTier(): boolean {
+        if (isDevMode()) return false;
+        const licenseStore = useLicenseStore();
+        return licenseStore.isFreeUser && !licenseStore.isProUser;
+    }
+
+    get canCreateBlueprint(): boolean {
+        if (!this.isFreeTier) return true;
+        return this.blueprints.length < FREE_TIER_LIMITS.maxBlueprints;
+    }
+
+    canAddBlock(blueprint?: Blueprint | null): boolean {
+        if (!this.isFreeTier) return true;
+        const bp = blueprint || this.selectedBlueprint;
+        if (!bp) return false;
+        return countBlocksRecursive(bp.blocks) < FREE_TIER_LIMITS.maxBlocksPerBlueprint;
+    }
+
+    createBlueprint(name: string, description: string): boolean {
+        if (!this.canCreateBlueprint) return false;
         const blueprint = new Blueprint(name, description);
         this.blueprints.push(blueprint);
         this.selectedBlueprint = blueprint;
         this.saveBlueprint(blueprint);
+
+        // Tip on first blueprint
+        try {
+            useNotificationStore().pushTipOnce('first_blueprint', {
+                title: 'Tip: Add blocks to your blueprint',
+                description: 'Use the + button to add navigation, click, input, loop, and extract blocks to build your automation.',
+            });
+        } catch { /* non-critical */ }
+
+        return true;
     }
 
     addBlueprint(blueprint: Blueprint) {
@@ -218,21 +264,25 @@ export class BlueprintBuilderStore {
         this.selectedBlock = block;
     }
 
-    addBlockToBlueprint(block: Block) {
+    addBlockToBlueprint(block: Block): boolean {
         if (this.selectedBlueprint) {
+            if (!this.canAddBlock()) return false;
             this.selectedBlueprint.addBlock(block);
             this.selectedBlock = block;
             this.validateCurrentBlueprint();
             this.saveBlueprint(this.selectedBlueprint);
+            return true;
         }
+        return false;
     }
 
     setParentBlockForChild(block: Block | null) {
         this.parentBlockForChild = block;
     }
 
-    addChildBlockToParent(childBlock: Block) {
+    addChildBlockToParent(childBlock: Block): boolean {
         if (this.parentBlockForChild) {
+            if (!this.canAddBlock()) return false;
             // Initialize children array if it doesn't exist
             if (!this.parentBlockForChild.children) {
                 this.parentBlockForChild.children = [];
@@ -244,7 +294,9 @@ export class BlueprintBuilderStore {
             this.selectedBlock = childBlock;
             this.parentBlockForChild = null; // Close the drawer
             this.validateCurrentBlueprint();
+            return true;
         }
+        return false;
     }
 
     removeBlockFromBlueprint(block: Block) {
@@ -283,7 +335,8 @@ export class BlueprintBuilderStore {
         return null;
     }
 
-    async duplicateBlueprint(blueprint: Blueprint) {
+    async duplicateBlueprint(blueprint: Blueprint): Promise<boolean> {
+        if (!this.canCreateBlueprint) return false;
         try {
             const json = blueprint.toJSON();
             const copy = new Blueprint(`${json.name} (Copy)`, json.description || '');
@@ -294,12 +347,15 @@ export class BlueprintBuilderStore {
                 this.blueprints.push(copy);
             });
             await this.saveBlueprint(copy);
+            return true;
         } catch (error) {
             console.error('[OctoGrab] Failed to duplicate blueprint:', error);
+            return false;
         }
     }
 
     async importBlueprint(jsonContent: string) {
+        if (!this.canCreateBlueprint) return false;
         try {
             const parsed = JSON.parse(jsonContent);
             if (!parsed.name || !Array.isArray(parsed.blocks)) {

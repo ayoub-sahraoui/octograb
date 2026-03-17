@@ -2,10 +2,11 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { KeyRound, Loader2, CheckCircle2, AlertCircle, ShieldCheck } from 'lucide-react';
+import { KeyRound, Loader2, CheckCircle2, AlertCircle, ShieldCheck, Zap } from 'lucide-react';
 import { activateLicense } from '@/core/license';
+import { FREE_TIER_LIMITS } from '@/entrypoints/stores/license-store';
 
-export default function LicenseActivation({ onActivated }: { onActivated: () => void }) {
+export default function LicenseActivation({ onActivated, onContinueFree }: { onActivated: () => void; onContinueFree?: () => void }) {
     const [licenseKey, setLicenseKey] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -120,6 +121,30 @@ export default function LicenseActivation({ onActivated }: { onActivated: () => 
                     </Button>
                 </div>
 
+                {/* Divider */}
+                <div className="w-full max-w-sm flex items-center gap-3">
+                    <div className="flex-1 h-px bg-gray-300" />
+                    <span className="text-xs text-gray-400">or</span>
+                    <div className="flex-1 h-px bg-gray-300" />
+                </div>
+
+                {/* Continue Free */}
+                {onContinueFree && (
+                    <div className="w-full max-w-sm">
+                        <Button
+                            variant="outline"
+                            onClick={onContinueFree}
+                            className="w-full gap-2"
+                        >
+                            <Zap className="w-4 h-4" />
+                            Continue with Free Plan
+                        </Button>
+                        <p className="text-xs text-gray-400 text-center mt-2">
+                            Free plan: {FREE_TIER_LIMITS.maxBlueprints} blueprint, up to {FREE_TIER_LIMITS.maxBlocksPerBlueprint} blocks
+                        </p>
+                    </div>
+                )}
+
                 {/* Footer Info */}
                 <div className="text-center space-y-2">
                     <p className="text-xs text-gray-400">
@@ -128,7 +153,7 @@ export default function LicenseActivation({ onActivated }: { onActivated: () => 
                             href="https://octograb.online/pricing.html"
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-blue-500 hover:underline"
+                            className="text-emerald-500 hover:underline"
                         >
                             Get one here
                         </a>

@@ -64,7 +64,7 @@ export default observer(function ExtractedData() {
                                 <FileJson className="w-3.5 h-3.5" />
                                 JSON
                             </Button>
-                            <Button size="sm" variant="ghost" onClick={() => { executorStore.clearResults(); loadHistory(); }} className="text-destructive hover:text-destructive h-8 w-8 p-0">
+                            <Button size="sm" variant="ghost" onClick={async () => { if (executorStore.currentExecutionId) { await executorStore.deleteExecution(executorStore.currentExecutionId); } else { executorStore.clearResults(); } await loadHistory(); }} className="text-destructive hover:text-destructive h-8 w-8 p-0">
                                 <Trash2 className="w-4 h-4" />
                             </Button>
                         </>
@@ -87,7 +87,7 @@ export default observer(function ExtractedData() {
                             )}
                             <span className={`ml-auto px-2 py-0.5 rounded text-xs font-medium ${executorStore.status === 'completed' ? 'bg-green-100 text-green-700' :
                                 executorStore.status === 'error' ? 'bg-red-100 text-red-700' :
-                                    executorStore.status === 'running' ? 'bg-blue-100 text-blue-700' :
+                                    executorStore.status === 'running' ? 'bg-emerald-100 text-emerald-700' :
                                         'bg-gray-100 text-gray-700'
                                 }`}>
                                 {executorStore.status}
@@ -126,9 +126,16 @@ export default observer(function ExtractedData() {
                         {executionHistory.map((exec) => (
                             <div
                                 key={exec.id}
-                                className="bg-white p-3 border rounded-lg flex items-center gap-3 cursor-pointer hover:ring-2 transition-all"
+                                className="relative bg-white p-3 pr-10 border rounded-lg flex items-center gap-3 cursor-pointer hover:ring-2 transition-all"
                                 onClick={() => loadExecutionData(exec)}
                             >
+                                <button
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                                    onClick={async (e) => { e.stopPropagation(); if (exec.id) { await executorStore.deleteExecution(exec.id); await loadHistory(); } }}
+                                    title="Delete"
+                                >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                </button>
                                 <Database className="w-4 h-4 text-gray-400 flex-shrink-0" />
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-2">

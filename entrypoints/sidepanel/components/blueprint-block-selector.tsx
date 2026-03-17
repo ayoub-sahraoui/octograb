@@ -17,6 +17,8 @@ import { LoopPaginationBlock } from '@/entrypoints/models/loop-pagination-block'
 import { ExtractScopeBlock } from '@/entrypoints/models/extract-scope-block';
 import { useBlueprintBuilderStore } from '@/entrypoints/stores/blueprint-builder-store';
 import { SelectorType } from '@/entrypoints/models/selector';
+import { toast } from 'sonner';
+import { FREE_TIER_LIMITS } from '@/entrypoints/stores/license-store';
 
 const blocks = [
     {
@@ -99,7 +101,17 @@ interface BlueprintBlockSelectorProps {
 export default function BlueprintBlockSelector({ onBlockSelect, addAsChild = false }: BlueprintBlockSelectorProps) {
     const blueprintBuilderStore = useBlueprintBuilderStore();
 
-    const handleBlockClick = (createBlock: () => any) => {
+    const handleBlockClick = (createBlock: () => any, event: React.MouseEvent<HTMLButtonElement>) => {
+        // Check block limit before creating
+        if (!blueprintBuilderStore.canAddBlock()) {
+            toast.error('Block limit reached', {
+                description: `Free plan allows up to ${FREE_TIER_LIMITS.maxBlocksPerBlueprint} blocks per blueprint. Upgrade for unlimited blocks.`,
+            });
+            (event.currentTarget as HTMLButtonElement).blur();
+            onBlockSelect?.();
+            return;
+        }
+
         // Create the block
         const block = createBlock();
 
@@ -110,6 +122,9 @@ export default function BlueprintBlockSelector({ onBlockSelect, addAsChild = fal
             // Add to blueprint root
             blueprintBuilderStore.addBlockToBlueprint(block);
         }
+
+        // Remove focus from button to prevent aria-hidden accessibility violation
+        (event.currentTarget as HTMLButtonElement).blur();
 
         // Close the drawer
         onBlockSelect?.();
@@ -123,7 +138,7 @@ export default function BlueprintBlockSelector({ onBlockSelect, addAsChild = fal
                         return (
                             <Tooltip key={index}>
                                 <TooltipTrigger asChild>
-                                    <Button onClick={() => handleBlockClick(block.createBlock)} size="icon" variant="outline" className='cursor-pointer'>
+                                    <Button onClick={(e) => handleBlockClick(block.createBlock, e)} size="icon" variant="outline" className='cursor-pointer'>
                                         <block.icon />
                                     </Button>
                                 </TooltipTrigger>

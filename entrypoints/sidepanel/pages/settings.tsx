@@ -1,10 +1,10 @@
 import { Button } from "@/components/ui/button";
-import { Download, Upload, Trash2, Database, Info, AlertCircle, Activity, ArrowLeft, KeyRound, LogOut } from "lucide-react";
+import { Download, Upload, Trash2, Database, Info, AlertCircle, Activity, ArrowLeft, KeyRound, LogOut, Zap } from "lucide-react";
 import { db } from "@/core/database";
 import { useState } from "react";
 import { useBlueprintBuilderStore } from '@/entrypoints/stores/blueprint-builder-store';
 import { useBlueprintExecutorStore } from '@/entrypoints/stores/blueprint-executor-store';
-import { useLicenseStore } from '@/entrypoints/stores/license-store';
+import { useLicenseStore, FREE_TIER_LIMITS } from '@/entrypoints/stores/license-store';
 import { observer } from 'mobx-react-lite';
 import { useNavigate } from 'react-router-dom';
 import { Label } from "@/components/ui/label";
@@ -253,12 +253,20 @@ export default observer(function Settings() {
                     </div>
                     <div className="space-y-2 text-sm">
                         <div className="flex justify-between">
+                            <span className="text-gray-500">Plan</span>
+                            <span className={`font-medium ${licenseStore.isFreeUser ? 'text-amber-600' : licenseStore.isActivated ? 'text-green-600' : 'text-gray-600'}`}>
+                                {licenseStore.isFreeUser ? 'Free' : licenseStore.isActivated ? 'Pro' : 'Inactive'}
+                            </span>
+                        </div>
+                        <div className="flex justify-between">
                             <span className="text-gray-500">Status</span>
                             <span className={`font-medium ${licenseStore.status === 'active' ? 'text-green-600' :
-                                licenseStore.status === 'grace' ? 'text-yellow-600' : 'text-red-600'
+                                licenseStore.status === 'grace' ? 'text-yellow-600' :
+                                    licenseStore.isFreeUser ? 'text-amber-600' : 'text-red-600'
                                 }`}>
-                                {licenseStore.status === 'active' ? '● Active' :
-                                    licenseStore.status === 'grace' ? '● Grace Period' : '● ' + licenseStore.status}
+                                {licenseStore.isFreeUser ? '● Free Plan' :
+                                    licenseStore.status === 'active' ? '● Active' :
+                                        licenseStore.status === 'grace' ? '● Grace Period' : '● ' + licenseStore.status}
                             </span>
                         </div>
                         {licenseStore.licenseKey && (
@@ -269,26 +277,39 @@ export default observer(function Settings() {
                                 </span>
                             </div>
                         )}
-                        {licenseStore.plan && (
-                            <div className="flex justify-between">
-                                <span className="text-gray-500">Plan</span>
-                                <span className="font-medium capitalize">{licenseStore.plan}</span>
+                        {licenseStore.isFreeUser && (
+                            <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded text-xs text-amber-700">
+                                <p className="font-medium">Free Plan Limits:</p>
+                                <p>{FREE_TIER_LIMITS.maxBlueprints} blueprint, {FREE_TIER_LIMITS.maxBlocksPerBlueprint} blocks max per blueprint</p>
                             </div>
                         )}
                     </div>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={async () => {
-                            if (confirm('Are you sure you want to deactivate this device? You can reactivate later with your license key.')) {
-                                await licenseStore.deactivate();
-                            }
-                        }}
-                        className="mt-4 w-full gap-2 text-red-600 hover:text-red-700 hover:bg-red-50"
-                    >
-                        <LogOut className="w-4 h-4" />
-                        Deactivate License
-                    </Button>
+                    {licenseStore.isFreeUser && (
+                        <Button
+                            variant="default"
+                            size="sm"
+                            onClick={() => window.open('https://octograb.online/pricing.html', '_blank')}
+                            className="mt-4 w-full gap-2"
+                        >
+                            <Zap className="w-4 h-4" />
+                            Upgrade to Pro
+                        </Button>
+                    )}
+                    {licenseStore.isActivated && licenseStore.licenseKey && (
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={async () => {
+                                if (confirm('Are you sure you want to deactivate this device? You can reactivate later with your license key.')) {
+                                    await licenseStore.deactivate();
+                                }
+                            }}
+                            className="mt-4 w-full gap-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+                        >
+                            <LogOut className="w-4 h-4" />
+                            Deactivate License
+                        </Button>
+                    )}
                 </div>
 
                 <Separator />

@@ -181,12 +181,12 @@ const BlueprintBlock = observer(({ block, level = 0 }: BlueprintBlockProps) => {
     const IconComponent = blockTypeIcons[block.type] || Globe;
 
     return (
-        <div className='flex flex-col justify-center items-center w-full'>
+        <div className='flex flex-col justify-center items-center w-full min-w-[300px]'>
             {/* Block Card */}
             <div
                 onClick={handleBlockClick}
                 className={`bg-white flex w-full gap-2 items-center justify-between border rounded-lg p-2 cursor-pointer transition-all ${isSelected
-                    ? 'border-blue-500 ring-2 ring-blue-200 bg-blue-50'
+                    ? 'border-emerald-500 ring-2 ring-emerald-200 bg-emerald-50'
                     : 'border-gray-300 hover:ring-2 hover:ring-gray-300'
                     }`}
             >

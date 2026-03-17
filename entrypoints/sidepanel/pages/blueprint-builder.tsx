@@ -1,9 +1,11 @@
-import { CirclePlus, CopyPlus, Database, Download, FileStack, GitPullRequest, Globe, Hourglass, MousePointer, Pause, Play, RefreshCcw, Save, ScrollText, Square, Trash, Type, Undo2, GripVertical, BarChart3, List, Activity, X, RotateCcw, FileDown, FileUp, Upload } from 'lucide-react'
+import { CirclePlus, CopyPlus, Database, Download, FileStack, GitPullRequest, Globe, Hourglass, MousePointer, Pause, Play, RefreshCcw, Save, ScrollText, Square, Trash, Type, Undo2, GripVertical, BarChart3, List, Activity, X, RotateCcw, FileDown, FileUp, Upload, Lock } from 'lucide-react'
 import BlueprintBlock from '../components/blueprint-block'
 import { useBlueprintBuilderStore } from '@/entrypoints/stores/blueprint-builder-store';
 import { useBlueprintExecutorStore } from '@/entrypoints/stores/blueprint-executor-store';
+import { FREE_TIER_LIMITS } from '@/entrypoints/stores/license-store';
 import { toast } from 'sonner';
 import { observer } from 'mobx-react-lite';
+import { runInAction } from 'mobx';
 import { Button } from '@/components/ui/button';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
@@ -57,6 +59,8 @@ export default observer(function BlueprintBuilder() {
     const executorStore = useBlueprintExecutorStore();
     const [isAddBlockDrawerOpen, setIsAddBlockDrawerOpen] = useState(false);
     const [isResultsDrawerOpen, setIsResultsDrawerOpen] = useState(false);
+    const [isEditingName, setIsEditingName] = useState(false);
+    const [editNameValue, setEditNameValue] = useState('');
 
     // Reset executor state when component unmounts
     useEffect(() => {
@@ -188,7 +192,7 @@ export default observer(function BlueprintBuilder() {
     const AddNewBlock = () => {
         return <Drawer open={isAddBlockDrawerOpen} onOpenChange={setIsAddBlockDrawerOpen}>
             <DrawerTrigger asChild>
-                <Button className='w-40 rounded-full px-3 py-2'>
+                <Button className='w-40 rounded-full px-3 py-2 mx-auto my-2'>
                     <div className='flex gap-2 items-center'>
                         <CopyPlus />
                         <p className='font-semibold'>Add Block</p>
@@ -267,7 +271,7 @@ export default observer(function BlueprintBuilder() {
         return (
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                 <SortableContext items={blockIds} strategy={verticalListSortingStrategy}>
-                    <div className="flex flex-col gap-2 w-full overflow-y-auto flex-1 pl-8">
+                    <div className="flex flex-col gap-2 w-full flex-1">
                         {blueprintBuilderStore.selectedBlueprint.blocks.map((block) => (
                             <SortableBlueprintBlock key={block.id} block={block} />
                         ))}
@@ -358,7 +362,7 @@ export default observer(function BlueprintBuilder() {
                             <DrawerTitle className="text-base">Execution Results</DrawerTitle>
                             <DrawerDescription>
                                 {executorStore.status === 'running' && (
-                                    <span className="text-blue-600">
+                                    <span className="text-emerald-600">
                                         Running... {executorStore.progress.current}/{executorStore.progress.total} blocks • {executorStore.durationFormatted}
                                     </span>
                                 )}
@@ -376,7 +380,7 @@ export default observer(function BlueprintBuilder() {
                                 {executorStore.status === 'stopped' && (
                                     <span className="text-gray-600">
                                         Stopped • {executorStore.extractedData.length} rows
-                                        {executorStore.canResume && <span className="ml-2 text-blue-600">(Can Resume)</span>}
+                                        {executorStore.canResume && <span className="ml-2 text-emerald-600">(Can Resume)</span>}
                                     </span>
                                 )}
                             </DrawerDescription>
@@ -486,7 +490,7 @@ export default observer(function BlueprintBuilder() {
                                         <div key={idx} className={`p-2 rounded ${log.type === 'error' ? 'bg-red-50 text-red-700' :
                                             log.type === 'warn' ? 'bg-amber-50 text-amber-700' :
                                                 log.type === 'success' ? 'bg-green-50 text-green-700' :
-                                                    log.type === 'block' ? 'bg-blue-50 text-blue-700 font-semibold' :
+                                                    log.type === 'block' ? 'bg-emerald-50 text-emerald-700 font-semibold' :
                                                         'bg-gray-50 text-gray-700'
                                             }`}>
                                             <span className="text-gray-400 mr-2">
@@ -511,13 +515,13 @@ export default observer(function BlueprintBuilder() {
                                     executorStore.traces.map((trace, idx) => (
                                         <div key={idx} className={`p-3 rounded-lg border ${trace.status === 'error' ? 'border-red-200 bg-red-50' :
                                             trace.status === 'success' ? 'border-green-200 bg-green-50' :
-                                                'border-blue-200 bg-blue-50'
+                                                'border-emerald-200 bg-emerald-50'
                                             }`}>
                                             <div className="flex items-center justify-between mb-1">
                                                 <div className="flex items-center gap-2">
                                                     <span className={`w-2 h-2 rounded-full ${trace.status === 'error' ? 'bg-red-500' :
                                                         trace.status === 'success' ? 'bg-green-500' :
-                                                            'bg-blue-500'
+                                                            'bg-emerald-500'
                                                         }`} />
                                                     <span className="font-semibold text-sm">{trace.blockLabel}</span>
                                                     <span className="text-xs text-gray-500">({trace.blockType})</span>
@@ -564,7 +568,41 @@ export default observer(function BlueprintBuilder() {
     return (
         <div className="h-full flex-1 flex flex-col gap-2 min-h-0 overflow-hidden">
             <div className='flex justify-between items-center shrink-0'>
-                <h1 className="text-lg font-semibold ml-2 shrink-0">Blueprint Builder</h1>
+                <div className="flex flex-col ml-2 min-w-0 shrink">
+                    {isEditingName && blueprintBuilderStore.selectedBlueprint ? (
+                        <input
+                            autoFocus
+                            className="text-lg font-semibold bg-transparent border-b border-primary outline-none w-full"
+                            value={editNameValue}
+                            onChange={(e) => setEditNameValue(e.target.value)}
+                            onBlur={async () => {
+                                if (editNameValue.trim() && blueprintBuilderStore.selectedBlueprint) {
+                                    const bp = blueprintBuilderStore.selectedBlueprint;
+                                    runInAction(() => { bp.name = editNameValue.trim(); });
+                                    await blueprintBuilderStore.saveBlueprint(bp);
+                                }
+                                setIsEditingName(false);
+                            }}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
+                                if (e.key === 'Escape') setIsEditingName(false);
+                            }}
+                        />
+                    ) : (
+                        <h1
+                            className={`text-lg font-semibold shrink-0 ${blueprintBuilderStore.selectedBlueprint ? 'cursor-pointer hover:text-primary transition-colors' : ''}`}
+                            title={blueprintBuilderStore.selectedBlueprint ? 'Click to rename' : undefined}
+                            onClick={() => {
+                                if (blueprintBuilderStore.selectedBlueprint) {
+                                    setEditNameValue(blueprintBuilderStore.selectedBlueprint.name);
+                                    setIsEditingName(true);
+                                }
+                            }}
+                        >
+                            {blueprintBuilderStore.selectedBlueprint?.name || 'Blueprint Builder'}
+                        </h1>
+                    )}
+                </div>
                 <div className='flex gap-1 flex-wrap justify-end'>
                     <Button
                         size={"icon"}
@@ -586,7 +624,7 @@ export default observer(function BlueprintBuilder() {
                             variant={'outline'}
                             onClick={handleResume}
                             title="Resume from last checkpoint"
-                            className="border-blue-500 text-blue-500 hover:bg-blue-50"
+                            className="border-emerald-500 text-emerald-500 hover:bg-emerald-50"
                         >
                             <RotateCcw />
                         </Button>
@@ -628,24 +666,42 @@ export default observer(function BlueprintBuilder() {
             {(executorStore.isRunning || executorStore.isPaused) && (
                 <div className="mx-2">
                     <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
-                        <span className={executorStore.isRunning ? 'text-blue-600' : 'text-amber-600'}>
+                        <span className={executorStore.isRunning ? 'text-emerald-600' : 'text-amber-600'}>
                             {executorStore.isRunning ? '●' : '⏸'} {executorStore.currentBlock?.label || 'Starting...'}
                         </span>
                         <span className="ml-auto">{executorStore.progress.current}/{executorStore.progress.total}</span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-1.5">
                         <div
-                            className={`h-1.5 rounded-full transition-all duration-300 ${executorStore.isPaused ? 'bg-amber-500' : 'bg-blue-600'}`}
+                            className={`h-1.5 rounded-full transition-all duration-300 ${executorStore.isPaused ? 'bg-amber-500' : 'bg-emerald-600'}`}
                             style={{ width: `${executorStore.progress.total > 0 ? (executorStore.progress.current / executorStore.progress.total) * 100 : 0}%` }}
                         />
                     </div>
                 </div>
             )}
 
-            <div className="flex-1 bg-gray-100 p-3 border border-gray-300 rounded-lg flex flex-col justify-start items-center overflow-y-auto min-h-0">
-                <BlueprintBlocks />
-                <BlockConfigDrawer />
-                <AddNewChildBlock />
+            {blueprintBuilderStore.isFreeTier && blueprintBuilderStore.selectedBlueprint && (
+                <div className="mx-1 px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-md flex items-center gap-2 shrink-0">
+                    <Lock className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                    <p className="text-xs text-amber-700">
+                        <span className="font-medium">Blocks:</span> {blueprintBuilderStore.selectedBlueprint.blocks.length}/{FREE_TIER_LIMITS.maxBlocksPerBlueprint}
+                        {!blueprintBuilderStore.canAddBlock() && <span className="ml-1 text-red-600 font-medium">(Limit reached)</span>}
+                    </p>
+                </div>
+            )}
+
+            <div
+                className="flex-1 bg-gray-100 border border-gray-300 rounded-lg overflow-y-auto min-h-0 custom-scrollbar"
+                style={{
+                    scrollbarWidth: 'thin',
+                    scrollbarColor: '#9ca3af #e5e7eb'
+                } as React.CSSProperties}
+            >
+                <div className="flex flex-col items-center p-4 w-full">
+                    <BlueprintBlocks />
+                    <BlockConfigDrawer />
+                    <AddNewChildBlock />
+                </div>
                 {executionResultsDrawer}
             </div>
         </div>

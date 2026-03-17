@@ -185,15 +185,15 @@ export const LoopPaginationBlockConfig = observer(({ block }: LoopPaginationBloc
                                 </Button>
                             </div>
                             {scrollPosition && (
-                                <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                                    <p className="text-sm font-semibold text-blue-900 mb-1">📊 Current Scroll Position</p>
-                                    <p className="text-xs text-blue-700">
+                                <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
+                                    <p className="text-sm font-semibold text-emerald-900 mb-1">📊 Current Scroll Position</p>
+                                    <p className="text-xs text-emerald-700">
                                         <span className="font-mono font-semibold">{scrollPosition.current}px</span> / {scrollPosition.total}px
-                                        <span className="ml-2 text-blue-600">
+                                        <span className="ml-2 text-emerald-600">
                                             ({Math.round((scrollPosition.current / scrollPosition.total) * 100)}%)
                                         </span>
                                     </p>
-                                    <p className="text-xs text-blue-600 mt-1">
+                                    <p className="text-xs text-emerald-600 mt-1">
                                         Remaining: <span className="font-mono font-semibold">{scrollPosition.total - scrollPosition.current}px</span>
                                     </p>
                                 </div>
