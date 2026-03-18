@@ -121,7 +121,7 @@ export default observer(function ExtractedData() {
                         </div>
                     </>
                 ) : executionHistory.length > 0 ? (
-                    <div className="flex-1 flex flex-col gap-2 overflow-auto">
+                    <div className="flex-1 flex flex-col gap-2 overflow-auto p-2">
                         <p className="text-sm text-muted-foreground mb-2">Previous executions with data:</p>
                         {executionHistory.map((exec) => (
                             <div

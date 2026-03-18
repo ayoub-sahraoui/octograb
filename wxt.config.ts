@@ -5,7 +5,7 @@ import tailwindcss from '@tailwindcss/vite';
 export default defineConfig({
   manifest: {
     name: 'OctoGrab',
-    permissions: ['sidePanel', 'activeTab', 'scripting', 'storage', 'alarms'],
+    permissions: ['sidePanel', 'activeTab', 'tabs', 'scripting', 'storage', 'alarms'],
     action: {},
     icons: {
       16: '/octograb-logo.png',

@@ -26,7 +26,8 @@ export type MessageType =
   | 'ENV_IS_VISIBLE'
   | 'ENV_WAIT_NETWORK_IDLE'
   | 'ENV_GET_SCOPE'
-  | 'ENV_ABORT';
+  | 'ENV_ABORT'
+  | 'TEST_SELECTOR';
 
 export interface Message {
   type: MessageType;

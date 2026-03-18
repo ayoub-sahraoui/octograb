@@ -359,7 +359,14 @@ export class SelectorEngine {
       return;
     }
 
-    if (this.onSelectCallback) this.onSelectCallback(finalSelector, finalXPath);
+    // Safety: if scoped selector is empty, fall back to global selector
+    if (!finalSelector && this.selectedElements.length > 0) {
+      const el = this.selectedElements[this.selectedElements.length - 1];
+      finalSelector = this.getOptimalSelector(el, null);
+      if (!finalXPath) finalXPath = this.getXPath(el);
+    }
+
+    if (this.onSelectCallback && finalSelector) this.onSelectCallback(finalSelector, finalXPath);
   }
 
   getSmartXPath(el: Element): string | null {
@@ -566,62 +573,141 @@ export class SelectorEngine {
     return null;
   }
 
+  /**
+   * Detect whether a CSS class name is likely a utility/Tailwind class rather than
+   * a semantic class. Utility classes describe appearance (font-medium, p-4, flex)
+   * while semantic classes describe purpose (product-card, nav-link, sidebar).
+   */
+  private isUtilityClass(cls: string): boolean {
+    // State/responsive prefixes (hover:xxx, sm:xxx, dark:xxx, group-hover:xxx)
+    if (/^[\w-]*[a-z]:/.test(cls)) return true;
+
+    // Common single-word utilities
+    const singles = new Set([
+      'flex', 'grid', 'block', 'inline', 'hidden', 'visible', 'invisible',
+      'relative', 'absolute', 'fixed', 'sticky', 'static', 'isolate',
+      'uppercase', 'lowercase', 'capitalize', 'truncate', 'italic',
+      'underline', 'overline', 'antialiased', 'subpixel-antialiased',
+      'container', 'sr-only', 'not-sr-only', 'contents', 'flow-root',
+      'inline-block', 'inline-flex', 'inline-grid', 'table',
+    ]);
+    if (singles.has(cls)) return true;
+
+    // Prefix-value patterns (p-4, text-xl, bg-red-500, -mt-2, etc.)
+    if (/^-?(?:m|p|mx|my|mt|mb|ml|mr|ms|me|px|py|pt|pb|pl|pr|ps|pe|w|h|min-w|min-h|max-w|max-h|size|gap|space-x|space-y|inset|top|right|bottom|left|z|order|col|row|basis|grow|shrink|grid-cols|grid-rows|auto-cols|auto-rows|justify|items|self|place|content|font|text|leading|tracking|decoration|indent|align|whitespace|break|hyphens|bg|from|via|to|border|rounded|outline|ring|divide|shadow|opacity|mix-blend|blur|brightness|contrast|grayscale|hue-rotate|invert|saturate|sepia|backdrop|transition|duration|ease|delay|animate|scale|rotate|translate|skew|origin|cursor|caret|pointer-events|resize|scroll|snap|touch|select|will-change|fill|stroke|float|clear|object|overflow|overscroll|aspect|line-clamp|columns|list|accent)-/.test(cls)) return true;
+
+    return false;
+  }
+
   getOptimalSelector(el: Element, scope: Element | null = null): string {
     if (!el || el.nodeType !== 1) return '';
-    if (scope) {
-      if (el.className && typeof el.className === 'string') {
-        const classes = el.className.split(/\s+/).filter(c => c);
-        for (const cls of classes) {
-          const sel = `.${CSS.escape(cls)}`;
-          if (scope.querySelectorAll(sel).length === 1) return sel;
-        }
-      }
-      const tag = el.tagName.toLowerCase();
-      if (scope.querySelectorAll(tag).length === 1) return tag;
 
-      let path: string[] = [], curr: Element | null = el;
-      while (curr && curr !== scope) {
-        let sel = curr.tagName.toLowerCase();
-        if (curr.className && typeof curr.className === 'string' && curr.className.trim()) {
-          sel += `.${CSS.escape(curr.className.split(' ')[0])}`;
-        } else {
-          let sib = curr, nth = 1;
-          while (sib = sib.previousElementSibling as Element) if (sib.tagName === curr.tagName) nth++;
-          if (nth > 1) sel += `:nth-of-type(${nth})`;
-        }
-        path.unshift(sel);
-        curr = curr.parentElement;
-      }
-      return path.join(' > ');
+    // Self-reference when element IS the scope
+    if (scope && el === scope) return ':scope';
+
+    const root: Element | Document = scope || document;
+    const tag = el.tagName.toLowerCase();
+
+    // Helper: test uniqueness within root
+    const isUnique = (sel: string): boolean => {
+      try { return root.querySelectorAll(sel).length === 1; } catch { return false; }
+    };
+
+    // Gather classes split into semantic vs utility
+    const allClasses = (el.className && typeof el.className === 'string')
+      ? el.className.split(/\s+/).filter(c => c)
+      : [];
+    const semanticClasses = allClasses.filter(c => !this.isUtilityClass(c));
+    const utilityClasses = allClasses.filter(c => this.isUtilityClass(c));
+
+    // ── Strategy 1: Unique ID ──
+    if (el.id) {
+      const sel = `#${CSS.escape(el.id)}`;
+      if (isUnique(sel)) return sel;
     }
 
-    if (el.id && document.querySelectorAll(`#${CSS.escape(el.id)}`).length === 1) return `#${CSS.escape(el.id)}`;
-    const uniqueAttrs = ['data-testid', 'data-cy', 'name', 'role', 'aria-label'];
-    for (const attr of uniqueAttrs) {
+    // ── Strategy 2: Semantic data/aria attributes ──
+    const semanticAttrs = ['data-testid', 'data-cy', 'data-test', 'name', 'aria-label'];
+    for (const attr of semanticAttrs) {
       if (el.hasAttribute(attr)) {
-        const sel = `[${attr}="${CSS.escape(el.getAttribute(attr)!)}"]`;
-        if (document.querySelectorAll(sel).length === 1) return sel;
-      }
-    }
-    if (el.className && typeof el.className === 'string') {
-      const classes = el.className.split(/\s+/).filter(c => c);
-      for (const cls of classes) {
-        if (document.querySelectorAll(`.${CSS.escape(cls)}`).length === 1) return `.${CSS.escape(cls)}`;
+        const val = el.getAttribute(attr)!;
+        // Try tag[attr="val"] first (more specific)
+        const sel1 = `${tag}[${attr}="${CSS.escape(val)}"]`;
+        if (isUnique(sel1)) return sel1;
+        const sel2 = `[${attr}="${CSS.escape(val)}"]`;
+        if (isUnique(sel2)) return sel2;
       }
     }
 
+    // ── Strategy 3: Tag alone (great for a, button, input, h1, etc.) ──
+    if (isUnique(tag)) return tag;
+
+    // ── Strategy 4: Tag + semantic class ──
+    for (const cls of semanticClasses) {
+      const sel = `${tag}.${CSS.escape(cls)}`;
+      if (isUnique(sel)) return sel;
+    }
+
+    // ── Strategy 5: Semantic class alone ──
+    for (const cls of semanticClasses) {
+      const sel = `.${CSS.escape(cls)}`;
+      if (isUnique(sel)) return sel;
+    }
+
+    // ── Strategy 6: Role attribute ──
+    if (el.hasAttribute('role')) {
+      const role = el.getAttribute('role')!;
+      const sel = `${tag}[role="${CSS.escape(role)}"]`;
+      if (isUnique(sel)) return sel;
+    }
+
+    // ── Strategy 7: Tag + utility class (less ideal but still usable) ──
+    for (const cls of utilityClasses) {
+      const sel = `${tag}.${CSS.escape(cls)}`;
+      if (isUnique(sel)) return sel;
+    }
+
+    // ── Strategy 8: Utility class alone (last resort before structural) ──
+    for (const cls of utilityClasses) {
+      const sel = `.${CSS.escape(cls)}`;
+      if (isUnique(sel)) return sel;
+    }
+
+    // ── Strategy 9: Multi-class combos ──
+    if (allClasses.length >= 2) {
+      const candidates = [...semanticClasses, ...utilityClasses].slice(0, 6);
+      for (let i = 0; i < candidates.length; i++) {
+        for (let j = i + 1; j < candidates.length; j++) {
+          const sel = `${tag}.${CSS.escape(candidates[i])}.${CSS.escape(candidates[j])}`;
+          if (isUnique(sel)) return sel;
+        }
+      }
+    }
+
+    // ── Strategy 10: Structural path ──
+    const boundary = scope || document.body;
     let path: string[] = [], curr: Element | null = el;
-    while (curr && curr !== document.body) {
-      let sel = curr.tagName.toLowerCase();
-      if (curr.id && document.querySelectorAll(`#${CSS.escape(curr.id)}`).length === 1) {
+    while (curr && curr !== boundary) {
+      let seg = curr.tagName.toLowerCase();
+
+      // Anchor to a unique ID if found along the path
+      if (!scope && curr.id && isUnique(`#${CSS.escape(curr.id)}`)) {
         path.unshift(`#${CSS.escape(curr.id)}`);
         break;
-      } else {
-        let sib = curr, nth = 1;
-        while (sib = sib.previousElementSibling as Element) if (sib.tagName === curr.tagName) nth++;
-        if (nth > 1) sel += `:nth-of-type(${nth})`;
       }
-      path.unshift(sel);
+
+      // Prefer semantic class for path segments
+      const currClasses = (curr.className && typeof curr.className === 'string')
+        ? curr.className.split(/\s+/).filter(c => c && !this.isUtilityClass(c))
+        : [];
+      if (currClasses.length > 0) {
+        seg += `.${CSS.escape(currClasses[0])}`;
+      } else {
+        let sib: Element | null = curr, nth = 1;
+        while (sib = sib.previousElementSibling) if (sib.tagName === curr.tagName) nth++;
+        if (nth > 1) seg += `:nth-of-type(${nth})`;
+      }
+      path.unshift(seg);
       curr = curr.parentElement;
     }
     return path.join(' > ');

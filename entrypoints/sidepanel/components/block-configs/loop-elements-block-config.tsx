@@ -1,4 +1,5 @@
 import { observer } from 'mobx-react-lite';
+import { runInAction } from 'mobx';
 import { LoopElementsBlock } from '@/entrypoints/models/loop-elements-block';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -17,7 +18,7 @@ export const LoopElementsBlockConfig = observer(({ block }: LoopElementsBlockCon
                 placeholder=".item"
                 helpText="Selector for elements to loop through"
                 selector={block.config.selector}
-                onSelectorChange={(sel) => { block.config.selector = sel; }}
+                onSelectorChange={(sel) => runInAction(() => { block.config.selector = sel; })}
                 block={block}
             />
 
@@ -28,7 +29,7 @@ export const LoopElementsBlockConfig = observer(({ block }: LoopElementsBlockCon
                     type="number"
                     placeholder="Unlimited"
                     value={block.config.maxIterations || ''}
-                    onChange={(e) => block.config.maxIterations = parseInt(e.target.value) || undefined}
+                    onChange={(e) => runInAction(() => { block.config.maxIterations = parseInt(e.target.value) || undefined; })}
                 />
                 <p className="text-xs text-muted-foreground">
                     Leave empty for unlimited iterations
@@ -42,7 +43,7 @@ export const LoopElementsBlockConfig = observer(({ block }: LoopElementsBlockCon
                     type="text"
                     placeholder="index"
                     value={block.config.indexVariable || ''}
-                    onChange={(e) => block.config.indexVariable = e.target.value || undefined}
+                    onChange={(e) => runInAction(() => { block.config.indexVariable = e.target.value || undefined; })}
                 />
                 <p className="text-xs text-muted-foreground">
                     Variable name to store the current iteration index

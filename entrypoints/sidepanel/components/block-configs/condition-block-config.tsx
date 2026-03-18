@@ -1,4 +1,5 @@
 import { observer } from 'mobx-react-lite';
+import { runInAction } from 'mobx';
 import { ConditionBlock } from '@/entrypoints/models/condition-block';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -33,7 +34,7 @@ export const ConditionBlockConfig = observer(({ block }: ConditionBlockConfigPro
                 placeholder=".my-element"
                 helpText="The element to check the condition against"
                 selector={block.config.selector}
-                onSelectorChange={(sel) => { block.config.selector = sel; }}
+                onSelectorChange={(sel) => runInAction(() => { block.config.selector = sel; })}
                 block={block}
             />
 
@@ -41,7 +42,7 @@ export const ConditionBlockConfig = observer(({ block }: ConditionBlockConfigPro
                 <Label htmlFor="check">Condition Check</Label>
                 <Select
                     value={block.config.check}
-                    onValueChange={(value: any) => block.config.check = value}
+                    onValueChange={(value: any) => runInAction(() => { block.config.check = value; })}
                 >
                     <SelectTrigger id="check">
                         <SelectValue placeholder="Select check type" />
@@ -68,13 +69,13 @@ export const ConditionBlockConfig = observer(({ block }: ConditionBlockConfigPro
                         type={block.config.check.startsWith('count_') ? 'number' : 'text'}
                         placeholder={block.config.check.startsWith('count_') ? '5' : 'Enter value'}
                         value={block.config.value || ''}
-                        onChange={(e) => {
+                        onChange={(e) => runInAction(() => {
                             if (block.config.check.startsWith('count_')) {
                                 block.config.value = parseInt(e.target.value) || undefined;
                             } else {
                                 block.config.value = e.target.value;
                             }
-                        }}
+                        })}
                     />
                 </div>
             )}
@@ -83,7 +84,7 @@ export const ConditionBlockConfig = observer(({ block }: ConditionBlockConfigPro
                 <Checkbox
                     id="negate"
                     checked={block.config.negate || false}
-                    onCheckedChange={(checked) => block.config.negate = checked as boolean}
+                    onCheckedChange={(checked) => runInAction(() => { block.config.negate = checked as boolean; })}
                 />
                 <Label htmlFor="negate" className="cursor-pointer">
                     Negate condition

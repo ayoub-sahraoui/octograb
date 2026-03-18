@@ -11,6 +11,7 @@ import {
 import { Block } from '@/entrypoints/models/types';
 import { useBlueprintBuilderStore } from '@/entrypoints/stores/blueprint-builder-store';
 import { observer } from 'mobx-react-lite';
+import { runInAction } from 'mobx';
 import { useState } from 'react';
 import { NavigateBlock } from '@/entrypoints/models/navigate-block';
 import { ClickBlock } from '@/entrypoints/models/click-block';
@@ -148,8 +149,10 @@ const BlueprintBlock = observer(({ block, level = 0 }: BlueprintBlockProps) => {
             const oldIndex = block.children.findIndex(b => b.id === active.id);
             const newIndex = block.children.findIndex(b => b.id === over.id);
 
-            const newChildren = arrayMove(block.children, oldIndex, newIndex);
-            block.children = newChildren;
+            runInAction(() => {
+                const newChildren = arrayMove(block.children!, oldIndex, newIndex);
+                block.children = newChildren;
+            });
         }
     };
 
@@ -165,14 +168,16 @@ const BlueprintBlock = observer(({ block, level = 0 }: BlueprintBlockProps) => {
 
     const handleAddChildBlock = (createBlock: () => Block) => {
         const newBlock = createBlock();
-        // Initialize children array if it doesn't exist
-        if (!block.children) {
-            block.children = [];
-        }
-        // Set parent reference
-        newBlock.parent = block;
-        // Add to children
-        block.children.push(newBlock);
+        runInAction(() => {
+            // Initialize children array if it doesn't exist
+            if (!block.children) {
+                block.children = [];
+            }
+            // Set parent reference
+            newBlock.parent = block;
+            // Add to children
+            block.children.push(newBlock);
+        });
         // Select the new block for configuration
         blueprintBuilderStore.selectBlock(newBlock);
     };

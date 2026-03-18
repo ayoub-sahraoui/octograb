@@ -595,6 +595,43 @@ export function initEnvHandler() {
                     return { success: true, data: isVisible };
                 }
 
+                case 'TEST_SELECTOR': {
+                    const { selector, selectorType } = msg.data;
+                    if (!selector || !selector.trim()) {
+                        return { success: true, data: { count: 0, elements: [] } };
+                    }
+
+                    try {
+                        const elements = getElements(selector, selectorType || 'css');
+                        const count = elements.length;
+                        // Return info about first few matched elements (max 5)
+                        const elementInfo = elements.slice(0, 5).map(el => {
+                            const tag = el.tagName.toLowerCase();
+                            const isClickable = tag === 'a' || tag === 'button' || tag === 'input' || tag === 'select' ||
+                                tag === 'textarea' || tag === 'summary' || tag === 'details' ||
+                                el.hasAttribute('onclick') || el.hasAttribute('role') && ['button', 'link', 'tab', 'menuitem', 'checkbox', 'radio'].includes(el.getAttribute('role') || '') ||
+                                el.getAttribute('tabindex') !== null ||
+                                window.getComputedStyle(el).cursor === 'pointer';
+                            const isInput = tag === 'input' || tag === 'textarea' || tag === 'select' ||
+                                (el as HTMLElement).isContentEditable;
+                            const isVisible = (() => {
+                                const style = window.getComputedStyle(el);
+                                const isFixed = style.position === 'fixed' || style.position === 'sticky';
+                                return !!((isFixed || (el as HTMLElement).offsetParent !== null) &&
+                                    (el as HTMLElement).offsetWidth > 0 &&
+                                    (el as HTMLElement).offsetHeight > 0 &&
+                                    style.visibility !== 'hidden' &&
+                                    style.display !== 'none');
+                            })();
+                            return { tag, isClickable, isInput, isVisible };
+                        });
+                        return { success: true, data: { count, elements: elementInfo } };
+                    } catch (e: any) {
+                        // Selector syntax error
+                        return { success: true, data: { count: 0, elements: [], error: e.message } };
+                    }
+                }
+
                 case 'ENV_WAIT_NETWORK_IDLE': {
                     const { timeout } = msg.data;
                     const monitor = (window as any).__octoGrabNetworkMonitor__;

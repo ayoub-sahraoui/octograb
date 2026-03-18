@@ -183,9 +183,11 @@ export default observer(function BlueprintBuilder() {
             const oldIndex = blueprint.blocks.findIndex(b => b.id === active.id);
             const newIndex = blueprint.blocks.findIndex(b => b.id === over.id);
 
-            const newBlocks = arrayMove(blueprint.blocks, oldIndex, newIndex);
-            blueprint.blocks = newBlocks;
-            blueprint.updateIndices();
+            runInAction(() => {
+                const newBlocks = arrayMove(blueprint.blocks, oldIndex, newIndex);
+                blueprint.blocks = newBlocks;
+                blueprint.updateIndices();
+            });
         }
     };
 

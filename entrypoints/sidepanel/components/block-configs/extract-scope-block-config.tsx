@@ -486,6 +486,7 @@ export const ExtractScopeBlockConfig = observer(({ block }: ExtractScopeBlockCon
                     });
                 }}
                 block={block.config.resetScope ? undefined : block}
+                required={false}
             />
 
             <div className="flex flex-col gap-4">

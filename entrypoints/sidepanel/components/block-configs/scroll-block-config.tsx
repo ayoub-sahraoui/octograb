@@ -1,4 +1,5 @@
 import { observer } from 'mobx-react-lite';
+import { runInAction } from 'mobx';
 import { ScrollBlock } from '@/entrypoints/models/scroll-block';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -26,7 +27,7 @@ export const ScrollBlockConfig = observer(({ block }: ScrollBlockConfigProps) =>
                 <Label htmlFor="target">Scroll Target</Label>
                 <Select
                     value={block.config.target}
-                    onValueChange={(value: any) => block.config.target = value}
+                    onValueChange={(value: any) => runInAction(() => { block.config.target = value; })}
                 >
                     <SelectTrigger id="target">
                         <SelectValue placeholder="Select target" />
@@ -42,7 +43,7 @@ export const ScrollBlockConfig = observer(({ block }: ScrollBlockConfigProps) =>
                 <Label htmlFor="behavior">Scroll Behavior</Label>
                 <Select
                     value={block.config.behavior}
-                    onValueChange={(value: any) => block.config.behavior = value}
+                    onValueChange={(value: any) => runInAction(() => { block.config.behavior = value; })}
                 >
                     <SelectTrigger id="behavior">
                         <SelectValue placeholder="Select behavior" />
@@ -64,7 +65,7 @@ export const ScrollBlockConfig = observer(({ block }: ScrollBlockConfigProps) =>
                         type="number"
                         placeholder="500"
                         value={block.config.pixels || ''}
-                        onChange={(e) => block.config.pixels = parseInt(e.target.value) || undefined}
+                        onChange={(e) => runInAction(() => { block.config.pixels = parseInt(e.target.value) || undefined; })}
                     />
                     <p className="text-xs text-muted-foreground">
                         Positive values scroll down, negative values scroll up
@@ -79,7 +80,7 @@ export const ScrollBlockConfig = observer(({ block }: ScrollBlockConfigProps) =>
                     placeholder=".my-element"
                     helpText="The element to scroll or scroll into view"
                     selector={block.config.selector}
-                    onSelectorChange={(sel) => { block.config.selector = sel; }}
+                    onSelectorChange={(sel) => runInAction(() => { block.config.selector = sel; })}
                     block={block}
                 />
             )}
@@ -88,7 +89,7 @@ export const ScrollBlockConfig = observer(({ block }: ScrollBlockConfigProps) =>
                 <Checkbox
                     id="smooth"
                     checked={block.config.smooth || false}
-                    onCheckedChange={(checked) => block.config.smooth = checked as boolean}
+                    onCheckedChange={(checked) => runInAction(() => { block.config.smooth = checked as boolean; })}
                 />
                 <Label htmlFor="smooth" className="cursor-pointer">
                     Smooth scrolling
@@ -102,7 +103,7 @@ export const ScrollBlockConfig = observer(({ block }: ScrollBlockConfigProps) =>
                     type="number"
                     placeholder="0"
                     value={block.config.delayAfter || ''}
-                    onChange={(e) => block.config.delayAfter = parseInt(e.target.value) || undefined}
+                    onChange={(e) => runInAction(() => { block.config.delayAfter = parseInt(e.target.value) || undefined; })}
                 />
             </div>
         </div>

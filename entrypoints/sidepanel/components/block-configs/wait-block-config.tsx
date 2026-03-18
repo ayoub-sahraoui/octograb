@@ -1,4 +1,5 @@
 import { observer } from 'mobx-react-lite';
+import { runInAction } from 'mobx';
 import { WaitBlock } from '@/entrypoints/models/wait-block';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -26,7 +27,7 @@ export const WaitBlockConfig = observer(({ block }: WaitBlockConfigProps) => {
                 <Label htmlFor="type">Wait Type</Label>
                 <Select
                     value={block.config.type}
-                    onValueChange={(value: any) => block.config.type = value}
+                    onValueChange={(value: any) => runInAction(() => { block.config.type = value; })}
                 >
                     <SelectTrigger id="type">
                         <SelectValue placeholder="Select wait type" />
@@ -49,7 +50,7 @@ export const WaitBlockConfig = observer(({ block }: WaitBlockConfigProps) => {
                         type="number"
                         placeholder="5000"
                         value={block.config.timeout || ''}
-                        onChange={(e) => block.config.timeout = parseInt(e.target.value) || undefined}
+                        onChange={(e) => runInAction(() => { block.config.timeout = parseInt(e.target.value) || undefined; })}
                     />
                 </div>
             )}
@@ -61,7 +62,7 @@ export const WaitBlockConfig = observer(({ block }: WaitBlockConfigProps) => {
                     placeholder=".my-element"
                     helpText={`Wait until this element is ${block.config.type === 'selector_visible' ? 'visible' : 'hidden'}`}
                     selector={block.config.selector}
-                    onSelectorChange={(sel) => { block.config.selector = sel; }}
+                    onSelectorChange={(sel) => runInAction(() => { block.config.selector = sel; })}
                     block={block}
                 />
             )}
@@ -74,7 +75,7 @@ export const WaitBlockConfig = observer(({ block }: WaitBlockConfigProps) => {
                         type="number"
                         placeholder="500"
                         value={block.config.idleTime || ''}
-                        onChange={(e) => block.config.idleTime = parseInt(e.target.value) || undefined}
+                        onChange={(e) => runInAction(() => { block.config.idleTime = parseInt(e.target.value) || undefined; })}
                     />
                     <p className="text-xs text-muted-foreground">
                         Time to wait with no network activity

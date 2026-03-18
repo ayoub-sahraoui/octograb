@@ -1,4 +1,5 @@
 import { observer } from 'mobx-react-lite';
+import { runInAction } from 'mobx';
 import { ClickBlock } from '@/entrypoints/models/click-block';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,11 +15,12 @@ export const ClickBlockConfig = observer(({ block }: ClickBlockConfigProps) => {
             <SelectorInput
                 label="Click Target"
                 id="click-selector"
-                placeholder="button.submit"
-                helpText="The element to click on"
+                placeholder="button.submit, a.nav-link"
+                helpText="Select a clickable element (button, link, or interactive element)"
                 selector={block.config.selector}
-                onSelectorChange={(sel) => { block.config.selector = sel; }}
+                onSelectorChange={(sel) => runInAction(() => { block.config.selector = sel; })}
                 block={block}
+                expectedElement="clickable"
             />
 
             <div className="flex flex-col gap-2">
@@ -28,7 +30,7 @@ export const ClickBlockConfig = observer(({ block }: ClickBlockConfigProps) => {
                     type="number"
                     placeholder="0"
                     value={block.config.delayBefore || ''}
-                    onChange={(e) => block.config.delayBefore = parseInt(e.target.value) || undefined}
+                    onChange={(e) => runInAction(() => { block.config.delayBefore = parseInt(e.target.value) || undefined; })}
                 />
             </div>
 
@@ -39,7 +41,7 @@ export const ClickBlockConfig = observer(({ block }: ClickBlockConfigProps) => {
                     type="number"
                     placeholder="0"
                     value={block.config.delayAfter || ''}
-                    onChange={(e) => block.config.delayAfter = parseInt(e.target.value) || undefined}
+                    onChange={(e) => runInAction(() => { block.config.delayAfter = parseInt(e.target.value) || undefined; })}
                 />
             </div>
         </div>

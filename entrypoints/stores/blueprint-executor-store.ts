@@ -1182,11 +1182,18 @@ export class BlueprintExecutorStore {
                 } else {
                     this.log('info', `  ⬅️ Using browser back button${attempt > 1 ? ` (attempt ${attempt})` : ''}`);
 
-                    const navPromise = this.waitForNavigation(this._targetTabId!, 30000);
-                    await browser.tabs.goBack(this._targetTabId!);
+                    try {
+                        const navPromise = this.waitForNavigation(this._targetTabId!, 30000);
+                        await browser.tabs.goBack(this._targetTabId!);
 
-                    this.log('info', `  ⏳ Waiting for navigation to complete...`);
-                    await navPromise;
+                        this.log('info', `  ⏳ Waiting for navigation to complete...`);
+                        await navPromise;
+                    } catch (goBackErr: any) {
+                        // tabs.goBack() can fail if there's no history entry
+                        // Try to get the current tab URL from the loop context as a fallback
+                        this.log('warn', `  ⚠️ Browser back failed: ${goBackErr.message}`);
+                        throw goBackErr;
+                    }
                 }
 
                 // Wait for content script to be ready on the NEW page
@@ -1462,6 +1469,18 @@ export class BlueprintExecutorStore {
                         this.log('error', `    ❌ Recovery failed: ${recoveryErr.message}. Stopping loop.`);
                         break;
                     }
+                } else {
+                    // No stored URL — try browser back as last resort
+                    try {
+                        this.log('info', `    ⬅️ No stored URL, trying browser back for recovery...`);
+                        await browser.tabs.goBack(this._targetTabId!);
+                        await this.waitForTab(30000);
+                        await this.delay(1000);
+                        this.log('info', `    ✓ Recovered via browser back`);
+                    } catch (recoveryErr: any) {
+                        this.log('error', `    ❌ Recovery failed (no URL, back failed): ${recoveryErr.message}. Stopping loop.`);
+                        break;
+                    }
                 }
             }
 
@@ -1611,6 +1630,9 @@ export class BlueprintExecutorStore {
                 }
                 await this.waitForTab(30000);
                 this.log('info', `    ✓ Page loaded after pagination navigation`);
+                // Wait for dynamic content to render (page may be "complete" before JS renders elements)
+                this.log('info', `    ⏱ Waiting ${delayBetween}ms for dynamic content to render...`);
+                await this.delay(delayBetween);
             } else {
                 // SPA-style or no navigation — use delay + waitForTab
                 this.log('info', `    ⏱ Waiting ${delayBetween}ms for page transition...`);
@@ -1626,6 +1648,35 @@ export class BlueprintExecutorStore {
             }
             this.log('info', `    ⏳ Verifying page is ready...`);
             await this.waitForTab(15000);
+
+            // Wait for child elements to appear on the new page (dynamic content like Amazon grids)
+            const firstChildLoop = (block.children || []).find((c: Block) => c.type === 'loop_elements');
+            if (firstChildLoop) {
+                const childSel = (firstChildLoop.config as any)?.selector;
+                if (childSel?.value) {
+                    this.log('info', `    🔍 Waiting for elements (${childSel.value}) to appear...`);
+                    const elemWaitStart = Date.now();
+                    const elemWaitMax = 10000;
+                    let elemFound = false;
+                    while (Date.now() - elemWaitStart < elemWaitMax) {
+                        try {
+                            const checkResp = await this.send({
+                                type: 'ENV_COUNT',
+                                data: { selector: childSel.value, selectorType: childSel.type || 'css', scope: scope || undefined }
+                            });
+                            if (checkResp.success && (checkResp.data as number) > 0) {
+                                this.log('info', `    ✓ Found ${checkResp.data} elements after ${Date.now() - elemWaitStart}ms`);
+                                elemFound = true;
+                                break;
+                            }
+                        } catch { /* retry */ }
+                        await this.delay(500);
+                    }
+                    if (!elemFound) {
+                        this.log('warn', `    ⚠ No elements found after ${elemWaitMax}ms — proceeding anyway`);
+                    }
+                }
+            }
         }
 
         this.log('success', `✓ Button pagination completed: ${page} pages processed`);

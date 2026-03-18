@@ -1,4 +1,5 @@
 import { observer } from 'mobx-react-lite';
+import { runInAction } from 'mobx';
 import { InputBlock } from '@/entrypoints/models/input-block';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -16,10 +17,11 @@ export const InputBlockConfig = observer(({ block }: InputBlockConfigProps) => {
                 label="Input Target"
                 id="input-selector"
                 placeholder="input[name='email']"
-                helpText="The input element to type into"
+                helpText="Select an input, textarea, or select element to type into"
                 selector={block.config.selector}
-                onSelectorChange={(sel) => { block.config.selector = sel; }}
+                onSelectorChange={(sel) => runInAction(() => { block.config.selector = sel; })}
                 block={block}
+                expectedElement="input"
             />
 
             <div className="flex flex-col gap-2">
@@ -28,7 +30,7 @@ export const InputBlockConfig = observer(({ block }: InputBlockConfigProps) => {
                     id="value"
                     placeholder="Enter the text to input"
                     value={block.config.value}
-                    onChange={(e) => block.config.value = e.target.value}
+                    onChange={(e) => runInAction(() => { block.config.value = e.target.value; })}
                     rows={3}
                 />
             </div>
@@ -40,7 +42,7 @@ export const InputBlockConfig = observer(({ block }: InputBlockConfigProps) => {
                     type="number"
                     placeholder="0"
                     value={block.config.delayBefore || ''}
-                    onChange={(e) => block.config.delayBefore = parseInt(e.target.value) || undefined}
+                    onChange={(e) => runInAction(() => { block.config.delayBefore = parseInt(e.target.value) || undefined; })}
                 />
             </div>
 
@@ -51,7 +53,7 @@ export const InputBlockConfig = observer(({ block }: InputBlockConfigProps) => {
                     type="number"
                     placeholder="0"
                     value={block.config.delayAfter || ''}
-                    onChange={(e) => block.config.delayAfter = parseInt(e.target.value) || undefined}
+                    onChange={(e) => runInAction(() => { block.config.delayAfter = parseInt(e.target.value) || undefined; })}
                 />
             </div>
         </div>

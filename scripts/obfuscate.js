@@ -13,35 +13,33 @@ const distDir = path.resolve(__dirname, '../.output/chrome-mv3');
 
 console.log('🔒 Starting code obfuscation...\n');
 
-// Obfuscation configuration
+// Obfuscation configuration - tuned for Chrome extension compatibility
 const obfuscatorConfig = {
   compact: true,
-  controlFlowFlattening: true,
-  controlFlowFlatteningThreshold: 0.75,
-  deadCodeInjection: true,
-  deadCodeInjectionThreshold: 0.4,
-  debugProtection: false, // Can cause issues in extensions
-  disableConsoleOutput: true,
+  controlFlowFlattening: false, // Disabled - breaks service workers
+  deadCodeInjection: false, // Disabled - can break service workers
+  debugProtection: false,
+  disableConsoleOutput: false, // Keep console for debugging
   identifierNamesGenerator: 'hexadecimal',
   log: false,
-  numbersToExpressions: true,
+  numbersToExpressions: false, // Disabled - can cause issues
   renameGlobals: false,
-  selfDefending: false, // Can cause issues in extensions
+  selfDefending: false,
   simplify: true,
   splitStrings: true,
   splitStringsChunkLength: 10,
   stringArray: true,
-  stringArrayCallsTransform: true,
-  stringArrayEncoding: ['rc4'],
+  stringArrayCallsTransform: false, // Disabled - can break service workers
+  stringArrayEncoding: ['base64'], // Changed from rc4 - more compatible
   stringArrayIndexShift: true,
   stringArrayRotate: true,
   stringArrayShuffle: true,
-  stringArrayWrappersCount: 2,
-  stringArrayWrappersChainedCalls: true,
-  stringArrayWrappersParametersMaxCount: 4,
+  stringArrayWrappersCount: 1, // Reduced from 2
+  stringArrayWrappersChainedCalls: false, // Disabled - can break service workers
+  stringArrayWrappersParametersMaxCount: 2, // Reduced from 4
   stringArrayWrappersType: 'function',
-  stringArrayThreshold: 0.75,
-  transformObjectKeys: true,
+  stringArrayThreshold: 0.5, // Reduced from 0.75
+  transformObjectKeys: false, // Disabled - can break browser APIs
   unicodeEscapeSequence: false
 };
 
@@ -61,18 +59,18 @@ function shouldObfuscate(filePath) {
 
 function getAllJsFiles(dir, fileList = []) {
   const files = fs.readdirSync(dir);
-  
+
   files.forEach(file => {
     const filePath = path.join(dir, file);
     const stat = fs.statSync(filePath);
-    
+
     if (stat.isDirectory()) {
       getAllJsFiles(filePath, fileList);
     } else if (file.endsWith('.js') && shouldObfuscate(filePath)) {
       fileList.push(filePath);
     }
   });
-  
+
   return fileList;
 }
 
@@ -90,7 +88,7 @@ try {
 
   jsFiles.forEach(filePath => {
     const relativePath = path.relative(distDir, filePath);
-    
+
     try {
       const code = fs.readFileSync(filePath, 'utf8');
       const originalSize = code.length;
@@ -115,7 +113,7 @@ try {
   console.log(`\n🎉 Obfuscation complete!`);
   console.log(`   Obfuscated: ${obfuscatedCount} files`);
   console.log(`   Skipped: ${skippedCount} files`);
-  
+
 } catch (error) {
   console.error('❌ Obfuscation failed:', error);
   process.exit(1);

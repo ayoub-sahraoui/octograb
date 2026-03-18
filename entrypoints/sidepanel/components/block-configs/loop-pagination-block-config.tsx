@@ -85,11 +85,12 @@ export const LoopPaginationBlockConfig = observer(({ block }: LoopPaginationBloc
                 <SelectorInput
                     label="Next Button Selector"
                     id="pagination-next-selector"
-                    placeholder=".next-page"
-                    helpText="Selector for the 'Next' button/link"
+                    placeholder=".next-page, a[rel='next']"
+                    helpText="Select the 'Next' button or link to click for pagination"
                     selector={block.config.nextButtonSelector}
                     onSelectorChange={(sel) => runInAction(() => { block.config.nextButtonSelector = sel; })}
                     block={block}
+                    expectedElement="clickable"
                 />
             )}
 
