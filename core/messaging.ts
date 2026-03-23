@@ -27,7 +27,11 @@ export type MessageType =
   | 'ENV_WAIT_NETWORK_IDLE'
   | 'ENV_GET_SCOPE'
   | 'ENV_ABORT'
-  | 'TEST_SELECTOR';
+  | 'TEST_SELECTOR'
+  // AI Agent Actions
+  | 'ENV_DOM_SNAPSHOT'
+  | 'ENV_QUERY_PREVIEW'
+  | 'ENV_TEST_EXTRACTION';
 
 export interface Message {
   type: MessageType;

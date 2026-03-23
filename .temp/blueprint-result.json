@@ -1,0 +1,132 @@
+{
+  "id": "1ace7175-921b-4350-adda-0e5ae02f2ec7",
+  "name": "Amazon AI Engineering Books Scraper",
+  "description": "",
+  "blocks": [
+    {
+      "id": "2ef02db5-db17-4dd4-ace6-3fbdb1b64f84",
+      "type": "navigate",
+      "label": "Go to Amazon Search Results",
+      "enabled": true,
+      "description": "",
+      "onError": "stop",
+      "maxRetries": 0,
+      "retryDelay": 1000,
+      "config": {
+        "url": "https://www.amazon.com/s?k=ai+engineering+book&crid=2IT9KKC2I8ERR&sprefix=ai+engineering+%2Caps%2C356&ref=nb_sb_ss_p13n-expert-pd-ops-ranker_4_15",
+        "behavior": "same_tab",
+        "timeout": 30000
+      },
+      "index": 0
+    },
+    {
+      "id": "f6801cc6-7297-4b60-96ca-dfe454e9dcbf",
+      "type": "loop_elements",
+      "label": "Loop Through Book Results",
+      "enabled": true,
+      "description": "",
+      "onError": "skip",
+      "maxRetries": 0,
+      "retryDelay": 1000,
+      "config": {
+        "selector": {
+          "type": "css",
+          "value": ".s-result-item[data-component-type='s-search-result']"
+        },
+        "maxIterations": 50
+      },
+      "children": [
+        {
+          "id": "86b2d688-7234-489c-a22c-d7cd3cb5b956",
+          "type": "extract_scope",
+          "label": "Extract Book Data",
+          "enabled": true,
+          "description": "",
+          "onError": "skip",
+          "maxRetries": 0,
+          "retryDelay": 1000,
+          "config": {
+            "fields": [
+              {
+                "key": "title",
+                "selector": {
+                  "type": "css",
+                  "value": "h2"
+                },
+                "attribute": "text",
+                "required": false,
+                "multiple": false,
+                "transformers": [
+                  {
+                    "type": "trim"
+                  }
+                ]
+              },
+              {
+                "key": "price",
+                "selector": {
+                  "type": "css",
+                  "value": ".a-price-whole"
+                },
+                "attribute": "text",
+                "required": false,
+                "multiple": false,
+                "transformers": [
+                  {
+                    "type": "trim"
+                  },
+                  {
+                    "type": "replace",
+                    "searchValue": "\n.",
+                    "replaceValue": ""
+                  }
+                ]
+              },
+              {
+                "key": "availability",
+                "selector": {
+                  "type": "css",
+                  "value": "div.a-row.a-size-base.a-color-base"
+                },
+                "attribute": "text",
+                "required": false,
+                "multiple": false,
+                "transformers": [
+                  {
+                    "type": "trim"
+                  }
+                ]
+              },
+              {
+                "key": "book_link",
+                "selector": {
+                  "type": "css",
+                  "value": "a.a-link-normal.s-no-outline"
+                },
+                "attribute": "href",
+                "required": false,
+                "multiple": false
+              },
+              {
+                "key": "cover_image",
+                "selector": {
+                  "type": "css",
+                  "value": ".s-image"
+                },
+                "attribute": "src",
+                "required": false,
+                "multiple": false
+              }
+            ],
+            "scopeSelector": {
+              "type": "css",
+              "value": ".s-result-item[data-component-type='s-search-result']"
+            },
+            "resetScope": false
+          }
+        }
+      ],
+      "index": 1
+    }
+  ]
+}

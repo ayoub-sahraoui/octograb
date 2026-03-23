@@ -1,6 +1,7 @@
 import { registerRpcHandler, MessageResponse, Message } from '@/core/messaging';
 import { resolveScope, getElement, getElements } from '@/core/dom-query';
 import { ExtractionField } from '@/core/types';
+import { createDomSnapshot, queryElementPreview, testExtraction } from '@/core/ai/dom-snapshot';
 
 /**
  * Normalize text to fix common encoding issues
@@ -645,6 +646,24 @@ export function initEnvHandler() {
 
                     await monitor.waitForIdle(timeout || 10000);
                     return { success: true };
+                }
+
+                // ─── AI Agent Handlers ───────────────────────────────────
+                case 'ENV_DOM_SNAPSHOT': {
+                    const snapshot = createDomSnapshot();
+                    return { success: true, data: snapshot };
+                }
+
+                case 'ENV_QUERY_PREVIEW': {
+                    const { selector, selectorType, maxResults } = msg.data;
+                    const result = queryElementPreview(selector, selectorType || 'css', maxResults || 5);
+                    return { success: true, data: result };
+                }
+
+                case 'ENV_TEST_EXTRACTION': {
+                    const { loopSelector, fields, maxItems } = msg.data;
+                    const extractionResult = testExtraction(loopSelector, fields, maxItems || 5);
+                    return { success: true, data: extractionResult };
                 }
             }
 

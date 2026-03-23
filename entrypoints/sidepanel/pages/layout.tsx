@@ -116,7 +116,7 @@ export default observer(function Layout() {
     const navItems = [
         { icon: House, label: 'Home', action: homeRoute },
         { icon: CirclePlus, label: 'Create blueprint', action: blueprintBuilderRoute },
-        { icon: Bot, label: 'AI assistant', action: () => setIsAiDialogOpen(true) },
+        { icon: Bot, label: 'AI assistant', action: aiChatRoute },
         { icon: Database, label: 'Extracted data', action: extractedDataRoute },
         { icon: Settings, label: 'Settings', action: settingsRoute },
     ];
