@@ -1,5 +1,4 @@
 import { observer } from 'mobx-react-lite';
-import { runInAction } from 'mobx';
 import { InputBlock } from '@/entrypoints/models/input-block';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -19,7 +18,7 @@ export const InputBlockConfig = observer(({ block }: InputBlockConfigProps) => {
                 placeholder="input[name='email']"
                 helpText="Select an input, textarea, or select element to type into"
                 selector={block.config.selector}
-                onSelectorChange={(sel) => runInAction(() => { block.config.selector = sel; })}
+                onSelectorChange={(sel) => block.setSelector(sel)}
                 block={block}
                 expectedElement="input"
             />
@@ -30,7 +29,7 @@ export const InputBlockConfig = observer(({ block }: InputBlockConfigProps) => {
                     id="value"
                     placeholder="Enter the text to input"
                     value={block.config.value}
-                    onChange={(e) => runInAction(() => { block.config.value = e.target.value; })}
+                    onChange={(e) => block.setValue(e.target.value)}
                     rows={3}
                 />
             </div>
@@ -42,7 +41,7 @@ export const InputBlockConfig = observer(({ block }: InputBlockConfigProps) => {
                     type="number"
                     placeholder="0"
                     value={block.config.delayBefore || ''}
-                    onChange={(e) => runInAction(() => { block.config.delayBefore = parseInt(e.target.value) || undefined; })}
+                    onChange={(e) => block.setDelayBefore(parseInt(e.target.value) || undefined)}
                 />
             </div>
 
@@ -53,7 +52,7 @@ export const InputBlockConfig = observer(({ block }: InputBlockConfigProps) => {
                     type="number"
                     placeholder="0"
                     value={block.config.delayAfter || ''}
-                    onChange={(e) => runInAction(() => { block.config.delayAfter = parseInt(e.target.value) || undefined; })}
+                    onChange={(e) => block.setDelayAfter(parseInt(e.target.value) || undefined)}
                 />
             </div>
         </div>

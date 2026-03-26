@@ -1,26 +1,24 @@
-import { BlockBase } from "./block-base";
 import { toJS } from "mobx";
-import { v4 as uuidv4 } from 'uuid';
+import { BlockBase } from "./block-base";
 import { OnErrorStrategy } from "./enums";
-import { Selector } from "./selector";
 
-export interface ScrollBlockConfig {
-    target: 'window' | 'element';
-    behavior: 'bottom' | 'top' | 'pixels' | 'element_into_view';
-    pixels?: number;
-    selector?: Selector;
-    smooth?: boolean;
-    delayAfter?: number;
+export type FrameTarget = 'main' | number | string;
+
+export interface SwitchFrameBlockConfig {
+    /** Frame target: 'main' for main page, number for frame index, or string for frame name/id */
+    target: FrameTarget;
+    /** Optional timeout in ms to wait for frame to be available (default: 5000) */
+    timeout?: number;
 }
 
-export class ScrollBlock extends BlockBase {
+export class SwitchFrameBlock extends BlockBase {
     id: string;
-    type: string = 'scroll';
-    config: ScrollBlockConfig;
+    type: string = 'switch_frame';
+    config: SwitchFrameBlockConfig;
 
-    constructor(name: string, config: ScrollBlockConfig) {
+    constructor(name: string, config: SwitchFrameBlockConfig) {
         super();
-        this.id = uuidv4();
+        this.id = crypto.randomUUID();
         this.label = name;
         this.enabled = true;
         this.description = '';
@@ -32,36 +30,20 @@ export class ScrollBlock extends BlockBase {
 
     // ─── Config-specific actions ───────────────────────────────────────────
 
-    setTarget(target: ScrollBlockConfig['target']) {
+    setTarget(target: FrameTarget) {
         this.config.target = target;
     }
 
-    setBehavior(behavior: ScrollBlockConfig['behavior']) {
-        this.config.behavior = behavior;
-    }
-
-    setPixels(pixels?: number) {
-        this.config.pixels = pixels;
-    }
-
-    setSelector(selector?: Selector) {
-        this.config.selector = selector;
-    }
-
-    setSmooth(smooth?: boolean) {
-        this.config.smooth = smooth;
-    }
-
-    setDelayAfter(delay?: number) {
-        this.config.delayAfter = delay;
+    setTimeout(timeout: number) {
+        this.config.timeout = timeout;
     }
 
     toJSON() {
         return toJS(this);
     }
 
-    static fromJson(json: any): ScrollBlock {
-        const block = new ScrollBlock(json.label || 'Scroll', json.config || { target: 'window', behavior: 'bottom' });
+    static fromJson(json: any): SwitchFrameBlock {
+        const block = new SwitchFrameBlock(json.label || 'Switch Frame', json.config || { target: 'main' });
         if (json.id) block.id = json.id;
         if (json.enabled !== undefined) block.setEnabled(json.enabled);
         if (json.description !== undefined) block.setDescription(json.description);

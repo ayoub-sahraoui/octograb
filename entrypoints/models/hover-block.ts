@@ -1,26 +1,22 @@
-import { BlockBase } from "./block-base";
 import { toJS } from "mobx";
-import { v4 as uuidv4 } from 'uuid';
-import { OnErrorStrategy } from "./enums";
+import { BlockBase } from "./block-base";
 import { Selector } from "./selector";
+import { OnErrorStrategy } from "./enums";
 
-export interface ScrollBlockConfig {
-    target: 'window' | 'element';
-    behavior: 'bottom' | 'top' | 'pixels' | 'element_into_view';
-    pixels?: number;
-    selector?: Selector;
-    smooth?: boolean;
-    delayAfter?: number;
+export interface HoverBlockConfig {
+    selector: Selector;
+    /** Optional delay in ms to wait after hover (for hover menus to appear) */
+    hoverDelay?: number;
 }
 
-export class ScrollBlock extends BlockBase {
+export class HoverBlock extends BlockBase {
     id: string;
-    type: string = 'scroll';
-    config: ScrollBlockConfig;
+    type: string = 'hover';
+    config: HoverBlockConfig;
 
-    constructor(name: string, config: ScrollBlockConfig) {
+    constructor(name: string, config: HoverBlockConfig) {
         super();
-        this.id = uuidv4();
+        this.id = crypto.randomUUID();
         this.label = name;
         this.enabled = true;
         this.description = '';
@@ -32,36 +28,20 @@ export class ScrollBlock extends BlockBase {
 
     // ─── Config-specific actions ───────────────────────────────────────────
 
-    setTarget(target: ScrollBlockConfig['target']) {
-        this.config.target = target;
-    }
-
-    setBehavior(behavior: ScrollBlockConfig['behavior']) {
-        this.config.behavior = behavior;
-    }
-
-    setPixels(pixels?: number) {
-        this.config.pixels = pixels;
-    }
-
-    setSelector(selector?: Selector) {
+    setSelector(selector: Selector) {
         this.config.selector = selector;
     }
 
-    setSmooth(smooth?: boolean) {
-        this.config.smooth = smooth;
-    }
-
-    setDelayAfter(delay?: number) {
-        this.config.delayAfter = delay;
+    setHoverDelay(delay: number) {
+        this.config.hoverDelay = delay;
     }
 
     toJSON() {
         return toJS(this);
     }
 
-    static fromJson(json: any): ScrollBlock {
-        const block = new ScrollBlock(json.label || 'Scroll', json.config || { target: 'window', behavior: 'bottom' });
+    static fromJson(json: any): HoverBlock {
+        const block = new HoverBlock(json.label || 'Hover', json.config || { selector: { type: 'css', value: '' } });
         if (json.id) block.id = json.id;
         if (json.enabled !== undefined) block.setEnabled(json.enabled);
         if (json.description !== undefined) block.setDescription(json.description);

@@ -26,7 +26,10 @@ export type MessageType =
   | 'ENV_IS_VISIBLE'
   | 'ENV_WAIT_NETWORK_IDLE'
   | 'ENV_GET_SCOPE'
+  | 'ENV_CLEANUP_SCOPES'
   | 'ENV_CHECK_CLICKABLE'
+  | 'ENV_HOVER'
+  | 'ENV_SWITCH_FRAME'
   | 'ENV_ABORT'
   | 'TEST_SELECTOR'
   // AI Agent Actions

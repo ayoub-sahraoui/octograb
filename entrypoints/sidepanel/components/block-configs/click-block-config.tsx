@@ -1,5 +1,4 @@
 import { observer } from 'mobx-react-lite';
-import { runInAction } from 'mobx';
 import { ClickBlock } from '@/entrypoints/models/click-block';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -18,7 +17,7 @@ export const ClickBlockConfig = observer(({ block }: ClickBlockConfigProps) => {
                 placeholder="button.submit, a.nav-link"
                 helpText="Select a clickable element (button, link, or interactive element)"
                 selector={block.config.selector}
-                onSelectorChange={(sel) => runInAction(() => { block.config.selector = sel; })}
+                onSelectorChange={(sel) => block.setSelector(sel)}
                 block={block}
                 expectedElement="clickable"
             />
@@ -30,7 +29,7 @@ export const ClickBlockConfig = observer(({ block }: ClickBlockConfigProps) => {
                     type="number"
                     placeholder="0"
                     value={block.config.delayBefore || ''}
-                    onChange={(e) => runInAction(() => { block.config.delayBefore = parseInt(e.target.value) || undefined; })}
+                    onChange={(e) => block.setDelayBefore(parseInt(e.target.value) || undefined)}
                 />
             </div>
 
@@ -41,7 +40,7 @@ export const ClickBlockConfig = observer(({ block }: ClickBlockConfigProps) => {
                     type="number"
                     placeholder="0"
                     value={block.config.delayAfter || ''}
-                    onChange={(e) => runInAction(() => { block.config.delayAfter = parseInt(e.target.value) || undefined; })}
+                    onChange={(e) => block.setDelayAfter(parseInt(e.target.value) || undefined)}
                 />
             </div>
         </div>

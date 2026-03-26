@@ -1,4 +1,4 @@
-import { makeAutoObservable, runInAction } from 'mobx';
+import { makeAutoObservable } from 'mobx';
 import { db, AppNotification } from '@/core/database';
 
 class NotificationStore {
@@ -11,26 +11,74 @@ class NotificationStore {
         this.load();
     }
 
+    // ─── Action Methods ────────────────────────────────────────────────────
+
+    setNotifications(notifications: AppNotification[]) {
+        this.notifications = notifications;
+    }
+
+    addNotification(notification: AppNotification) {
+        this.notifications.unshift(notification);
+        this.unreadCount++;
+    }
+
+    setUnreadCount(count: number) {
+        this.unreadCount = count;
+    }
+
+    setLoaded(loaded: boolean) {
+        this.isLoaded = loaded;
+    }
+
+    markNotificationReadLocal(id: number) {
+        const n = this.notifications.find(n => n.id === id);
+        if (n && !n.read) {
+            n.read = true;
+            this.unreadCount = Math.max(0, this.unreadCount - 1);
+        }
+    }
+
+    markAllReadLocal() {
+        this.notifications.forEach(n => { n.read = true; });
+        this.unreadCount = 0;
+    }
+
+    dismissNotificationLocal(id: number) {
+        const idx = this.notifications.findIndex(n => n.id === id);
+        if (idx !== -1) {
+            const n = this.notifications[idx];
+            if (!n.read) {
+                this.unreadCount = Math.max(0, this.unreadCount - 1);
+            }
+            this.notifications.splice(idx, 1);
+        }
+    }
+
+    clearAllLocal() {
+        this.notifications = [];
+        this.unreadCount = 0;
+    }
+
+    // ─── Async Methods ─────────────────────────────────────────────────────
+
     async load() {
         try {
             const [notifs, count] = await Promise.all([
                 db.getAllNotifications(50),
                 db.getUnreadCount(),
             ]);
-            runInAction(() => {
-                this.notifications = notifs.filter(n => !n.dismissed);
-                this.unreadCount = count;
-                this.isLoaded = true;
-            });
+            this.setNotifications(notifs.filter(n => !n.dismissed));
+            this.setUnreadCount(count);
+            this.setLoaded(true);
 
             // Run cleanup on load (remove >30 day old notifications)
-            db.cleanupOldNotifications(30).catch(() => {});
+            db.cleanupOldNotifications(30).catch(() => { });
 
             // Check for first-launch welcome
             await this.checkWelcome();
         } catch (e) {
             console.error('[OctoGrab] Failed to load notifications:', e);
-            runInAction(() => { this.isLoaded = true; });
+            this.setLoaded(true);
         }
     }
 
@@ -67,10 +115,7 @@ class NotificationStore {
             };
             const id = await db.addNotification(notification);
             const full: AppNotification = { ...notification, id };
-            runInAction(() => {
-                this.notifications.unshift(full);
-                this.unreadCount++;
-            });
+            this.addNotification(full);
             return id;
         } catch (e) {
             console.error('[OctoGrab] Failed to push notification:', e);
@@ -80,13 +125,7 @@ class NotificationStore {
     async markRead(id: number) {
         try {
             await db.markNotificationRead(id);
-            runInAction(() => {
-                const n = this.notifications.find(n => n.id === id);
-                if (n && !n.read) {
-                    n.read = true;
-                    this.unreadCount = Math.max(0, this.unreadCount - 1);
-                }
-            });
+            this.markNotificationReadLocal(id);
         } catch (e) {
             console.error('[OctoGrab] Failed to mark notification read:', e);
         }
@@ -95,10 +134,7 @@ class NotificationStore {
     async markAllRead() {
         try {
             await db.markAllNotificationsRead();
-            runInAction(() => {
-                this.notifications.forEach(n => { n.read = true; });
-                this.unreadCount = 0;
-            });
+            this.markAllReadLocal();
         } catch (e) {
             console.error('[OctoGrab] Failed to mark all read:', e);
         }
@@ -107,16 +143,7 @@ class NotificationStore {
     async dismiss(id: number) {
         try {
             await db.dismissNotification(id);
-            runInAction(() => {
-                const idx = this.notifications.findIndex(n => n.id === id);
-                if (idx !== -1) {
-                    const n = this.notifications[idx];
-                    if (!n.read) {
-                        this.unreadCount = Math.max(0, this.unreadCount - 1);
-                    }
-                    this.notifications.splice(idx, 1);
-                }
-            });
+            this.dismissNotificationLocal(id);
         } catch (e) {
             console.error('[OctoGrab] Failed to dismiss notification:', e);
         }
@@ -127,10 +154,7 @@ class NotificationStore {
             for (const n of this.notifications) {
                 if (n.id) await db.dismissNotification(n.id);
             }
-            runInAction(() => {
-                this.notifications = [];
-                this.unreadCount = 0;
-            });
+            this.clearAllLocal();
         } catch (e) {
             console.error('[OctoGrab] Failed to clear notifications:', e);
         }

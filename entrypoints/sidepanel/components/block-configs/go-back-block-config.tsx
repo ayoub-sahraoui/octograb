@@ -1,5 +1,4 @@
 import { observer } from 'mobx-react-lite';
-import { runInAction } from 'mobx';
 import { GoBackBlock } from '@/entrypoints/models/go-back-block';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -19,7 +18,7 @@ export const GoBackBlockConfig = observer(({ block }: GoBackBlockConfigProps) =>
                     min="1"
                     placeholder="1"
                     value={block.config.steps || 1}
-                    onChange={(e) => runInAction(() => { block.config.steps = parseInt(e.target.value) || 1; })}
+                    onChange={(e) => block.setSteps(parseInt(e.target.value) || 1)}
                 />
                 <p className="text-xs text-muted-foreground">
                     Number of pages to go back in browser history

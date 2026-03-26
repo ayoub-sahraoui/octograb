@@ -1,6 +1,8 @@
-import { makeAutoObservable, runInAction } from "mobx";
+import { makeAutoObservable } from "mobx";
 import { Blueprint } from "../models/blueprint";
 import { Block } from "../models/types";
+import { createBlockFromJSON } from "../models/block-factory";
+import { ExtractionField } from "../models/extract-scope-block";
 import { Scope } from "@/core/env";
 import { sendToTab, isContentScriptReady } from "@/core/messaging";
 import { browser } from "wxt/browser";
@@ -9,8 +11,10 @@ import { db } from "@/core/database";
 import { v4 as uuidv4 } from 'uuid';
 import * as XLSX from 'xlsx';
 import { useNotificationStore } from './notification-store';
-import { preRunCheck } from '@/core/license';
+import { preRunCheck, getLicenseState } from '@/core/license';
 import { isDevMode } from '@/core/dev-mode';
+import { MacroDefinition } from "../models/macro-block";
+import { macroRegistryStore } from "./macro-registry-store";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -72,6 +76,7 @@ export class BlueprintExecutorStore {
     private _pausePromise: Promise<void> | null = null;
     private _pauseResolve: (() => void) | null = null;
     private _returnUrl: string | null = null; // Store URL to return to after go_back
+    private _variables: Map<string, string> = new Map(); // Variable storage for set_variable/get_variable
     // Tab ID tracking — locked to a specific tab during execution
     private _targetTabId: number | null = null;
     // Loop state tracking for resume - maps blockId to current iteration index
@@ -100,24 +105,110 @@ export class BlueprintExecutorStore {
         this.loadResumableBlueprints();
     }
 
+    // ─── Action Methods ────────────────────────────────────────────────────
+
+    setStatus(status: ExecutionStatus) {
+        this.status = status;
+    }
+
+    setError(error: string | null) {
+        this.error = error;
+    }
+
+    setCurrentBlock(block: Block | null) {
+        this.currentBlock = block;
+    }
+
+    setProgress(current: number, total: number) {
+        this.progress = { current, total };
+    }
+
+    incrementProgress() {
+        this.progress.current++;
+    }
+
+    setSettings(enableLogs: boolean, enableTrace: boolean) {
+        this.enableLogs = enableLogs;
+        this.enableTrace = enableTrace;
+    }
+
+    setRunningBlueprint(id: string | null, name: string | null) {
+        this.runningBlueprintId = id;
+        this.runningBlueprintName = name;
+    }
+
+    setTargetTabId(tabId: number | null) {
+        this._targetTabId = tabId;
+    }
+
+    setExecutionTimes(startTime: number | null, endTime: number | null) {
+        this.startTime = startTime;
+        this.endTime = endTime;
+    }
+
+    addLogEntry(log: ExecutionLog) {
+        this.logs.push(log);
+    }
+
+    addTraceEntry(trace: ExecutionTrace) {
+        if (!this.enableTrace) return;
+        this.traces.push(trace);
+    }
+
+    setExtractedData(data: Record<string, any>[], columns: string[]) {
+        this.extractedData = data;
+        this.extractedColumns = columns;
+    }
+
+    addExtractedRow(row: Record<string, any>, columns: string[]) {
+        this.extractedData.push(row);
+        for (const key of columns) {
+            if (!this.extractedColumns.includes(key)) {
+                this.extractedColumns.push(key);
+            }
+        }
+    }
+
+    setResumeState(canResume: boolean, lastCheckpoint: any) {
+        this.canResume = canResume;
+        this.lastCheckpoint = lastCheckpoint;
+    }
+
+    setResumableBlueprints(blueprints: Record<string, any>) {
+        this.resumableBlueprints = blueprints;
+    }
+
+    removeResumableBlueprint(blueprintId: string) {
+        delete this.resumableBlueprints[blueprintId];
+    }
+
+    markProgressCounted(blockId: string) {
+        this._progressCounted.add(blockId);
+    }
+
+    isProgressCounted(blockId: string): boolean {
+        return this._progressCounted.has(blockId);
+    }
+
+    clearTraces() {
+        this.traces = [];
+    }
+
     async loadSettings() {
         try {
             const logsSettings = await db.settings.where('key').equals('enableLogs').first();
             const traceSettings = await db.settings.where('key').equals('enableTrace').first();
-            runInAction(() => {
-                this.enableLogs = logsSettings?.value ?? false;
-                this.enableTrace = traceSettings?.value ?? false;
-            });
+            this.setSettings(
+                logsSettings?.value ?? false,
+                traceSettings?.value ?? false
+            );
         } catch (e) {
             console.error('Failed to load executor settings', e);
         }
     }
 
     async updateSettings(enableLogs: boolean, enableTrace: boolean) {
-        runInAction(() => {
-            this.enableLogs = enableLogs;
-            this.enableTrace = enableTrace;
-        });
+        this.setSettings(enableLogs, enableTrace);
         try {
             await db.settings.put({ key: 'enableLogs', value: enableLogs, updatedAt: new Date().toISOString() });
             await db.settings.put({ key: 'enableTrace', value: enableTrace, updatedAt: new Date().toISOString() });
@@ -187,10 +278,8 @@ export class BlueprintExecutorStore {
             try {
                 const check = await preRunCheck();
                 if (!check.allowed) {
-                    runInAction(() => {
-                        this.status = 'error';
-                        this.error = check.error || 'License verification failed. Please check your license.';
-                    });
+                    this.setStatus('error');
+                    this.setError(check.error || 'License verification failed. Please check your license.');
                     try {
                         useNotificationStore().push({
                             type: 'error',
@@ -206,10 +295,8 @@ export class BlueprintExecutorStore {
                 if (check.limits && check.limits.maxBlocksPerBlueprint > 0) {
                     const blockCount = this.countBlocks(blueprint.blocks);
                     if (blockCount > check.limits.maxBlocksPerBlueprint) {
-                        runInAction(() => {
-                            this.status = 'error';
-                            this.error = `Blueprint exceeds ${check.plan || 'free'} plan limit of ${check.limits!.maxBlocksPerBlueprint} blocks (has ${blockCount}). Upgrade to run larger blueprints.`;
-                        });
+                        this.setStatus('error');
+                        this.setError(`Blueprint exceeds ${check.plan || 'free'} plan limit of ${check.limits!.maxBlocksPerBlueprint} blocks (has ${blockCount}). Upgrade to run larger blueprints.`);
                         try {
                             useNotificationStore().push({
                                 type: 'error',
@@ -235,15 +322,14 @@ export class BlueprintExecutorStore {
             // Clear any old resumable checkpoint for this blueprint
             this.clearResumableCheckpoint(blueprint.id);
         }
-        runInAction(() => {
-            this.status = 'running';
-            this.runningBlueprintId = blueprint.id;
-            this.runningBlueprintName = blueprint.name;
-            if (!resumeFromCheckpoint) {
-                this.traces = []; // Ensure traces are cleared
-            }
-            this.startTime = this.startTime || Date.now();
-        });
+        this.setStatus('running');
+        this.setRunningBlueprint(blueprint.id, blueprint.name);
+        if (!resumeFromCheckpoint) {
+            this.clearTraces();
+        }
+        if (!this.startTime) {
+            this.setExecutionTimes(Date.now(), null);
+        }
         this._abortController = new AbortController();
 
         // Overall execution timeout (2 hours max to prevent runaway blueprints)
@@ -256,15 +342,11 @@ export class BlueprintExecutorStore {
         // Lock to the currently active tab — all commands go here
         const tabs = await browser.tabs.query({ active: true, currentWindow: true });
         if (!tabs[0]?.id) {
-            runInAction(() => {
-                this.status = 'error';
-                this.error = 'No active tab found';
-            });
+            this.setStatus('error');
+            this.setError('No active tab found');
             return;
         }
-        runInAction(() => {
-            this._targetTabId = tabs[0].id ?? null;
-        });
+        this.setTargetTabId(tabs[0].id ?? null);
 
         // Monitor tab closure
         const onTabRemoved = (tabId: number) => {
@@ -276,9 +358,7 @@ export class BlueprintExecutorStore {
         browser.tabs.onRemoved.addListener(onTabRemoved);
 
         const totalBlocks = this.countBlocks(blueprint.blocks);
-        runInAction(() => {
-            this.progress = { current: 0, total: totalBlocks };
-        });
+        this.setProgress(0, totalBlocks);
 
         // Create execution record at start so we can track it
         if (!this.currentExecutionId) {
@@ -317,10 +397,8 @@ export class BlueprintExecutorStore {
             }
 
             if (!this._abortController.signal.aborted) {
-                runInAction(() => {
-                    this.status = 'completed';
-                    this.endTime = Date.now();
-                });
+                this.setStatus('completed');
+                this.setExecutionTimes(this.startTime, Date.now());
                 this.log('success', `✅ Blueprint completed. ${this.extractedData.length} rows extracted in ${this.durationFormatted}`);
 
                 // Push notification
@@ -349,10 +427,7 @@ export class BlueprintExecutorStore {
                         });
                         await db.clearProgressByExecution(this.currentExecutionId);
                     }
-                    runInAction(() => {
-                        this.canResume = false;
-                        this.lastCheckpoint = null;
-                    });
+                    this.setResumeState(false, null);
                     // Clear resumable entry on successful completion
                     if (blueprint.id) {
                         this.clearResumableCheckpoint(blueprint.id);
@@ -362,11 +437,9 @@ export class BlueprintExecutorStore {
                 }
             }
         } catch (err: any) {
-            runInAction(() => {
-                this.status = 'error';
-                this.error = err.message;
-                this.endTime = Date.now();
-            });
+            this.setStatus('error');
+            this.setError(err.message);
+            this.setExecutionTimes(this.startTime, Date.now());
             this.log('error', `❌ Execution failed: ${err.message}`);
 
             // Push notification
@@ -402,18 +475,14 @@ export class BlueprintExecutorStore {
     pause() {
         if (this.status !== 'running') return;
         this._paused = true;
-        runInAction(() => {
-            this.status = 'paused';
-        });
+        this.setStatus('paused');
         this.log('warn', '⏸ Execution paused');
     }
 
     resume() {
         if (this.status !== 'paused') return;
         this._paused = false;
-        runInAction(() => {
-            this.status = 'running';
-        });
+        this.setStatus('running');
         this.log('info', '▶ Execution resumed');
         if (this._pauseResolve) {
             this._pauseResolve();
@@ -432,10 +501,8 @@ export class BlueprintExecutorStore {
         if (this._targetTabId) {
             try { await sendToTab(this._targetTabId, { type: 'ENV_ABORT' } as any); } catch { /* ignore */ }
         }
-        runInAction(() => {
-            this.status = 'stopped';
-            this.endTime = Date.now();
-        });
+        this.setStatus('stopped');
+        this.setExecutionTimes(this.startTime, Date.now());
         this.log('warn', '⏹ Execution stopped by user');
 
         // Save extracted data and checkpoint for resume
@@ -463,22 +530,19 @@ export class BlueprintExecutorStore {
                         url: currentUrl,
                         completed: false
                     });
-                    runInAction(() => {
-                        this.canResume = true;
-                        this.lastCheckpoint = {
-                            blockId: this.currentBlock!.id,
-                            loopState: this._loopState,
-                            url: currentUrl
-                        };
-                        // Add to resumable blueprints map (persists across restart)
-                        if (this.runningBlueprintId) {
-                            this.resumableBlueprints[this.runningBlueprintId] = {
-                                executionId: this.currentExecutionId!,
-                                itemsScraped: this.extractedData.length,
-                                stoppedAt: new Date().toISOString()
-                            };
-                        }
+                    this.setResumeState(true, {
+                        blockId: this.currentBlock.id,
+                        loopState: this._loopState,
+                        url: currentUrl
                     });
+                    // Add to resumable blueprints map (persists across restart)
+                    if (this.runningBlueprintId) {
+                        this.resumableBlueprints[this.runningBlueprintId] = {
+                            executionId: this.currentExecutionId!,
+                            itemsScraped: this.extractedData.length,
+                            stoppedAt: new Date().toISOString()
+                        };
+                    }
                     this.log('info', '💾 Checkpoint saved for resume');
                     this.log('info', `  📊 Loop state: ${JSON.stringify(this._loopState)}`);
                 }
@@ -535,9 +599,7 @@ export class BlueprintExecutorStore {
                 }
             }
 
-            runInAction(() => {
-                this.resumableBlueprints = resumable;
-            });
+            this.setResumableBlueprints(resumable);
         } catch (e) {
             console.error('Failed to load resumable blueprints', e);
         }
@@ -553,9 +615,7 @@ export class BlueprintExecutorStore {
             if (entry) {
                 await db.clearProgressByExecution(entry.executionId);
             }
-            runInAction(() => {
-                delete this.resumableBlueprints[blueprintId];
-            });
+            this.removeResumableBlueprint(blueprintId);
         } catch (e) {
             console.error('Failed to clear resumable checkpoint', e);
         }
@@ -579,33 +639,30 @@ export class BlueprintExecutorStore {
             if (checkpoint) {
                 // Also load the execution data
                 const execution = await db.getExecution(checkpoint.executionId);
-                runInAction(() => {
-                    this.canResume = true;
-                    this.lastCheckpoint = {
-                        blockId: checkpoint.blockId,
-                        loopIndex: checkpoint.loopIndex,
-                        loopState: checkpoint.loopState,
-                        url: checkpoint.url
-                    };
-                    this.currentExecutionId = checkpoint.executionId;
-                    // Restore loop state for resume
-                    if (checkpoint.loopState) {
-                        this._loopState = { ...checkpoint.loopState };
-                    }
-                    // Restore previously extracted data
-                    if (execution?.results && execution.results.length > 0) {
-                        this.extractedData = execution.results as Record<string, any>[];
-                        this.extractedColumns = [];
-                        for (const row of this.extractedData) {
-                            for (const key of Object.keys(row)) {
-                                if (!this.extractedColumns.includes(key)) {
-                                    this.extractedColumns.push(key);
-                                }
+                this.setResumeState(true, {
+                    blockId: checkpoint.blockId,
+                    loopIndex: checkpoint.loopIndex,
+                    loopState: checkpoint.loopState,
+                    url: checkpoint.url
+                });
+                this.currentExecutionId = checkpoint.executionId;
+                // Restore loop state for resume
+                if (checkpoint.loopState) {
+                    this._loopState = { ...checkpoint.loopState };
+                }
+                // Restore previously extracted data
+                if (execution?.results && execution.results.length > 0) {
+                    this.extractedData = execution.results as Record<string, any>[];
+                    this.extractedColumns = [];
+                    for (const row of this.extractedData) {
+                        for (const key of Object.keys(row)) {
+                            if (!this.extractedColumns.includes(key)) {
+                                this.extractedColumns.push(key);
                             }
                         }
-                        this.startTime = execution.startedAt ? new Date(execution.startedAt).getTime() : null;
                     }
-                });
+                    this.startTime = execution.startedAt ? new Date(execution.startedAt).getTime() : null;
+                }
                 return checkpoint;
             }
         } catch (e) {
@@ -618,23 +675,21 @@ export class BlueprintExecutorStore {
         try {
             const execution = await db.getExecution(executionId);
             if (execution) {
-                runInAction(() => {
-                    this.extractedData = (execution.results || []) as Record<string, any>[];
-                    this.extractedColumns = [];
-                    for (const row of this.extractedData) {
-                        for (const key of Object.keys(row)) {
-                            if (!this.extractedColumns.includes(key)) {
-                                this.extractedColumns.push(key);
-                            }
+                this.extractedData = (execution.results || []) as Record<string, any>[];
+                this.extractedColumns = [];
+                for (const row of this.extractedData) {
+                    for (const key of Object.keys(row)) {
+                        if (!this.extractedColumns.includes(key)) {
+                            this.extractedColumns.push(key);
                         }
                     }
-                    this.currentExecutionId = execution.id || null;
-                    this.runningBlueprintId = execution.planId;
-                    this.runningBlueprintName = execution.planName;
-                    this.startTime = execution.startedAt ? new Date(execution.startedAt).getTime() : null;
-                    this.endTime = execution.completedAt ? new Date(execution.completedAt).getTime() : null;
-                    this.status = (execution.status === 'running' ? 'stopped' : execution.status) as ExecutionStatus;
-                });
+                }
+                this.currentExecutionId = execution.id || null;
+                this.runningBlueprintId = execution.planId;
+                this.runningBlueprintName = execution.planName;
+                this.startTime = execution.startedAt ? new Date(execution.startedAt).getTime() : null;
+                this.endTime = execution.completedAt ? new Date(execution.completedAt).getTime() : null;
+                this.status = (execution.status === 'running' ? 'stopped' : execution.status) as ExecutionStatus;
                 return execution;
             }
         } catch (e) {
@@ -645,12 +700,10 @@ export class BlueprintExecutorStore {
 
     addTrace(trace: Omit<ExecutionTrace, 'id' | 'timestamp'>) {
         if (!this.enableTrace) return;
-        runInAction(() => {
-            this.traces.push({
-                id: uuidv4(),
-                timestamp: Date.now(),
-                ...trace
-            });
+        this.addTraceEntry({
+            id: uuidv4(),
+            timestamp: Date.now(),
+            ...trace
         });
     }
 
@@ -682,13 +735,11 @@ export class BlueprintExecutorStore {
             return;
         }
 
-        runInAction(() => {
-            this.currentBlock = block;
-            if (!this._progressCounted.has(block.id)) {
-                this._progressCounted.add(block.id);
-                this.progress.current++;
-            }
-        });
+        this.setCurrentBlock(block);
+        if (!this.isProgressCounted(block.id)) {
+            this.markProgressCounted(block.id);
+            this.incrementProgress();
+        }
 
         // Detailed logging for debugging
         const scopeInfo = scope ? `[Scope: ${scope.selector}[${scope.index}]]` : '[No Scope]';
@@ -723,30 +774,19 @@ export class BlueprintExecutorStore {
                     await this.delay(delayBefore);
                 }
 
-                switch (block.type) {
-                    case 'navigate': await this.executeNavigate(block); break;
-                    case 'click': await this.executeClick(block, scope); break;
-                    case 'input': await this.executeInput(block, scope); break;
-                    case 'wait': await this.executeWait(block, scope); break;
-                    case 'scroll': await this.executeScroll(block, scope); break;
-                    case 'go_back': await this.executeGoBack(block); break;
-                    case 'condition': await this.executeCondition(block, scope); break;
-                    case 'loop_elements': await this.executeLoopElements(block, scope); break;
-                    case 'loop_pagination': await this.executeLoopPagination(block, scope); break;
-                    case 'extract_scope': await this.executeExtractScope(block, scope); break;
-                    default:
-                        this.log('warn', `Unknown block type: ${block.type}`);
-                }
+                // Block-level timeout: wrap execution with timeout
+                const blockTimeout = block.maxExecutionTime || 30000; // Default 30s
+                const timeoutPromise = new Promise<never>((_, reject) => {
+                    setTimeout(() => reject(
+                        new Error(`Block "${block.label}" exceeded ${blockTimeout}ms timeout`)
+                    ), blockTimeout);
+                });
 
-                // Generic child processing for NON-container blocks
-                // Container blocks (loop, condition, extract) already handle children internally
-                if (!CONTAINER_BLOCKS.includes(block.type) && block.children?.length) {
-                    this.log('info', `  👶 Processing ${block.children.length} children...`);
-                    for (const child of block.children) {
-                        if (this._abortController?.signal.aborted) break;
-                        await this.executeBlock(child, scope);
-                    }
-                }
+                // Race actual execution against timeout
+                await Promise.race([
+                    this.executeBlockWithType(block, scope),
+                    timeoutPromise
+                ]);
 
                 // Apply delayAfter if the block config has it
                 const delayAfter = (block.config as any)?.delayAfter;
@@ -788,6 +828,42 @@ export class BlueprintExecutorStore {
                     this.log('error', `  💥 All ${retries + 1} attempts failed. Stopping execution.`);
                     throw err; // Propagate to stop execution
                 }
+            }
+        }
+    }
+
+    /**
+     * Execute block based on its type - extracted from executeBlock for timeout wrapping
+     */
+    private async executeBlockWithType(block: Block, scope?: Scope): Promise<void> {
+        switch (block.type) {
+            case 'navigate': await this.executeNavigate(block); break;
+            case 'click': await this.executeClick(block, scope); break;
+            case 'input': await this.executeInput(block, scope); break;
+            case 'wait': await this.executeWait(block, scope); break;
+            case 'scroll': await this.executeScroll(block, scope); break;
+            case 'go_back': await this.executeGoBack(block); break;
+            case 'condition': await this.executeCondition(block, scope); break;
+            case 'assert': await this.executeAssert(block, scope); break;
+            case 'set_variable': await this.executeSetVariable(block, scope); break;
+            case 'get_variable': await this.executeGetVariable(block, scope); break;
+            case 'hover': await this.executeHover(block, scope); break;
+            case 'switch_frame': await this.executeSwitchFrame(block, scope); break;
+            case 'macro': await this.executeMacro(block, scope); break;
+            case 'loop_elements': await this.executeLoopElements(block, scope); break;
+            case 'loop_pagination': await this.executeLoopPagination(block, scope); break;
+            case 'extract_scope': await this.executeExtractScope(block, scope); break;
+            default:
+                this.log('warn', `Unknown block type: ${block.type}`);
+        }
+
+        // Generic child processing for NON-container blocks
+        // Container blocks (loop, condition, extract) already handle children internally
+        if (!CONTAINER_BLOCKS.includes(block.type) && block.children?.length) {
+            this.log('info', `  👶 Processing ${block.children.length} children...`);
+            for (const child of block.children) {
+                if (this._abortController?.signal.aborted) break;
+                await this.executeBlock(child, scope);
             }
         }
     }
@@ -1351,6 +1427,264 @@ export class BlueprintExecutorStore {
         }
     }
 
+    private async executeAssert(block: Block, scope?: Scope) {
+        const config = block.config as any;
+        const sel = config.selector;
+        if (!sel?.value && !scope) throw new Error('Assert block: selector or scope is required');
+
+        this.log('info', `  ✓ Assert: ${config.check}`);
+        this.log('info', `  🎯 Selector: ${sel?.value || 'scope element'}`);
+        this.log('info', `  📌 Selector type: ${sel?.type || 'css'}`);
+
+        const timeout = config.timeout || 5000;
+        const startMs = Date.now();
+        let assertPassed = false;
+        let lastError: string | null = null;
+
+        while (Date.now() - startMs < timeout) {
+            if (this._abortController?.signal.aborted) return;
+
+            try {
+                switch (config.check) {
+                    case 'exists': {
+                        const countResp = await this.send({
+                            type: 'ENV_COUNT',
+                            data: { selector: sel?.value || '', selectorType: sel?.type || 'css', scope: scope || undefined }
+                        });
+                        if (countResp.success && (countResp.data as number) > 0) {
+                            assertPassed = true;
+                        }
+                        break;
+                    }
+                    case 'not_exists': {
+                        const countResp = await this.send({
+                            type: 'ENV_COUNT',
+                            data: { selector: sel?.value || '', selectorType: sel?.type || 'css', scope: scope || undefined }
+                        });
+                        if (countResp.success && (countResp.data as number) === 0) {
+                            assertPassed = true;
+                        }
+                        break;
+                    }
+                    case 'visible':
+                    case 'hidden': {
+                        const visResp = await this.send({
+                            type: 'ENV_IS_VISIBLE',
+                            data: { selector: sel?.value || '', selectorType: sel?.type || 'css', scope: scope || undefined }
+                        });
+                        if (visResp.success) {
+                            const isVisible = visResp.data as boolean;
+                            assertPassed = config.check === 'visible' ? isVisible : !isVisible;
+                        }
+                        break;
+                    }
+                    case 'text_equals':
+                    case 'text_contains': {
+                        const textResp = await this.send({
+                            type: 'ENV_GET_TEXT',
+                            data: { selector: sel?.value || '', selectorType: sel?.type || 'css', scope: scope || undefined }
+                        });
+                        if (textResp.success) {
+                            const text = textResp.data as string;
+                            const expected = config.value || '';
+                            assertPassed = config.check === 'text_equals'
+                                ? text === expected
+                                : text.includes(expected);
+                        }
+                        break;
+                    }
+                    case 'text_regex': {
+                        const textResp = await this.send({
+                            type: 'ENV_GET_TEXT',
+                            data: { selector: sel?.value || '', selectorType: sel?.type || 'css', scope: scope || undefined }
+                        });
+                        if (textResp.success) {
+                            const text = textResp.data as string;
+                            try {
+                                const regex = new RegExp(config.value || '', 'i');
+                                assertPassed = regex.test(text);
+                            } catch (e) {
+                                lastError = `Invalid regex: ${config.value}`;
+                            }
+                        }
+                        break;
+                    }
+                }
+
+                if (assertPassed) {
+                    this.log('success', `  ✓ Assert passed: ${config.check}`);
+                    return;
+                }
+            } catch (err: any) {
+                lastError = err.message;
+            }
+
+            await this.delay(250);
+        }
+
+        // Assertion failed
+        const failMessage = config.failMessage || `Assertion failed: ${config.check} on ${sel?.value || 'scope element'}`;
+        this.log('error', `  ❌ ${failMessage}`);
+        if (lastError) {
+            this.log('error', `     Last error: ${lastError}`);
+        }
+        throw new Error(failMessage);
+    }
+
+    private async executeSetVariable(block: Block, _scope?: Scope) {
+        const config = block.config as any;
+        const { name, value, scope = 'local' } = config;
+
+        if (!name) throw new Error('Set Variable: name is required');
+
+        // Simple variable substitution: replace {{varName}} with variable values
+        let resolvedValue = value || '';
+        const varPattern = /\{\{(\w+)\}\}/g;
+        resolvedValue = resolvedValue.replace(varPattern, (_match: string, varName: string) => {
+            return this._variables.get(varName) || '';
+        });
+
+        const varKey = scope === 'global' ? `global:${name}` : name;
+        this._variables.set(varKey, resolvedValue);
+
+        this.log('info', `  📝 Set variable: ${varKey} = "${resolvedValue}"`);
+    }
+
+    private async executeGetVariable(block: Block, _scope?: Scope) {
+        const config = block.config as any;
+        const { name, defaultValue = '', scope = 'local' } = config;
+
+        if (!name) throw new Error('Get Variable: name is required');
+
+        const varKey = scope === 'global' ? `global:${name}` : name;
+        const value = this._variables.get(varKey) || defaultValue;
+
+        this.log('info', `  📖 Get variable: ${varKey} = "${value}"`);
+
+        // Return the value so it can be used by child blocks if needed
+        return value;
+    }
+
+    private async executeHover(block: Block, scope?: Scope) {
+        const config = block.config as any;
+        const sel = config.selector;
+        if (!sel?.value && !scope) throw new Error('Hover block: selector or scope is required');
+
+        this.log('info', `  🖱 Hovering over: ${sel?.value || 'scope element'}`);
+        this.log('info', `  📌 Selector type: ${sel?.type || 'css'}`);
+        this.log('info', `  🔍 Has scope: ${scope ? 'Yes' : 'No'}`);
+
+        const response = await this.send({
+            type: 'ENV_HOVER',
+            data: {
+                selector: sel?.value || '',
+                selectorType: sel?.type || 'css',
+                scope: scope || undefined,
+            }
+        });
+
+        if (!response.success) throw new Error(response.error || 'Hover failed');
+        this.log('success', `✓ Hovered: ${sel?.value || 'scope element'}`);
+
+        // Wait for hover delay if specified (for hover menus to appear)
+        const hoverDelay = config.hoverDelay || 0;
+        if (hoverDelay > 0) {
+            this.log('info', `  ⏱ Waiting ${hoverDelay}ms for hover effect...`);
+            await this.delay(hoverDelay);
+        }
+    }
+
+    private async executeSwitchFrame(block: Block, _scope?: Scope) {
+        const config = block.config as any;
+        const { target, timeout = 5000 } = config;
+
+        this.log('info', `  🖼 Switching to frame: ${target}`);
+
+        const response = await this.send({
+            type: 'ENV_SWITCH_FRAME',
+            data: { target, timeout }
+        });
+
+        if (!response.success) throw new Error(response.error || 'Switch frame failed');
+        this.log('success', `✓ Switched to frame: ${target}`);
+    }
+
+    private async executeMacro(block: Block, scope?: Scope) {
+        const config = block.config as any;
+        const { macroId, parameters = {} } = config;
+
+        if (!macroId) throw new Error('Macro block: macroId is required');
+
+        // Look up the macro definition
+        const macroDef = macroRegistryStore.getMacro(macroId);
+        if (!macroDef) throw new Error(`Macro not found: ${macroId}`);
+
+        this.log('info', `  🔧 Expanding macro: ${macroDef.name}`);
+        this.log('info', `  📊 Macro blocks: ${macroDef.blocks?.length || 0}`);
+        this.log('info', `  📝 Parameters: ${JSON.stringify(parameters)}`);
+
+        // Validate required parameters
+        for (const param of (macroDef.parameters || [])) {
+            if (param.required && !parameters[param.name] && !param.defaultValue) {
+                throw new Error(`Macro '${macroDef.name}': required parameter '${param.name}' not provided`);
+            }
+        }
+
+        // Create blocks from macro definition with parameter substitution
+        const macroBlocks = macroDef.blocks.map((blockJson: any) => {
+            // Deep clone and substitute parameters
+            const substituted = this.substituteParametersInBlock(blockJson, parameters, macroDef.parameters || []);
+            return createBlockFromJSON(substituted);
+        });
+
+        // Execute the macro blocks
+        for (const macroBlock of macroBlocks) {
+            if (this._abortController?.signal.aborted) break;
+            await this.executeBlock(macroBlock, scope);
+        }
+
+        this.log('success', `✓ Macro completed: ${macroDef.name}`);
+    }
+
+    /**
+     * Recursively substitute parameters in a block and its children
+     */
+    private substituteParametersInBlock(blockJson: any, parameters: Record<string, string>, paramDefs: any[]): any {
+        // Create a deep clone
+        const result = JSON.parse(JSON.stringify(blockJson));
+
+        // Substitute in string values throughout the object
+        const substitute = (value: any): any => {
+            if (typeof value === 'string') {
+                let substituted = value;
+                // Replace {{paramName}} with parameter value or default
+                for (const paramDef of paramDefs) {
+                    const paramValue = parameters[paramDef.name] || paramDef.defaultValue || '';
+                    substituted = substituted.replace(new RegExp(`\\{\\{${paramDef.name}\\}\\}`, 'g'), paramValue);
+                }
+                return substituted;
+            }
+            if (Array.isArray(value)) {
+                return value.map(substitute);
+            }
+            if (value && typeof value === 'object') {
+                const newObj: any = {};
+                for (const [k, v] of Object.entries(value)) {
+                    newObj[k] = substitute(v);
+                }
+                return newObj;
+            }
+            return value;
+        };
+
+        // Process the entire block structure
+        for (const key of Object.keys(result)) {
+            result[key] = substitute(result[key]);
+        }
+
+        return result;
+    }
+
     private async executeLoopElements(block: Block, scope?: Scope) {
         const config = block.config as any;
         const sel = config.selector;
@@ -1365,6 +1699,9 @@ export class BlueprintExecutorStore {
         const currentTab = await browser.tabs.get(this._targetTabId!);
         const loopStartUrl = currentTab.url || null;
         this.log('info', `  📍 Loop start URL: ${loopStartUrl}`);
+
+        // Save previous return URL to restore after loop completes
+        const previousReturnUrl = this._returnUrl;
 
         // Count elements inside the current scope
         const countResp = await this.send({
@@ -1395,6 +1732,11 @@ export class BlueprintExecutorStore {
 
         try {
             for (let i = startIndex; i < maxIter; i++) {
+                // Periodic license check every 10 iterations
+                if (i % 10 === 0 && i > 0) {
+                    await this.checkLicenseRuntime();
+                }
+
                 // Set return URL for this iteration
                 this._returnUrl = loopStartUrl;
                 if (this._abortController?.signal.aborted) break;
@@ -1508,12 +1850,19 @@ export class BlueprintExecutorStore {
                     processedItems.add(i);
                 }
 
-                // Clear return URL after iteration completes
-                this._returnUrl = null;
+                // Apply delay between iterations (not after last iteration)
+                const delayMs = config.delayBetweenIterations || 0;
+                if (i < maxIter - 1 && delayMs > 0) {
+                    const jitter = config.randomJitter ? Math.floor(Math.random() * config.randomJitter) : 0;
+                    const totalDelay = delayMs + jitter;
+                    this.log('info', `    ⏱ Waiting ${totalDelay}ms before next iteration...`);
+                    await this.delay(totalDelay);
+                }
             }
         } finally {
-            // Ensure return URL is always cleared, even on unexpected errors or aborts
-            this._returnUrl = null;
+            // Restore previous return URL, or clear if there was none
+            this._returnUrl = previousReturnUrl;
+            this.log('info', `  ↩️ Restored return URL: ${previousReturnUrl || 'null'}`);
         }
 
         this.log('success', `✓ Loop completed: ${maxIter} iterations`);
@@ -1571,6 +1920,11 @@ export class BlueprintExecutorStore {
             this._loopState[block.id] = page;
 
             this.log('info', `  ━━━ Page ${page + 1} ━━━`);
+
+            // Periodic license check every 10 pages
+            if (page % 10 === 0 && page > startPage) {
+                await this.checkLicenseRuntime();
+            }
 
             // Reset child loop states for new pages so loop_elements starts fresh
             if (page > startPage) {
@@ -1749,6 +2103,11 @@ export class BlueprintExecutorStore {
 
             this.log('info', `  ━━━ Iteration ${page + 1} ━━━`);
 
+            // Periodic license check every 10 iterations
+            if (page % 10 === 0 && page > 0) {
+                await this.checkLicenseRuntime();
+            }
+
             // Reset child loop states for new iterations so loop_elements starts fresh
             if (page > 0) {
                 this.clearChildLoopStates(block);
@@ -1830,6 +2189,11 @@ export class BlueprintExecutorStore {
             await this.checkPause();
 
             this.log('info', `  ━━━ Iteration ${iteration + 1} ━━━`);
+
+            // Periodic license check every 10 iterations
+            if (iteration % 10 === 0 && iteration > 0) {
+                await this.checkLicenseRuntime();
+            }
 
             // Reset child loop states for new iterations so loop_elements starts fresh
             if (iteration > 0) {
@@ -1917,6 +2281,11 @@ export class BlueprintExecutorStore {
             await this.checkPause();
 
             this.log('info', `  ━━━ Iteration ${iteration + 1} ━━━`);
+
+            // Periodic license check every 10 iterations
+            if (iteration % 10 === 0 && iteration > 0) {
+                await this.checkLicenseRuntime();
+            }
 
             // Count items BEFORE executing children
             const beforeCountResp = await this.send({
@@ -2039,7 +2408,7 @@ export class BlueprintExecutorStore {
 
     private async executeExtractScope(block: Block, scope?: Scope) {
         const config = block.config as any;
-        const fields = config.fields || [];
+        const fields: ExtractionField[] = config.fields || [];
 
         this.log('info', `  📦 Extract Scope`);
         this.log('info', `  📊 Fields to extract: ${fields.length}`);
@@ -2284,22 +2653,13 @@ export class BlueprintExecutorStore {
         this._deduplicationHashes.add(hashKey);
 
         // Update extracted data
-        runInAction(() => {
-            this.extractedData.push(record);
-
-            // Add columns in the order defined by block.config.fields (respects user reordering)
-            for (const f of fields) {
-                if (f.key && !this.extractedColumns.includes(f.key)) {
-                    this.extractedColumns.push(f.key);
-                }
+        this.addExtractedRow(record, fields.map(f => f.key).filter(Boolean) as string[]);
+        // Also add any extra keys from record not in fields (safety fallback)
+        for (const key of Object.keys(record)) {
+            if (!this.extractedColumns.includes(key)) {
+                this.extractedColumns.push(key);
             }
-            // Also add any extra keys from record not in fields (safety fallback)
-            for (const key of Object.keys(record)) {
-                if (!this.extractedColumns.includes(key)) {
-                    this.extractedColumns.push(key);
-                }
-            }
-        });
+        }
 
         this.log('success', `  ✓ Extracted row #${this.extractedData.length}`);
         this.log('info', `  📊 Total rows collected: ${this.extractedData.length}`);
@@ -2532,23 +2892,35 @@ export class BlueprintExecutorStore {
 
     private log(type: ExecutionLog['type'], message: string, blockId?: string, blockLabel?: string) {
         if (!this.enableLogs) return;
-        runInAction(() => {
-            this.logs.push({
-                timestamp: Date.now(),
-                message,
-                type,
-                blockId,
-                blockLabel,
-            });
-            // Cap log size to prevent unbounded memory growth during long runs
-            if (this.logs.length > BlueprintExecutorStore.MAX_LOG_ENTRIES) {
-                this.logs.splice(0, this.logs.length - BlueprintExecutorStore.MAX_LOG_ENTRIES);
-            }
+        this.addLogEntry({
+            timestamp: Date.now(),
+            message,
+            type,
+            blockId,
+            blockLabel,
         });
+        // Cap log size to prevent unbounded memory growth during long runs
+        if (this.logs.length > BlueprintExecutorStore.MAX_LOG_ENTRIES) {
+            this.logs.splice(0, this.logs.length - BlueprintExecutorStore.MAX_LOG_ENTRIES);
+        }
     }
 
     private async delay(ms: number): Promise<void> {
         return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    /**
+     * Runtime license check for long-running executions.
+     * Called periodically during loops to detect license revocation.
+     * Throws error if license is no longer valid.
+     */
+    private async checkLicenseRuntime(): Promise<void> {
+        if (isDevMode()) return; // Skip in dev mode
+
+        const state = await getLicenseState();
+        if (!state.isActivated) {
+            throw new Error(`License ${state.status}: Execution halted. Please re-activate your license.`);
+        }
     }
 
     private async checkPause(): Promise<void> {
@@ -2591,6 +2963,8 @@ export class BlueprintExecutorStore {
         this._autoIncrementCounters = {};
         this._deduplicationHashes = new Set();
         this._progressCounted = new Set();
+        this._returnUrl = null;
+        this._variables.clear();
     }
 
     private downloadBlob(content: string, filename: string, mimeType: string) {

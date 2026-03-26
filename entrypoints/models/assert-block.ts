@@ -1,27 +1,36 @@
-import { BlockBase } from "./block-base";
 import { toJS } from "mobx";
-import { v4 as uuidv4 } from 'uuid';
-import { Selector } from "./selector";
+import { BlockBase } from "./block-base";
 import { OnErrorStrategy } from "./enums";
+import { Selector } from "./selector";
 
-export interface LoopElementsBlockConfig {
+export type AssertCheckType =
+    | 'exists'
+    | 'not_exists'
+    | 'visible'
+    | 'hidden'
+    | 'text_equals'
+    | 'text_contains'
+    | 'text_regex';
+
+export interface AssertBlockConfig {
     selector: Selector;
-    maxIterations?: number;
-    indexVariable?: string;
-    /** Delay between iterations in milliseconds (default: 0) */
-    delayBetweenIterations?: number;
-    /** Random jitter added to delay in milliseconds (default: 0) */
-    randomJitter?: number;
+    check: AssertCheckType;
+    /** Expected value for text_equals, text_contains, text_regex */
+    value?: string;
+    /** Timeout in milliseconds to wait for condition (default: 5000) */
+    timeout?: number;
+    /** Custom error message to show on assertion failure */
+    failMessage?: string;
 }
 
-export class LoopElementsBlock extends BlockBase {
+export class AssertBlock extends BlockBase {
     id: string;
-    type: string = 'loop_elements';
-    config: LoopElementsBlockConfig;
+    type: string = 'assert';
+    config: AssertBlockConfig;
 
-    constructor(name: string, config: LoopElementsBlockConfig) {
+    constructor(name: string, config: AssertBlockConfig) {
         super();
-        this.id = uuidv4();
+        this.id = crypto.randomUUID();
         this.label = name;
         this.enabled = true;
         this.description = '';
@@ -37,28 +46,28 @@ export class LoopElementsBlock extends BlockBase {
         this.config.selector = selector;
     }
 
-    setMaxIterations(max?: number) {
-        this.config.maxIterations = max;
+    setCheck(check: AssertCheckType) {
+        this.config.check = check;
     }
 
-    setIndexVariable(variable?: string) {
-        this.config.indexVariable = variable;
+    setValue(value: string) {
+        this.config.value = value;
     }
 
-    setDelayBetweenIterations(delay: number) {
-        this.config.delayBetweenIterations = delay;
+    setTimeout(timeout: number) {
+        this.config.timeout = timeout;
     }
 
-    setRandomJitter(jitter: number) {
-        this.config.randomJitter = jitter;
+    setFailMessage(message: string) {
+        this.config.failMessage = message;
     }
 
     toJSON() {
         return toJS(this);
     }
 
-    static fromJson(json: any): LoopElementsBlock {
-        const block = new LoopElementsBlock(json.label || 'Loop Elements', json.config || { selector: { type: 'css', value: '' } });
+    static fromJson(json: any): AssertBlock {
+        const block = new AssertBlock(json.label || 'Assert', json.config || { selector: { type: 'css', value: '' }, check: 'exists' });
         if (json.id) block.id = json.id;
         if (json.enabled !== undefined) block.setEnabled(json.enabled);
         if (json.description !== undefined) block.setDescription(json.description);

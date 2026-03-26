@@ -1,12 +1,10 @@
 import { toJS } from "mobx";
-import { BaseBlock } from "./base-block";
+import { BlockBase } from "./block-base";
 import { Selector } from "./selector";
 import { v4 as uuidv4 } from 'uuid';
-import { makeAutoObservable } from "mobx";
 import { AttributeType } from "./enums";
 import { TransformerConfig } from "./transformer";
 import { OnErrorStrategy } from "./enums";
-import { Block } from "./types";
 
 export type StaticFieldType = 'constant' | 'uuid' | 'random_number' | 'date' | 'auto_increment';
 
@@ -45,7 +43,7 @@ export interface ExtractScopeBlockConfig {
     resetScope?: boolean;
 }
 
-export class ExtractScopeBlock implements BaseBlock {
+export class ExtractScopeBlock extends BlockBase {
     id: string;
     type: string = 'extract_scope';
     label: string;
@@ -55,11 +53,9 @@ export class ExtractScopeBlock implements BaseBlock {
     maxRetries: number;
     retryDelay: number;
     config: ExtractScopeBlockConfig;
-    parent?: Block | null;
-    children?: Block[];
-    index?: number;
 
     constructor(name: string, config: ExtractScopeBlockConfig) {
+        super();
         this.id = uuidv4();
         this.label = name;
         this.enabled = true;
@@ -68,11 +64,104 @@ export class ExtractScopeBlock implements BaseBlock {
         this.maxRetries = 0;
         this.retryDelay = 0;
         this.config = config;
-        makeAutoObservable(this);
+    }
+
+    // ─── Config-specific actions ───────────────────────────────────────────
+
+    setFields(fields: ExtractionField[]) {
+        this.config.fields = fields;
+    }
+
+    moveField(oldIndex: number, newIndex: number) {
+        const [item] = this.config.fields.splice(oldIndex, 1);
+        this.config.fields.splice(newIndex, 0, item);
+    }
+
+    addField(field: ExtractionField) {
+        if (!this.config.fields) {
+            this.config.fields = [];
+        }
+        this.config.fields.push(field);
+    }
+
+    removeField(fieldId: string) {
+        if (!this.config.fields) return;
+        this.config.fields = this.config.fields.filter(f => f.id !== fieldId);
+    }
+
+    removeFieldByIndex(index: number) {
+        if (!this.config.fields) return;
+        this.config.fields.splice(index, 1);
+    }
+
+    updateField(fieldId: string, updates: Partial<ExtractionField>) {
+        if (!this.config.fields) return;
+        const index = this.config.fields.findIndex(f => f.id === fieldId);
+        if (index !== -1) {
+            this.config.fields[index] = { ...this.config.fields[index], ...updates };
+        }
+    }
+
+    updateFieldByIndex(index: number, key: keyof ExtractionField, value: any) {
+        if (!this.config.fields || index < 0 || index >= this.config.fields.length) return;
+        (this.config.fields[index] as any)[key] = value;
+    }
+
+    ensureFieldIds() {
+        if (!this.config.fields) return;
+        for (const field of this.config.fields) {
+            if (!field.id) {
+                field.id = uuidv4();
+            }
+        }
+    }
+
+    addTransformer(fieldIndex: number, transformer: TransformerConfig) {
+        if (!this.config.fields || fieldIndex < 0 || fieldIndex >= this.config.fields.length) return;
+        const field = this.config.fields[fieldIndex];
+        if (!field.transformers) {
+            field.transformers = [];
+        }
+        field.transformers.push(transformer);
+    }
+
+    removeTransformer(fieldIndex: number, transformerIndex: number) {
+        if (!this.config.fields || fieldIndex < 0 || fieldIndex >= this.config.fields.length) return;
+        const field = this.config.fields[fieldIndex];
+        if (field.transformers && transformerIndex >= 0 && transformerIndex < field.transformers.length) {
+            field.transformers.splice(transformerIndex, 1);
+        }
+    }
+
+    updateTransformer(fieldIndex: number, transformerIndex: number, updates: Partial<TransformerConfig>) {
+        if (!this.config.fields || fieldIndex < 0 || fieldIndex >= this.config.fields.length) return;
+        const field = this.config.fields[fieldIndex];
+        if (!field.transformers || transformerIndex < 0 || transformerIndex >= field.transformers.length) return;
+        field.transformers[transformerIndex] = { ...field.transformers[transformerIndex], ...updates };
+    }
+
+    setScopeSelector(selector: Selector) {
+        this.config.scopeSelector = selector;
+    }
+
+    setResetScope(reset: boolean) {
+        this.config.resetScope = reset;
     }
 
     toJSON() {
         return toJS(this);
     }
 
+    static fromJson(json: any): ExtractScopeBlock {
+        const block = new ExtractScopeBlock(json.label || 'Extract Scope', json.config || { fields: [] });
+        if (json.id) block.id = json.id;
+        if (json.enabled !== undefined) block.setEnabled(json.enabled);
+        if (json.description !== undefined) block.setDescription(json.description);
+        if (json.onError !== undefined) block.setOnError(json.onError);
+        if (json.maxRetries !== undefined) block.setMaxRetries(json.maxRetries);
+        if (json.retryDelay !== undefined) block.setRetryDelay(json.retryDelay);
+        if (json.maxExecutionTime !== undefined) block.setMaxExecutionTime(json.maxExecutionTime);
+        if (json.index !== undefined) block.setIndex(json.index);
+        return block;
+    }
 }

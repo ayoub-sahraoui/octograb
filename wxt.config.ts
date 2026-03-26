@@ -17,6 +17,7 @@ export default defineConfig({
   modules: ['@wxt-dev/module-react'],
   vite: () => ({
     plugins: [tailwindcss()],
+    envPrefix: 'VITE_',
     build: {
       sourcemap: false, // Disable source maps in production
       minify: 'terser',

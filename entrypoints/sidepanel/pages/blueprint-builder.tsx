@@ -5,7 +5,7 @@ import { useBlueprintExecutorStore } from '@/entrypoints/stores/blueprint-execut
 import { FREE_TIER_LIMITS } from '@/entrypoints/stores/license-store';
 import { toast } from 'sonner';
 import { observer } from 'mobx-react-lite';
-import { runInAction, reaction, toJS } from 'mobx';
+import { reaction, toJS } from 'mobx';
 import { Button } from '@/components/ui/button';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
@@ -402,11 +402,10 @@ export default observer(function BlueprintBuilder() {
             const oldIndex = blueprint.blocks.findIndex(b => b.id === active.id);
             const newIndex = blueprint.blocks.findIndex(b => b.id === over.id);
 
-            runInAction(() => {
-                const newBlocks = arrayMove(blueprint.blocks, oldIndex, newIndex);
-                blueprint.blocks = newBlocks;
-                blueprint.updateIndices();
-            });
+            const block = blueprint.blocks[oldIndex];
+            if (block) {
+                blueprint.reorderBlock(block, newIndex);
+            }
         }
     };
 
@@ -640,7 +639,7 @@ export default observer(function BlueprintBuilder() {
                                 onBlur={async () => {
                                     if (editNameValue.trim() && blueprintBuilderStore.selectedBlueprint) {
                                         const bp = blueprintBuilderStore.selectedBlueprint;
-                                        runInAction(() => { bp.name = editNameValue.trim(); });
+                                        bp.setName(editNameValue.trim());
                                         await blueprintBuilderStore.saveBlueprint(bp);
                                     }
                                     setIsEditingName(false);

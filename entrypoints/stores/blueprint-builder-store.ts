@@ -1,4 +1,4 @@
-import { makeObservable, observable, computed, action, runInAction, toJS } from "mobx";
+import { makeAutoObservable, toJS } from "mobx";
 import { Blueprint } from "../models/blueprint";
 import { Block } from "../models/types";
 import { sendToContentScript, onMessageFromContentScript } from "@/core/messaging";
@@ -52,69 +52,65 @@ export class BlueprintBuilderStore {
     undoVersion = 0;
 
     constructor() {
-        makeObservable(this, {
-            blueprints: observable,
-            selectedBlueprint: observable,
-            selectedBlock: observable,
-            parentBlockForChild: observable,
-            validationResult: observable,
-            isPicking: observable,
-            pendingCss: observable,
-            pendingXpath: observable,
-            autoSavePending: observable,
-            undoVersion: observable,
-
-            // Computed
-            canUndo: computed,
-            canRedo: computed,
-            isFreeTier: computed,
-            canCreateBlueprint: computed,
-            hasValidationErrors: computed,
-            hasValidationWarnings: computed,
-
-            // Actions
-            loadBlueprints: action,
-            selectBlueprint: action,
-            selectBlock: action,
-            createBlueprint: action,
-            addBlueprint: action,
-            addBlockToBlueprint: action,
-            setParentBlockForChild: action,
-            addChildBlockToParent: action,
-            removeBlockFromBlueprint: action,
-            clearBlockSelection: action,
-            validateCurrentBlueprint: action,
-            startPicking: action,
-            stopPicking: action,
-            pushSnapshot: action,
-            undo: action,
-            redo: action,
-            clearUndoHistory: action,
-            triggerAutoSave: action,
-        });
+        makeAutoObservable(this);
         this.initMessageListener();
         this.loadBlueprints();
     }
 
+    // ─── Action Methods ────────────────────────────────────────────────────
+
+    setBlueprints(blueprints: Blueprint[]) {
+        this.blueprints = blueprints;
+    }
+
+    setAutoSavePending(pending: boolean) {
+        this.autoSavePending = pending;
+    }
+
+    removeBlueprintFromList(blueprintId: string) {
+        this.blueprints = this.blueprints.filter(b => b.id !== blueprintId);
+    }
+
+    addBlueprintToList(blueprint: Blueprint) {
+        this.blueprints.push(blueprint);
+    }
+
+    clearPickingState() {
+        this.isPicking = false;
+        this.pickingCallback = null;
+        this.pickingDoneCallback = null;
+        this.pendingCss = '';
+        this.pendingXpath = '';
+    }
+
+    setPendingCss(css: string) {
+        this.pendingCss = css;
+    }
+
+    setPendingXpath(xpath: string) {
+        this.pendingXpath = xpath;
+    }
+
+    setPendingSelectors(css: string, xpath: string) {
+        this.pendingCss = css;
+        this.pendingXpath = xpath;
+    }
+
+    // ─── Async Methods ─────────────────────────────────────────────────────
+
     async loadBlueprints() {
         try {
             const savedPlans = await db.getAllPlans();
-            runInAction(() => {
-                this.blueprints = savedPlans.map(savedPlan => {
-                    const plan = savedPlan.plan;
-                    // Reconstruct Blueprint from Plan
-                    const blueprint = new Blueprint(plan.meta.name, ''); // Description not in PlanMeta?
-                    blueprint.id = savedPlan.id;
-                    // We need to map Plan.pipeline (Block[]) to Blueprint.blocks
-                    // But wait, Plan.pipeline is Block[] which IS compatible with Blueprint.blocks?
-                    // Let's check types. Block in types.ts vs Block in models.
-                    // They should be the same.
-                    if (plan.pipeline) {
-                        blueprint.blocks = plan.pipeline.map((b: any) => createBlockFromJSON(b));
-                    }
-                    return blueprint;
-                });
+            const blueprints = savedPlans.map(savedPlan => {
+                const plan = savedPlan.plan;
+                const blueprint = new Blueprint(plan.meta.name, '');
+                blueprint.id = savedPlan.id;
+                if (plan.pipeline) {
+                    blueprint.blocks = plan.pipeline.map((b: any) => createBlockFromJSON(b));
+                }
+                return blueprint;
             });
+            this.setBlueprints(blueprints);
         } catch (error) {
             console.error('[OctoGrab] Failed to load blueprints:', error);
         }
@@ -192,10 +188,10 @@ export class BlueprintBuilderStore {
         if (!this.selectedBlueprint) return;
         const bp = this.selectedBlueprint;
         if (this._autoSaveTimer) clearTimeout(this._autoSaveTimer);
-        runInAction(() => { this.autoSavePending = true; });
+        this.setAutoSavePending(true);
         this._autoSaveTimer = setTimeout(() => {
             this.saveBlueprint(bp).then(() => {
-                runInAction(() => { this.autoSavePending = false; });
+                this.setAutoSavePending(false);
             });
         }, 1500);
     }
@@ -237,12 +233,10 @@ export class BlueprintBuilderStore {
     async deleteBlueprint(blueprint: Blueprint) {
         try {
             await db.deletePlan(blueprint.id);
-            runInAction(() => {
-                this.blueprints = this.blueprints.filter(b => b.id !== blueprint.id);
-                if (this.selectedBlueprint?.id === blueprint.id) {
-                    this.selectedBlueprint = null;
-                }
-            });
+            this.removeBlueprintFromList(blueprint.id);
+            if (this.selectedBlueprint?.id === blueprint.id) {
+                this.selectedBlueprint = null;
+            }
         } catch (error) {
             console.error('[OctoGrab] Failed to delete blueprint:', error);
         }
@@ -258,15 +252,7 @@ export class BlueprintBuilderStore {
             if (message.type === 'PICKING_DONE') {
                 const doneCallback = this.pickingDoneCallback;
                 const success = message.data?.success ?? false;
-                runInAction(() => {
-                    this.isPicking = false;
-                    this.pickingCallback = null;
-                    this.pickingDoneCallback = null;
-                    if (!success) {
-                        this.pendingCss = '';
-                        this.pendingXpath = '';
-                    }
-                });
+                this.clearPickingState();
                 if (doneCallback) doneCallback(success);
             }
         });
@@ -294,13 +280,7 @@ export class BlueprintBuilderStore {
         });
 
         if (!response.success) {
-            runInAction(() => {
-                this.isPicking = false;
-                this.pickingCallback = null;
-                this.pickingDoneCallback = null;
-                this.pendingCss = '';
-                this.pendingXpath = '';
-            });
+            this.clearPickingState();
             console.error('[OctoGrab] Failed to start picking:', response.error);
             return false;
         }
@@ -309,13 +289,7 @@ export class BlueprintBuilderStore {
 
     async stopPicking() {
         await sendToContentScript({ type: 'STOP_PICKING' });
-        runInAction(() => {
-            this.isPicking = false;
-            this.pickingCallback = null;
-            this.pickingDoneCallback = null;
-            this.pendingCss = '';
-            this.pendingXpath = '';
-        });
+        this.clearPickingState();
     }
 
     get isFreeTier(): boolean {
@@ -470,9 +444,7 @@ export class BlueprintBuilderStore {
             if (json.blocks && json.blocks.length > 0) {
                 copy.blocks = json.blocks.map((b: any) => createBlockFromJSON(b));
             }
-            runInAction(() => {
-                this.blueprints.push(copy);
-            });
+            this.addBlueprintToList(copy);
             await this.saveBlueprint(copy);
             return true;
         } catch (error) {
@@ -505,10 +477,8 @@ export class BlueprintBuilderStore {
             }
 
             // Save and select (allow import even with warnings; block only on critical structural errors)
-            runInAction(() => {
-                this.blueprints.push(blueprint);
-                this.selectedBlueprint = blueprint;
-            });
+            this.addBlueprintToList(blueprint);
+            this.selectedBlueprint = blueprint;
 
             await this.saveBlueprint(blueprint);
             return {

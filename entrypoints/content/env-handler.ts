@@ -3,6 +3,34 @@ import { resolveScope, getElement, getElements } from '@/core/dom-query';
 import { ExtractionField } from '@/core/types';
 import { createDomSnapshot, queryElementPreview, testExtraction } from '@/core/ai/dom-snapshot';
 
+// ─── Utility: Scope Marker Cleanup ─────────────────────────────────────────
+
+const scopeMarkers = new Set<string>();
+
+function cleanupAllScopeMarkers(): void {
+    for (const marker of scopeMarkers) {
+        const el = document.querySelector(`[data-octo-scope="${marker}"]`);
+        if (el) el.removeAttribute('data-octo-scope');
+    }
+    scopeMarkers.clear();
+}
+
+function cleanupScopeMarker(markerId: string): void {
+    const el = document.querySelector(`[data-octo-scope="${markerId}"]`);
+    if (el) el.removeAttribute('data-octo-scope');
+    scopeMarkers.delete(markerId);
+}
+
+// ─── Utility: Abort Checking ─────────────────────────────────────────────
+
+function isAborted(): boolean {
+    return !!(window as any).__octoGrabAborted__;
+}
+
+function throwIfAborted(): void {
+    if (isAborted()) throw new Error('Operation aborted');
+}
+
 /**
  * Normalize text to fix common encoding issues
  * Fixes double-encoded UTF-8 characters (e.g., smart quotes appearing as ‚Äú)
@@ -117,25 +145,39 @@ function applyTransformers(value: any, transformers: any[]): any {
                     break;
                 case 'regex':
                     if (transform.pattern) {
-                        const pattern = transform.pattern;
-                        const flags = transform.flags || '';
-                        const regex = new RegExp(pattern, flags);
+                        try {
+                            const pattern = transform.pattern;
+                            const flags = transform.flags || '';
+                            const regex = new RegExp(pattern, flags);
 
-                        // If replacement is provided, use replace mode
-                        if (transform.replacement !== undefined) {
-                            value = value.replace(regex, transform.replacement);
-                        } else if (transform.extractGroup !== undefined) {
-                            // Extract specific group
-                            const match = value.match(regex);
-                            if (match && match[transform.extractGroup]) {
-                                value = match[transform.extractGroup];
+                            // If replacement is provided, use replace mode
+                            if (transform.replacement !== undefined) {
+                                value = value.replace(regex, transform.replacement);
+                            } else if (transform.extractGroup !== undefined) {
+                                // Extract specific group
+                                const match = value.match(regex);
+                                if (match && match[transform.extractGroup]) {
+                                    value = match[transform.extractGroup];
+                                } else {
+                                    // Group not found - log warning but preserve original
+                                    console.warn(`[OctoGrab] Regex group ${transform.extractGroup} not found in match for "${transform.pattern}" on: "${value.substring(0, 50)}"`);
+                                    // Keep original value
+                                }
                             } else {
-                                value = '';
+                                // Default: extract first match
+                                const match = value.match(regex);
+                                if (match) {
+                                    value = match[0];
+                                } else {
+                                    // No match - log warning but preserve original
+                                    console.warn(`[OctoGrab] Regex "${transform.pattern}" had no match for: "${value.substring(0, 50)}"`);
+                                    // Keep original value - don't overwrite with ''
+                                }
                             }
-                        } else {
-                            // Default: extract first match
-                            const match = value.match(regex);
-                            value = match ? match[0] : '';
+                        } catch (e) {
+                            // Invalid regex pattern - throw to fail visibly
+                            console.error(`[OctoGrab] Invalid regex pattern "${transform.pattern}":`, e);
+                            throw new Error(`Invalid regex pattern: ${transform.pattern}`);
                         }
                     }
                     break;
@@ -143,7 +185,12 @@ function applyTransformers(value: any, transformers: any[]): any {
                     if (transform.delimiter) {
                         const parts = value.split(transform.delimiter);
                         if (transform.index !== undefined) {
-                            value = parts[transform.index] || '';
+                            if (transform.index >= 0 && transform.index < parts.length) {
+                                value = parts[transform.index];
+                            } else {
+                                console.warn(`[OctoGrab] Split index ${transform.index} out of range (0-${parts.length - 1}) for delimiter "${transform.delimiter}" - preserving original`);
+                                // Keep original value - don't overwrite with ''
+                            }
                         } else {
                             value = parts.join(transform.delimiter);
                         }
@@ -153,7 +200,12 @@ function applyTransformers(value: any, transformers: any[]): any {
                     // Remove non-numeric characters except decimal point and minus
                     const cleaned = value.replace(/[^0-9.-]/g, '');
                     const num = parseFloat(cleaned);
-                    value = isNaN(num) ? '' : String(num);
+                    if (isNaN(num)) {
+                        console.warn(`[OctoGrab] parse_number: no valid number found in "${value.substring(0, 50)}"`);
+                        // Keep original value - don't overwrite with ''
+                    } else {
+                        value = String(num);
+                    }
                     break;
                 case 'currency_convert':
                     // Convert currency using fixed rate
@@ -181,13 +233,18 @@ function applyTransformers(value: any, transformers: any[]): any {
                                 }
                                 if (result === undefined) break;
                             }
-                            value = result !== undefined ? String(result) : '';
+                            if (result !== undefined) {
+                                value = String(result);
+                            } else {
+                                console.warn(`[OctoGrab] JSON path "${transform.path}" not found in: "${value.substring(0, 50)}"`);
+                                // Keep original value - don't overwrite with ''
+                            }
                         } else {
                             value = JSON.stringify(parsed);
                         }
                     } catch (e) {
-                        console.warn('JSON parse failed:', e);
-                        value = '';
+                        console.warn('[OctoGrab] JSON parse failed:', e, '- preserving original value');
+                        // Keep original value - don't overwrite with ''
                     }
                     break;
                 case 'join':
@@ -199,30 +256,58 @@ function applyTransformers(value: any, transformers: any[]): any {
                 case 'parse_date':
                     // Parse and format dates
                     try {
-                        const date = new Date(value);
-                        if (!isNaN(date.getTime())) {
-                            if (transform.outputFormat) {
-                                // Simple format support: YYYY-MM-DD, DD/MM/YYYY, etc.
-                                const year = date.getFullYear();
-                                const month = String(date.getMonth() + 1).padStart(2, '0');
-                                const day = String(date.getDate()).padStart(2, '0');
-                                const hours = String(date.getHours()).padStart(2, '0');
-                                const minutes = String(date.getMinutes()).padStart(2, '0');
-                                const seconds = String(date.getSeconds()).padStart(2, '0');
+                        // Pre-validation: reject empty or whitespace-only input
+                        if (!value || value.trim() === '') {
+                            console.warn('[OctoGrab] Date parse: empty value - preserving original');
+                            break; // Keep original empty value
+                        }
 
-                                value = transform.outputFormat
-                                    .replace('YYYY', String(year))
-                                    .replace('MM', month)
-                                    .replace('DD', day)
-                                    .replace('HH', hours)
-                                    .replace('mm', minutes)
-                                    .replace('ss', seconds);
-                            } else {
-                                value = date.toISOString();
-                            }
+                        // Reject relative time strings
+                        const relativePatterns = [
+                            /\b(yesterday|today|tomorrow|now|ago|from now)\b/i,
+                            /\b\d+\s+(minute|hour|day|week|month|year)s?\s+(ago|from now)\b/i,
+                        ];
+                        if (relativePatterns.some(p => p.test(value))) {
+                            console.warn(`[OctoGrab] Date parse: rejecting relative time "${value}" - preserving original`);
+                            break; // Keep original value
+                        }
+
+                        const date = new Date(value);
+
+                        // Validate it's a real date
+                        if (isNaN(date.getTime())) {
+                            console.warn(`[OctoGrab] Date parse: invalid date "${value}" - preserving original`);
+                            break; // Keep original value
+                        }
+
+                        // Sanity check: year should be reasonable (not 1970 epoch from malformed input)
+                        const year = date.getFullYear();
+                        if (year < 1900 || year > 2100) {
+                            console.warn(`[OctoGrab] Date parse: suspicious year ${year} from "${value}" - proceeding but may be incorrect`);
+                        }
+
+                        if (transform.outputFormat) {
+                            // Simple format support: YYYY-MM-DD, DD/MM/YYYY, etc.
+                            const year = date.getFullYear();
+                            const month = String(date.getMonth() + 1).padStart(2, '0');
+                            const day = String(date.getDate()).padStart(2, '0');
+                            const hours = String(date.getHours()).padStart(2, '0');
+                            const minutes = String(date.getMinutes()).padStart(2, '0');
+                            const seconds = String(date.getSeconds()).padStart(2, '0');
+
+                            value = transform.outputFormat
+                                .replace('YYYY', String(year))
+                                .replace('MM', month)
+                                .replace('DD', day)
+                                .replace('HH', hours)
+                                .replace('mm', minutes)
+                                .replace('ss', seconds);
+                        } else {
+                            value = date.toISOString();
                         }
                     } catch (e) {
-                        console.warn('Date parse failed:', e);
+                        console.warn('[OctoGrab] Date parse failed:', e, '- preserving original value');
+                        // Keep original value on any error
                     }
                     break;
                 case 'custom':
@@ -306,6 +391,7 @@ export function initEnvHandler() {
                     return { success: true };
 
                 case 'ENV_CLICK': {
+                    throwIfAborted();
                     const { selector, selectorType, scope, openInNewTab } = msg.data;
                     const scopeEl = resolveScope(scope);
                     let target = scopeEl;
@@ -323,6 +409,7 @@ export function initEnvHandler() {
                     // Scroll into view and wait for it to settle
                     clickableTarget.scrollIntoView({ behavior: 'smooth', block: 'center' });
                     await new Promise(r => setTimeout(r, 150));
+                    throwIfAborted(); // Check after async operation
 
                     // Click logic
                     if (openInNewTab) {
@@ -350,6 +437,84 @@ export function initEnvHandler() {
                         }
                     }
                     return { success: true };
+                }
+
+                case 'ENV_HOVER': {
+                    throwIfAborted();
+                    const { selector, selectorType, scope } = msg.data;
+                    const scopeEl = resolveScope(scope);
+                    let target = scopeEl;
+
+                    if (selector && selector.trim()) {
+                        const el = getElement(selector, selectorType || 'css', scopeEl);
+                        if (!el) throw new Error(`Element not found: ${selector}`);
+                        target = el;
+                    }
+
+                    // Scroll into view first
+                    (target as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    await new Promise(r => setTimeout(r, 150));
+                    throwIfAborted(); // Check after async delay
+
+                    // Dispatch mouseover/mouseenter events
+                    const mouseOverEvent = new MouseEvent('mouseover', {
+                        bubbles: true,
+                        cancelable: true,
+                        view: window
+                    });
+                    const mouseEnterEvent = new MouseEvent('mouseenter', {
+                        bubbles: true,
+                        cancelable: true,
+                        view: window
+                    });
+
+                    target.dispatchEvent(mouseOverEvent);
+                    target.dispatchEvent(mouseEnterEvent);
+
+                    return { success: true };
+                }
+
+                case 'ENV_SWITCH_FRAME': {
+                    const { target, timeout } = msg.data;
+                    const startMs = Date.now();
+
+                    // Wait for frame to be available
+                    while (Date.now() - startMs < (timeout || 5000)) {
+                        throwIfAborted();
+                        const frames = window.frames;
+                        let targetFrame: Window | null = null;
+
+                        if (target === 'main' || target === 0) {
+                            targetFrame = window; // Main window
+                        } else if (typeof target === 'number') {
+                            targetFrame = frames[target] || null;
+                        } else if (typeof target === 'string') {
+                            // Try to find by name or id
+                            const frameElement = document.querySelector(`iframe[name="${target}"], iframe#${target}`);
+                            if (frameElement) {
+                                targetFrame = (frameElement as HTMLIFrameElement).contentWindow;
+                            }
+                        }
+
+                        if (targetFrame) {
+                            // SECURITY LIMITATION: Chrome extensions cannot switch execution context
+                            // into iframes due to same-origin policy and security restrictions.
+                            // We can only validate the frame exists. The caller must track frame
+                            // context separately and route messages appropriately.
+                            return {
+                                success: true,
+                                message: 'Frame found but switching is limited in Chrome extensions',
+                                data: {
+                                    frameFound: true,
+                                    warning: 'Use frame-specific selectors instead of context switching'
+                                }
+                            };
+                        }
+
+                        await new Promise(r => setTimeout(r, 100));
+                    }
+
+                    return { success: false, error: `Frame '${target}' not found within ${timeout || 5000}ms` };
                 }
 
                 case 'ENV_INPUT': {
@@ -497,11 +662,13 @@ export function initEnvHandler() {
                 }
 
                 case 'ENV_EXTRACT_RECORD': {
+                    throwIfAborted();
                     const { fields, scope } = msg.data;
                     const scopeEl = resolveScope(scope);
                     const result: Record<string, any> = {};
 
                     for (const field of (fields as ExtractionField[])) {
+                        throwIfAborted(); // Check before each field extraction
                         const key = field.key;
                         let value: any = null;
 
@@ -514,6 +681,7 @@ export function initEnvHandler() {
                                 const elements = getElements(fieldSelector, fieldType, scopeEl);
                                 const values: string[] = [];
                                 for (const el of elements) {
+                                    throwIfAborted(); // Check in tight loop
                                     let v = extractValueFromElement(el, field.attribute);
                                     if (v && field.transformers) {
                                         v = applyTransformers(v, field.transformers);
@@ -548,7 +716,13 @@ export function initEnvHandler() {
                 }
 
                 case 'ENV_GET_SCOPE': {
-                    const { selector, selectorType, scope } = msg.data;
+                    const { selector, selectorType, scope, cleanupExisting = true } = msg.data;
+
+                    // Clean up existing markers if requested
+                    if (cleanupExisting) {
+                        cleanupAllScopeMarkers();
+                    }
+
                     const scopeEl = resolveScope(scope);
                     const el = selector && selector.trim()
                         ? getElement(selector, selectorType || 'css', scopeEl)
@@ -556,18 +730,29 @@ export function initEnvHandler() {
                     if (!el) {
                         return { success: false, error: `Scope element not found: ${selector}` };
                     }
-                    // Return a Scope object that the executor can pass back in future messages
-                    // We use a unique attribute to re-locate this element later
+                    // Generate unique scope ID and track it for cleanup
                     const scopeId = `__octo_scope_${Date.now()}_${Math.random().toString(36).slice(2)}`;
                     el.setAttribute('data-octo-scope', scopeId);
+                    scopeMarkers.add(scopeId);
                     return {
                         success: true,
                         data: {
                             selector: `[data-octo-scope="${scopeId}"]`,
                             selectorType: 'css',
                             index: 0,
+                            scopeId, // Return ID for potential targeted cleanup
                         }
                     };
+                }
+
+                case 'ENV_CLEANUP_SCOPES': {
+                    const { scopeId } = msg.data;
+                    if (scopeId) {
+                        cleanupScopeMarker(scopeId);
+                    } else {
+                        cleanupAllScopeMarkers();
+                    }
+                    return { success: true };
                 }
 
                 case 'ENV_IS_VISIBLE': {
@@ -678,14 +863,27 @@ export function initEnvHandler() {
                 }
 
                 case 'ENV_WAIT_NETWORK_IDLE': {
-                    const { timeout } = msg.data;
+                    const { timeout, strict = false } = msg.data;
                     const monitor = (window as any).__octoGrabNetworkMonitor__;
 
                     if (!monitor) {
-                        // Fallback if monitor not initialized (should not happen if content script loaded)
-                        console.warn('[OctoGrab] NetworkMonitor not found, falling back to simple delay');
-                        await new Promise(r => setTimeout(r, 1000));
-                        return { success: true, message: 'Fallback delay' };
+                        const fallbackMs = 1000;
+                        console.warn(`[OctoGrab] NetworkMonitor not found. ${strict ? 'Failing' : 'Falling back'} to ${fallbackMs}ms delay`);
+
+                        if (strict) {
+                            return {
+                                success: false,
+                                error: 'NetworkMonitor not initialized. Cannot verify network idle state.',
+                                data: { code: 'MONITOR_NOT_FOUND' }
+                            };
+                        }
+
+                        await new Promise(r => setTimeout(r, fallbackMs));
+                        return {
+                            success: true,
+                            message: 'Fallback delay used - network state unknown',
+                            data: { fallbackDelayMs: fallbackMs, warning: 'Network state unknown' }
+                        };
                     }
 
                     await monitor.waitForIdle(timeout || 10000);

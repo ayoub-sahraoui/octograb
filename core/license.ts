@@ -14,10 +14,25 @@ const STORAGE_KEYS = {
   GRACE_DEADLINE: 'octograb_grace_deadline',
   VERIFY_TOKEN: 'octograb_verify_token',
   VERIFY_HASH: 'octograb_verify_hash',
-};
+  // Rate limiting
+  ACTIVATION_ATTEMPTS: 'octograb_activation_attempts',
+  LAST_ACTIVATION_ATTEMPT: 'octograb_last_activation_attempt',
+  // Heartbeat tracking
+  HEARTBEAT_ALARM_ACTIVE: 'octograb_heartbeat_alarm_active',
+} as const;
 
-const VERIFY_INTERVAL_MS = 24 * 60 * 60 * 1000; // 24 hours
-const GRACE_PERIOD_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+// ─── Constants ──────────────────────────────────────────────
+
+const HOURS_24_MS = 24 * 60 * 60 * 1000;
+const DAYS_7_MS = 7 * 24 * 60 * 60 * 1000;
+const MINUTES_1_MS = 60 * 1000;
+const VERIFY_INTERVAL_MS = HOURS_24_MS;
+const GRACE_PERIOD_MS = DAYS_7_MS;
+
+// Rate limiting configuration
+const MAX_ACTIVATION_ATTEMPTS = 5;
+const ACTIVATION_RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
+const ACTIVATION_BACKOFF_MS = 5 * 60 * 1000; // 5 minutes base
 
 export interface LicenseState {
   isActivated: boolean;
@@ -26,6 +41,109 @@ export interface LicenseState {
   status: 'active' | 'revoked' | 'expired' | 'inactive' | 'grace';
   expiresAt: string | null;
   lastVerified: number | null;
+}
+
+// ─── Token Validation ─────────────────────────────────────
+
+/**
+ * Compute a hash of the token for local validation.
+ * This prevents trivial token tampering (swapping tokens between licenses).
+ */
+function computeTokenHash(token: string, licenseKey: string): string {
+  const raw = `${token}:${licenseKey}:${browser.runtime.id}`;
+  let hash = 0;
+  for (let i = 0; i < raw.length; i++) {
+    hash = ((hash << 5) - hash) + raw.charCodeAt(i);
+    hash = hash & hash;
+  }
+  return Math.abs(hash).toString(36);
+}
+
+async function storeTokenWithHash(token: string, licenseKey: string): Promise<void> {
+  const hash = computeTokenHash(token, licenseKey);
+  await browser.storage.local.set({
+    [STORAGE_KEYS.VERIFY_TOKEN]: token,
+    [`${STORAGE_KEYS.VERIFY_TOKEN}_hash`]: hash,
+  });
+}
+
+async function validateStoredToken(licenseKey: string): Promise<boolean> {
+  const stored = await browser.storage.local.get([
+    STORAGE_KEYS.VERIFY_TOKEN,
+    `${STORAGE_KEYS.VERIFY_TOKEN}_hash`,
+  ]);
+  const token = stored[STORAGE_KEYS.VERIFY_TOKEN] as string | undefined;
+  const hash = stored[`${STORAGE_KEYS.VERIFY_TOKEN}_hash`] as string | undefined;
+
+  if (!token || !hash) return false;
+
+  const expected = computeTokenHash(token, licenseKey);
+  return hash === expected;
+}
+
+// ─── Rate Limiting ─────────────────────────────────────────
+
+interface RateLimitState {
+  attempts: number;
+  lastAttempt: number;
+  nextAllowedAt: number;
+}
+
+async function checkRateLimit(): Promise<{ allowed: boolean; waitMs?: number; state: RateLimitState }> {
+  const stored = await browser.storage.local.get([
+    STORAGE_KEYS.ACTIVATION_ATTEMPTS,
+    STORAGE_KEYS.LAST_ACTIVATION_ATTEMPT,
+  ]);
+
+  const now = Date.now();
+  const attempts = (stored[STORAGE_KEYS.ACTIVATION_ATTEMPTS] as number) || 0;
+  const lastAttempt = (stored[STORAGE_KEYS.LAST_ACTIVATION_ATTEMPT] as number) || 0;
+
+  // Reset if window has passed
+  if (now - lastAttempt > ACTIVATION_RATE_LIMIT_WINDOW_MS) {
+    const resetState: RateLimitState = { attempts: 0, lastAttempt: now, nextAllowedAt: now };
+    await browser.storage.local.set({
+      [STORAGE_KEYS.ACTIVATION_ATTEMPTS]: 0,
+      [STORAGE_KEYS.LAST_ACTIVATION_ATTEMPT]: now,
+    });
+    return { allowed: true, state: resetState };
+  }
+
+  // Exponential backoff after max attempts
+  if (attempts >= MAX_ACTIVATION_ATTEMPTS) {
+    const backoffMs = ACTIVATION_BACKOFF_MS * Math.pow(2, attempts - MAX_ACTIVATION_ATTEMPTS);
+    const nextAllowedAt = lastAttempt + backoffMs;
+
+    if (now < nextAllowedAt) {
+      return {
+        allowed: false,
+        waitMs: nextAllowedAt - now,
+        state: { attempts, lastAttempt, nextAllowedAt }
+      };
+    }
+  }
+
+  return {
+    allowed: true,
+    state: { attempts, lastAttempt, nextAllowedAt: now }
+  };
+}
+
+async function recordActivationAttempt(): Promise<void> {
+  const stored = await browser.storage.local.get(STORAGE_KEYS.ACTIVATION_ATTEMPTS);
+  const attempts = ((stored[STORAGE_KEYS.ACTIVATION_ATTEMPTS] as number) || 0) + 1;
+
+  await browser.storage.local.set({
+    [STORAGE_KEYS.ACTIVATION_ATTEMPTS]: attempts,
+    [STORAGE_KEYS.LAST_ACTIVATION_ATTEMPT]: Date.now(),
+  });
+}
+
+async function resetActivationAttempts(): Promise<void> {
+  await browser.storage.local.remove([
+    STORAGE_KEYS.ACTIVATION_ATTEMPTS,
+    STORAGE_KEYS.LAST_ACTIVATION_ATTEMPT,
+  ]);
 }
 
 // ─── Anti-Tampering ─────────────────────────────────────────
@@ -63,26 +181,90 @@ async function getVerifiedTimestamp(licenseKey: string): Promise<number | null> 
 
 // ─── Device Fingerprint ─────────────────────────────────────
 
+/**
+ * Generate a more robust device fingerprint using multiple entropy sources.
+ * Includes a client-side hash to detect tampering with stored fingerprint.
+ */
 async function getOrCreateFingerprint(): Promise<string> {
-  const stored = await browser.storage.local.get(STORAGE_KEYS.DEVICE_FINGERPRINT);
-  if (stored[STORAGE_KEYS.DEVICE_FINGERPRINT]) {
-    return stored[STORAGE_KEYS.DEVICE_FINGERPRINT] as string;
+  const stored = await browser.storage.local.get([
+    STORAGE_KEYS.DEVICE_FINGERPRINT,
+    `${STORAGE_KEYS.DEVICE_FINGERPRINT}_hash`,
+  ]);
+
+  const existingFingerprint = stored[STORAGE_KEYS.DEVICE_FINGERPRINT] as string | undefined;
+  const existingHash = stored[`${STORAGE_KEYS.DEVICE_FINGERPRINT}_hash`] as string | undefined;
+
+  // Validate existing fingerprint hasn't been tampered with
+  if (existingFingerprint && existingHash) {
+    const expectedHash = await computeFingerprintHash(existingFingerprint);
+    if (existingHash === expectedHash) {
+      return existingFingerprint;
+    }
+    // Tampered - regenerate
+    console.warn('[OctoGrab] Fingerprint tampering detected, regenerating...');
   }
 
   const extensionId = browser.runtime.id;
   const uuid = crypto.randomUUID();
+
+  // Collect multiple entropy sources for stronger fingerprinting
   const signals = [
     extensionId,
     uuid,
     navigator.language || '',
     String(navigator.hardwareConcurrency || ''),
-    `${screen.width}x${screen.height}`,
+    `${screen.width}x${screen.height}x${screen.colorDepth || 24}`,
     String(new Date().getTimezoneOffset()),
+    navigator.platform || '',
+    navigator.userAgent?.split(' ').pop() || '', // Browser version only
+    // Additional entropy
+    String((navigator as any).deviceMemory || ''),
+    String(navigator.maxTouchPoints || 0),
+    Intl.DateTimeFormat().resolvedOptions().timeZone,
+    // Chrome extension specific
+    browser.runtime.getManifest()?.version || '',
   ];
-  const fingerprint = signals.join('-');
 
-  await browser.storage.local.set({ [STORAGE_KEYS.DEVICE_FINGERPRINT]: fingerprint });
+  // Combine with hash for tamper detection
+  const rawFingerprint = signals.join('|');
+  const fingerprintHash = await computeFingerprintHash(rawFingerprint);
+  const fingerprint = `${rawFingerprint}#${fingerprintHash.substring(0, 16)}`;
+
+  await browser.storage.local.set({
+    [STORAGE_KEYS.DEVICE_FINGERPRINT]: fingerprint,
+    [`${STORAGE_KEYS.DEVICE_FINGERPRINT}_hash`]: fingerprintHash,
+  });
+
   return fingerprint;
+}
+
+/**
+ * Compute a hash of the fingerprint for tamper detection.
+ */
+async function computeFingerprintHash(fingerprint: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(`${fingerprint}:${browser.runtime.id}`);
+
+  // Use SubtleCrypto if available, fallback to simple hash
+  if (crypto.subtle) {
+    try {
+      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    } catch {
+      // Fall through to simple hash
+    }
+  }
+
+  // Simple fallback hash
+  let hash = 0;
+  const str = String.fromCharCode(...data);
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash;
+  }
+  return Math.abs(hash).toString(36).padStart(16, '0');
 }
 
 // ─── API Calls ──────────────────────────────────────────────
@@ -105,7 +287,23 @@ async function apiCall(endpoint: string, body: Record<string, string>): Promise<
 export async function activateLicense(licenseKey: string): Promise<{
   success: boolean;
   error?: string;
+  rateLimited?: boolean;
+  retryAfterMs?: number;
 }> {
+  // Check rate limiting first
+  const rateCheck = await checkRateLimit();
+  if (!rateCheck.allowed) {
+    const minutes = Math.ceil((rateCheck.waitMs || 0) / 60000);
+    return {
+      success: false,
+      error: `Too many activation attempts. Please try again in ${minutes} minute${minutes > 1 ? 's' : ''}.`,
+      rateLimited: true,
+      retryAfterMs: rateCheck.waitMs,
+    };
+  }
+
+  await recordActivationAttempt();
+
   const fingerprint = await getOrCreateFingerprint();
   const deviceName = `Chrome Extension (${navigator.userAgent.split(' ').pop() || 'Unknown'})`;
 
@@ -117,6 +315,9 @@ export async function activateLicense(licenseKey: string): Promise<{
     });
 
     if (result.success) {
+      // Reset attempts on successful activation
+      await resetActivationAttempts();
+
       const now = Date.now();
       await browser.storage.local.set({
         [STORAGE_KEYS.LICENSE_KEY]: licenseKey,
@@ -125,7 +326,7 @@ export async function activateLicense(licenseKey: string): Promise<{
       });
       // Store token from server (signed proof of activation)
       if (result.token) {
-        await browser.storage.local.set({ [STORAGE_KEYS.VERIFY_TOKEN]: result.token });
+        await storeTokenWithHash(result.token, licenseKey);
       }
       await setVerifiedTimestamp(licenseKey, now);
       return { success: true };
@@ -192,7 +393,7 @@ export async function verifyLicense(): Promise<LicenseState> {
         [STORAGE_KEYS.GRACE_DEADLINE]: '',
       });
       if (result.token) {
-        await browser.storage.local.set({ [STORAGE_KEYS.VERIFY_TOKEN]: result.token });
+        await storeTokenWithHash(result.token, licenseKey);
       }
       await setVerifiedTimestamp(licenseKey, now);
       return {
@@ -210,7 +411,7 @@ export async function verifyLicense(): Promise<LicenseState> {
     await browser.storage.local.set({
       [STORAGE_KEYS.LICENSE_STATUS]: invalidStatus,
     });
-    await browser.storage.local.remove([STORAGE_KEYS.VERIFY_TOKEN]);
+    await browser.storage.local.remove([STORAGE_KEYS.VERIFY_TOKEN, `${STORAGE_KEYS.VERIFY_TOKEN}_hash`]);
     return {
       isActivated: false,
       licenseKey,
@@ -243,7 +444,7 @@ export async function verifyLicense(): Promise<LicenseState> {
       await browser.storage.local.set({
         [STORAGE_KEYS.LICENSE_STATUS]: 'expired',
       });
-      await browser.storage.local.remove([STORAGE_KEYS.VERIFY_TOKEN]);
+      await browser.storage.local.remove([STORAGE_KEYS.VERIFY_TOKEN, `${STORAGE_KEYS.VERIFY_TOKEN}_hash`]);
       return {
         isActivated: false,
         licenseKey,
@@ -292,7 +493,10 @@ export async function deactivateLicense(): Promise<{ success: boolean; error?: s
     STORAGE_KEYS.LAST_VERIFIED,
     STORAGE_KEYS.GRACE_DEADLINE,
     STORAGE_KEYS.VERIFY_TOKEN,
+    `${STORAGE_KEYS.VERIFY_TOKEN}_hash`,
     STORAGE_KEYS.VERIFY_HASH,
+    STORAGE_KEYS.ACTIVATION_ATTEMPTS,
+    STORAGE_KEYS.LAST_ACTIVATION_ATTEMPT,
   ]);
 
   return { success: true };
@@ -372,8 +576,8 @@ export async function preRunCheck(): Promise<PreRunCheckResult> {
     const result = await apiCall('/api/licenses/pre-run-check', body);
 
     // Update cached token if provided
-    if (result.token) {
-      await browser.storage.local.set({ [STORAGE_KEYS.VERIFY_TOKEN]: result.token });
+    if (result.token && licenseKey) {
+      await storeTokenWithHash(result.token, licenseKey);
     }
 
     // If server says license is invalid, update local state
@@ -392,9 +596,10 @@ export async function preRunCheck(): Promise<PreRunCheckResult> {
     };
   } catch (err: any) {
     // Server unreachable — check if we have a valid cached token
-    const tokenStr = stored[STORAGE_KEYS.VERIFY_TOKEN as keyof typeof stored] as string | undefined;
-    if (licenseKey && tokenStr) {
-      // We have a cached token; allow execution (grace behavior)
+    const tokenValid = licenseKey ? await validateStoredToken(licenseKey) : false;
+
+    if (licenseKey && tokenValid) {
+      // We have a cached token with valid hash; allow execution (grace behavior)
       return {
         allowed: true,
         plan: null,
@@ -406,6 +611,11 @@ export async function preRunCheck(): Promise<PreRunCheckResult> {
           canResume: true,
         },
       };
+    }
+
+    // No valid token — clear it to prevent tampering attempts
+    if (licenseKey) {
+      await browser.storage.local.remove([STORAGE_KEYS.VERIFY_TOKEN, `${STORAGE_KEYS.VERIFY_TOKEN}_hash`]);
     }
 
     // No license key = free user, allow even offline
@@ -433,21 +643,58 @@ export async function preRunCheck(): Promise<PreRunCheckResult> {
   }
 }
 
+// Background heartbeat tracking to prevent duplicate listeners
+let heartbeatAlarmListener: ((alarm: any) => void) | null = null;
+
+/**
+ * Stop the license heartbeat alarm and remove listeners.
+ * Call this when the extension is being updated or disabled.
+ */
+export async function stopHeartbeat(): Promise<void> {
+  if (browser.alarms) {
+    await browser.alarms.clear('license-heartbeat');
+
+    if (heartbeatAlarmListener) {
+      browser.alarms.onAlarm.removeListener(heartbeatAlarmListener);
+      heartbeatAlarmListener = null;
+    }
+  }
+
+  await browser.storage.local.set({ [STORAGE_KEYS.HEARTBEAT_ALARM_ACTIVE]: false });
+}
+
 // Background heartbeat — call from service worker / background script
 export async function startHeartbeat(): Promise<void> {
+  // Check if already initialized to prevent duplicate alarms
+  const stored = await browser.storage.local.get(STORAGE_KEYS.HEARTBEAT_ALARM_ACTIVE);
+  const isActive = stored[STORAGE_KEYS.HEARTBEAT_ALARM_ACTIVE] as boolean | undefined;
+
+  if (isActive && heartbeatAlarmListener) {
+    // Already running, just verify once
+    await verifyLicense();
+    return;
+  }
+
+  // Clean up any existing alarm first
+  await stopHeartbeat();
+
   // Run verification immediately
   await verifyLicense();
 
   // Set up periodic alarm
   if (browser.alarms) {
-    browser.alarms.create('license-heartbeat', {
+    await browser.alarms.create('license-heartbeat', {
       periodInMinutes: 60 * 24, // Every 24 hours
     });
 
-    browser.alarms.onAlarm.addListener((alarm) => {
+    await browser.storage.local.set({ [STORAGE_KEYS.HEARTBEAT_ALARM_ACTIVE]: true });
+
+    heartbeatAlarmListener = (alarm: any) => {
       if (alarm.name === 'license-heartbeat') {
         verifyLicense().catch(() => { });
       }
-    });
+    };
+
+    browser.alarms.onAlarm.addListener(heartbeatAlarmListener);
   }
 }

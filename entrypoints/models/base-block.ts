@@ -10,6 +10,8 @@ export interface BaseBlock {
     onError?: OnErrorStrategy;
     maxRetries?: number;
     retryDelay?: number;
+    /** Maximum execution time for this block in milliseconds (default: 30000) */
+    maxExecutionTime?: number;
     config: any;
     parent?: Block | null;
     children?: Block[];

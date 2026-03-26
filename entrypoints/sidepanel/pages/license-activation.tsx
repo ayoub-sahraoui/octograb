@@ -10,6 +10,7 @@ export default function LicenseActivation({ onActivated, onContinueFree }: { onA
     const [licenseKey, setLicenseKey] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [retryAfterMs, setRetryAfterMs] = useState<number | null>(null);
     const [success, setSuccess] = useState(false);
 
     const handleActivate = async () => {
@@ -33,6 +34,9 @@ export default function LicenseActivation({ onActivated, onContinueFree }: { onA
             }, 1500);
         } else {
             setError(result.error || 'Activation failed');
+            if (result.rateLimited && result.retryAfterMs) {
+                setRetryAfterMs(result.retryAfterMs);
+            }
         }
     };
 
@@ -49,6 +53,7 @@ export default function LicenseActivation({ onActivated, onContinueFree }: { onA
 
         setLicenseKey(cleaned);
         setError(null);
+        setRetryAfterMs(null);
     };
 
     if (success) {
@@ -96,9 +101,16 @@ export default function LicenseActivation({ onActivated, onContinueFree }: { onA
                     </div>
 
                     {error && (
-                        <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 p-3 rounded-md border border-red-200">
-                            <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                            <span>{error}</span>
+                        <div className="flex flex-col gap-2 text-sm text-red-600 bg-red-50 p-3 rounded-md border border-red-200">
+                            <div className="flex items-center gap-2">
+                                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                                <span>{error}</span>
+                            </div>
+                            {retryAfterMs !== null && retryAfterMs > 0 && (
+                                <div className="text-xs text-red-500 pl-6">
+                                    Please wait {Math.ceil(retryAfterMs / 60000)} minute{Math.ceil(retryAfterMs / 60000) > 1 ? 's' : ''} before retrying.
+                                </div>
+                            )}
                         </div>
                     )}
 

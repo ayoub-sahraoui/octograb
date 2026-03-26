@@ -1,4 +1,3 @@
-import { runInAction } from "mobx";
 import { Block } from "./types";
 import { NavigateBlock } from "./navigate-block";
 import { ClickBlock } from "./click-block";
@@ -9,6 +8,12 @@ import { GoBackBlock } from "./go-back-block";
 import { ConditionBlock } from "./condition-block";
 import { LoopElementsBlock } from "./loop-elements-block";
 import { LoopPaginationBlock } from "./loop-pagination-block";
+import { AssertBlock } from "./assert-block";
+import { SetVariableBlock } from "./set-variable-block";
+import { GetVariableBlock } from "./get-variable-block";
+import { HoverBlock } from "./hover-block";
+import { SwitchFrameBlock } from "./switch-frame-block";
+import { MacroBlock } from "./macro-block";
 import { ExtractScopeBlock } from "./extract-scope-block";
 
 export function createBlockFromJSON(json: any): Block {
@@ -45,35 +50,52 @@ export function createBlockFromJSON(json: any): Block {
         case 'extract_scope':
             block = new ExtractScopeBlock(json.label || 'Extract Data', json.config);
             break;
+        case 'assert':
+            block = new AssertBlock(json.label || 'Assert', json.config);
+            break;
+        case 'set_variable':
+            block = new SetVariableBlock(json.label || 'Set Variable', json.config);
+            break;
+        case 'get_variable':
+            block = new GetVariableBlock(json.label || 'Get Variable', json.config);
+            break;
+        case 'hover':
+            block = new HoverBlock(json.label || 'Hover', json.config);
+            break;
+        case 'switch_frame':
+            block = new SwitchFrameBlock(json.label || 'Switch Frame', json.config);
+            break;
+        case 'macro':
+            block = new MacroBlock(json.label || 'Macro', json.config);
+            break;
         default:
             throw new Error(`Unknown block type: ${json.type}`);
     }
 
-    // Reapply serialized properties (id, label, enabled, etc.) inside an action
-    runInAction(() => {
-        const { children, elseChildren, type, config, parent, ...rest } = json;
-        Object.assign(block, rest);
-    });
+    // Reapply serialized properties using action methods
+    if (json.id) block.id = json.id;
+    if (json.label !== undefined) block.setLabel(json.label);
+    if (json.enabled !== undefined) block.setEnabled(json.enabled);
+    if (json.description !== undefined) block.setDescription(json.description);
+    if (json.onError !== undefined) block.setOnError(json.onError);
+    if (json.maxRetries !== undefined) block.setMaxRetries(json.maxRetries);
+    if (json.retryDelay !== undefined) block.setRetryDelay(json.retryDelay);
+    if (json.maxExecutionTime !== undefined) block.setMaxExecutionTime(json.maxExecutionTime);
+    if (json.index !== undefined) block.setIndex(json.index);
 
     // Recursively create children
     if (json.children && json.children.length > 0) {
-        runInAction(() => {
-            block.children = json.children.map((childJson: any) => {
-                const child = createBlockFromJSON(childJson);
-                child.parent = block;
-                return child;
-            });
+        json.children.forEach((childJson: any) => {
+            const child = createBlockFromJSON(childJson);
+            block.addChild(child);
         });
     }
 
     // Recursively create elseChildren for ConditionBlock
     if (json.type === 'condition' && (json as any).elseChildren && (json as any).elseChildren.length > 0) {
-        runInAction(() => {
-            (block as any).elseChildren = (json as any).elseChildren.map((childJson: any) => {
-                const child = createBlockFromJSON(childJson);
-                child.parent = block;
-                return child;
-            });
+        (json as any).elseChildren.forEach((childJson: any) => {
+            const child = createBlockFromJSON(childJson);
+            (block as any).addElseChild(child);
         });
     }
 

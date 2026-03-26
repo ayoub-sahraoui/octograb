@@ -1,4 +1,4 @@
-import { makeAutoObservable, runInAction } from 'mobx';
+import { makeAutoObservable } from 'mobx';
 import { getLicenseState, verifyLicense, deactivateLicense, type LicenseState } from '@/core/license';
 import { useNotificationStore } from './notification-store';
 import { isDevMode } from '@/core/dev-mode';
@@ -27,20 +27,45 @@ class LicenseStore {
         return this.isActivated && !this.isFreeUser;
     }
 
+    // ─── Action Methods ────────────────────────────────────────────────────
+
+    setLicenseState(state: Partial<LicenseStore>) {
+        if (state.isActivated !== undefined) this.isActivated = state.isActivated;
+        if (state.isFreeUser !== undefined) this.isFreeUser = state.isFreeUser;
+        if (state.licenseKey !== undefined) this.licenseKey = state.licenseKey;
+        if (state.plan !== undefined) this.plan = state.plan;
+        if (state.status !== undefined) this.status = state.status;
+        if (state.isLoading !== undefined) this.isLoading = state.isLoading;
+    }
+
+    setLoading(loading: boolean) {
+        this.isLoading = loading;
+    }
+
+    resetLicense() {
+        this.isActivated = false;
+        this.licenseKey = null;
+        this.plan = null;
+        this.status = 'inactive';
+        this.isFreeUser = false;
+    }
+
+    // ─── Async Methods ─────────────────────────────────────────────────────
+
     async checkLicense() {
         // Dev mode: skip all license checks, act as pro user
         if (isDevMode()) {
-            runInAction(() => {
-                this.isActivated = true;
-                this.isFreeUser = false;
-                this.plan = 'dev';
-                this.status = 'active';
-                this.isLoading = false;
+            this.setLicenseState({
+                isActivated: true,
+                isFreeUser: false,
+                plan: 'dev',
+                status: 'active',
+                isLoading: false
             });
             return;
         }
 
-        runInAction(() => { this.isLoading = true; });
+        this.setLoading(true);
 
         try {
             // Check if user previously chose free tier
@@ -48,14 +73,13 @@ class LicenseStore {
             const wasFree = freeStored[FREE_USER_STORAGE_KEY] === true;
 
             const state = await verifyLicense();
-            runInAction(() => {
-                this.isActivated = state.isActivated;
-                this.licenseKey = state.licenseKey;
-                this.plan = state.plan;
-                this.status = state.status;
-                // Keep free user flag if they were free and haven't activated a license
-                this.isFreeUser = !state.isActivated && wasFree;
-                this.isLoading = false;
+            this.setLicenseState({
+                isActivated: state.isActivated,
+                licenseKey: state.licenseKey,
+                plan: state.plan,
+                status: state.status,
+                isFreeUser: !state.isActivated && wasFree,
+                isLoading: false
             });
 
             // Notify on grace period
@@ -68,34 +92,25 @@ class LicenseStore {
             const wasFree = freeStored[FREE_USER_STORAGE_KEY] === true;
 
             const cached = await getLicenseState();
-            runInAction(() => {
-                this.isActivated = cached.isActivated;
-                this.licenseKey = cached.licenseKey;
-                this.plan = cached.plan;
-                this.status = cached.status;
-                this.isFreeUser = !cached.isActivated && wasFree;
-                this.isLoading = false;
+            this.setLicenseState({
+                isActivated: cached.isActivated,
+                licenseKey: cached.licenseKey,
+                plan: cached.plan,
+                status: cached.status,
+                isFreeUser: !cached.isActivated && wasFree,
+                isLoading: false
             });
         }
     }
 
     async continueFree() {
         await browser.storage.local.set({ [FREE_USER_STORAGE_KEY]: true });
-        runInAction(() => {
-            this.isFreeUser = true;
-            this.plan = 'free';
-        });
+        this.setLicenseState({ isFreeUser: true, plan: 'free' });
     }
 
     async deactivate() {
         await deactivateLicense();
-        runInAction(() => {
-            this.isActivated = false;
-            this.licenseKey = null;
-            this.plan = null;
-            this.status = 'inactive';
-            this.isFreeUser = false;
-        });
+        this.resetLicense();
         await browser.storage.local.remove(FREE_USER_STORAGE_KEY);
     }
 

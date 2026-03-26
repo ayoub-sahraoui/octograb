@@ -1,5 +1,4 @@
 import { observer } from 'mobx-react-lite';
-import { runInAction } from 'mobx';
 import { LoopPaginationBlock } from '@/entrypoints/models/loop-pagination-block';
 import { SelectorType } from '@/entrypoints/models/selector';
 import { Input } from '@/components/ui/input';
@@ -66,7 +65,7 @@ export const LoopPaginationBlockConfig = observer(({ block }: LoopPaginationBloc
                 <Label htmlFor="paginationType">Pagination Type</Label>
                 <Select
                     value={paginationType}
-                    onValueChange={(value: any) => runInAction(() => { block.config.paginationType = value; })}
+                    onValueChange={(value: any) => block.setPaginationType(value)}
                 >
                     <SelectTrigger id="paginationType">
                         <SelectValue placeholder="Select type" />
@@ -88,7 +87,7 @@ export const LoopPaginationBlockConfig = observer(({ block }: LoopPaginationBloc
                     placeholder=".next-page, a[rel='next']"
                     helpText="Select the 'Next' button or link to click for pagination"
                     selector={block.config.nextButtonSelector}
-                    onSelectorChange={(sel) => runInAction(() => { block.config.nextButtonSelector = sel; })}
+                    onSelectorChange={(sel) => block.setNextButtonSelector(sel)}
                     block={block}
                     expectedElement="clickable"
                 />
@@ -100,7 +99,7 @@ export const LoopPaginationBlockConfig = observer(({ block }: LoopPaginationBloc
                         <Label htmlFor="scrollStrategy">Scroll Strategy</Label>
                         <Select
                             value={block.config.scrollStrategy || 'fixed_amount'}
-                            onValueChange={(value: any) => runInAction(() => { block.config.scrollStrategy = value; })}
+                            onValueChange={(value: any) => block.setScrollStrategy(value)}
                         >
                             <SelectTrigger id="scrollStrategy">
                                 <SelectValue placeholder="Select strategy" />
@@ -125,7 +124,7 @@ export const LoopPaginationBlockConfig = observer(({ block }: LoopPaginationBloc
                             placeholder=".product-item"
                             helpText="Selector for the items to scroll through"
                             selector={block.config.itemSelector || { type: SelectorType.CSS, value: '' }}
-                            onSelectorChange={(sel) => runInAction(() => { block.config.itemSelector = sel; })}
+                            onSelectorChange={(sel) => block.setItemSelector(sel)}
                             block={block}
                         />
                     )}
@@ -135,7 +134,7 @@ export const LoopPaginationBlockConfig = observer(({ block }: LoopPaginationBloc
                             <Label htmlFor="scrollTarget">Scroll Target</Label>
                             <Select
                                 value={block.config.scrollTarget || 'window'}
-                                onValueChange={(value: any) => runInAction(() => { block.config.scrollTarget = value; })}
+                                onValueChange={(value: any) => block.setScrollTarget(value)}
                             >
                                 <SelectTrigger id="scrollTarget">
                                     <SelectValue placeholder="Select target" />
@@ -158,7 +157,7 @@ export const LoopPaginationBlockConfig = observer(({ block }: LoopPaginationBloc
                             placeholder=".scrollable-container"
                             helpText="Selector for the scrollable element"
                             selector={block.config.scrollSelector || { type: SelectorType.CSS, value: '' }}
-                            onSelectorChange={(sel) => runInAction(() => { block.config.scrollSelector = sel; })}
+                            onSelectorChange={(sel) => block.setScrollSelector(sel)}
                             block={block}
                         />
                     )}
@@ -172,7 +171,7 @@ export const LoopPaginationBlockConfig = observer(({ block }: LoopPaginationBloc
                                     type="number"
                                     placeholder="1000"
                                     value={block.config.scrollAmount || ''}
-                                    onChange={(e) => runInAction(() => { block.config.scrollAmount = parseInt(e.target.value) || 1000; })}
+                                    onChange={(e) => block.setScrollAmount(parseInt(e.target.value) || 1000)}
                                     className="flex-1"
                                 />
                                 <Button
@@ -214,7 +213,7 @@ export const LoopPaginationBlockConfig = observer(({ block }: LoopPaginationBloc
                     type="number"
                     placeholder="Unlimited"
                     value={block.config.maxPages || ''}
-                    onChange={(e) => runInAction(() => { block.config.maxPages = parseInt(e.target.value) || undefined; })}
+                    onChange={(e) => block.setMaxPages(parseInt(e.target.value) || undefined)}
                 />
                 <p className="text-xs text-muted-foreground">
                     Leave empty for unlimited pages
@@ -228,7 +227,7 @@ export const LoopPaginationBlockConfig = observer(({ block }: LoopPaginationBloc
                     type="number"
                     placeholder="1000"
                     value={block.config.delayBetweenPages || ''}
-                    onChange={(e) => runInAction(() => { block.config.delayBetweenPages = parseInt(e.target.value) || 1000; })}
+                    onChange={(e) => block.setDelayBetweenPages(parseInt(e.target.value) || 1000)}
                 />
                 <p className="text-xs text-muted-foreground">
                     Time to wait between pagination iterations

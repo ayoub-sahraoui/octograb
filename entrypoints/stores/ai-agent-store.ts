@@ -1,4 +1,4 @@
-import { makeAutoObservable, runInAction } from 'mobx';
+import { makeAutoObservable } from 'mobx';
 import { HumanMessage } from '@langchain/core/messages';
 import type { BaseMessage } from '@langchain/core/messages';
 import { runAgentStream, type AgentStreamEvent } from '@/core/ai/agent';
@@ -95,6 +95,130 @@ class AiAgentStore {
         this.loadConversations();
     }
 
+    // ─── Action Methods ────────────────────────────────────────────────────
+
+    setSettingsLoaded(loaded: boolean) {
+        this.settingsLoaded = loaded;
+    }
+
+    setProviderAndModel(provider: ProviderId, model: string) {
+        this.provider = provider;
+        this.model = model;
+    }
+
+    setApiKeyForProvider(provider: ProviderId, key: string) {
+        this.apiKeys[provider] = key;
+    }
+
+    setModel(model: string) {
+        this.model = model;
+    }
+
+    setStatus(status: AgentStatus) {
+        this.status = status;
+    }
+
+    setError(error: string | null) {
+        this.error = error;
+    }
+
+    setCurrentToolName(name: string | null) {
+        this.currentToolName = name;
+    }
+
+    setConversations(conversations: Conversation[], activeId: string | null) {
+        this.conversations = conversations;
+        this.conversationsLoaded = true;
+        if (activeId && conversations.find(c => c.id === activeId)) {
+            this.activeConversationId = activeId;
+            const conv = conversations.find(c => c.id === activeId)!;
+            this.messages = conv.messages;
+        } else if (conversations.length > 0) {
+            const sorted = [...conversations].sort((a, b) => b.updatedAt - a.updatedAt);
+            this.activeConversationId = sorted[0].id;
+            this.messages = sorted[0].messages;
+        }
+    }
+
+    setConversationsLoaded(loaded: boolean) {
+        this.conversationsLoaded = loaded;
+    }
+
+    addConversation(conv: Conversation) {
+        this.conversations.unshift(conv);
+        this.activeConversationId = conv.id;
+        this.messages = [];
+        this._lcMessages = [];
+        this.status = 'idle';
+        this.error = null;
+        this.currentToolName = null;
+    }
+
+    switchToConversation(id: string, messages: ChatMessage[]) {
+        this.activeConversationId = id;
+        this.messages = [...messages];
+        this._lcMessages = [];
+        this.status = 'idle';
+        this.error = null;
+        this.currentToolName = null;
+    }
+
+    deleteConversationById(id: string) {
+        this.conversations = this.conversations.filter(c => c.id !== id);
+        if (this.activeConversationId === id) {
+            if (this.conversations.length > 0) {
+                const next = this.conversations[0];
+                this.activeConversationId = next.id;
+                this.messages = [...next.messages];
+            } else {
+                this.activeConversationId = null;
+                this.messages = [];
+            }
+            this._lcMessages = [];
+        }
+    }
+
+    updateConversationTitle(id: string, title: string) {
+        const conv = this.conversations.find(c => c.id === id);
+        if (conv) {
+            conv.title = title;
+        }
+    }
+
+    updateActiveConversationMessages() {
+        if (!this.activeConversationId) return;
+        const conv = this.conversations.find(c => c.id === this.activeConversationId);
+        if (conv) {
+            conv.messages = [...this.messages];
+            conv.updatedAt = Date.now();
+            if (conv.title === 'New Chat' && this.messages.length > 0) {
+                const firstUser = this.messages.find(m => m.role === 'user');
+                if (firstUser) {
+                    conv.title = firstUser.content.length > 40
+                        ? firstUser.content.substring(0, 40) + '…'
+                        : firstUser.content;
+                }
+            }
+        }
+    }
+
+    clearMessages() {
+        this.messages = [];
+        this._lcMessages = [];
+        this.status = 'idle';
+        this.error = null;
+        this.currentToolName = null;
+    }
+
+    addChatMessage(msg: ChatMessage) {
+        this.messages.push(msg);
+    }
+
+    resetAgentState() {
+        this.status = 'idle';
+        this.currentToolName = null;
+    }
+
     // ─── Settings Management ──────────────────────────────────────────────
 
     async loadSettings() {
@@ -105,25 +229,22 @@ class AiAgentStore {
                 ...PROVIDER_IDS.map(p => STORAGE_KEY_PREFIX + p),
             ];
             const result = await browser.storage.local.get(keys);
-            runInAction(() => {
-                this.provider = (result[STORAGE_KEY_PROVIDER] as ProviderId) || 'gemini';
-                this.model = (result[STORAGE_KEY_MODEL] as string) || PROVIDERS[this.provider].defaultModel;
-                for (const pid of PROVIDER_IDS) {
-                    this.apiKeys[pid] = (result[STORAGE_KEY_PREFIX + pid] as string) || '';
-                }
-                this.settingsLoaded = true;
-            });
+            const provider = (result[STORAGE_KEY_PROVIDER] as ProviderId) || 'gemini';
+            const model = (result[STORAGE_KEY_MODEL] as string) || PROVIDERS[provider].defaultModel;
+            this.setProviderAndModel(provider, model);
+            for (const pid of PROVIDER_IDS) {
+                this.setApiKeyForProvider(pid, (result[STORAGE_KEY_PREFIX + pid] as string) || '');
+            }
+            this.setSettingsLoaded(true);
         } catch (e) {
             console.error('[OctoGrab AI] Failed to load settings:', e);
-            runInAction(() => { this.settingsLoaded = true; });
+            this.setSettingsLoaded(true);
         }
     }
 
     async setProvider(provider: ProviderId) {
-        runInAction(() => {
-            this.provider = provider;
-            this.model = PROVIDERS[provider].defaultModel;
-        });
+        const model = PROVIDERS[provider].defaultModel;
+        this.setProviderAndModel(provider, model);
         try {
             await browser.storage.local.set({
                 [STORAGE_KEY_PROVIDER]: provider,
@@ -135,7 +256,7 @@ class AiAgentStore {
     }
 
     async setApiKey(provider: ProviderId, key: string) {
-        runInAction(() => { this.apiKeys[provider] = key; });
+        this.setApiKeyForProvider(provider, key);
         try {
             await browser.storage.local.set({ [STORAGE_KEY_PREFIX + provider]: key });
         } catch (e) {
@@ -143,8 +264,8 @@ class AiAgentStore {
         }
     }
 
-    async setModel(model: string) {
-        runInAction(() => { this.model = model; });
+    async saveModel(model: string) {
+        this.setModel(model);
         try {
             await browser.storage.local.set({ [STORAGE_KEY_MODEL]: model });
         } catch (e) {
@@ -206,20 +327,11 @@ class AiAgentStore {
             this._abortController.abort();
             this._abortController = null;
         }
-        runInAction(() => {
-            this.status = 'idle';
-            this.currentToolName = null;
-        });
+        this.resetAgentState();
     }
 
     clearChat() {
-        runInAction(() => {
-            this.messages = [];
-            this._lcMessages = [];
-            this.status = 'idle';
-            this.error = null;
-            this.currentToolName = null;
-        });
+        this.clearMessages();
         (globalThis as any).__octograb_pending_blueprint = undefined;
         // Update conversation in storage
         if (this.activeConversationId) {
@@ -234,24 +346,11 @@ class AiAgentStore {
             const result = await browser.storage.local.get([STORAGE_KEY_CONVERSATIONS, STORAGE_KEY_ACTIVE_CONV]);
             const saved = (result[STORAGE_KEY_CONVERSATIONS] as Conversation[] | undefined) || [];
             const activeId = (result[STORAGE_KEY_ACTIVE_CONV] as string | undefined) || null;
-            runInAction(() => {
-                this.conversations = saved;
-                this.conversationsLoaded = true;
-                if (activeId && saved.find(c => c.id === activeId)) {
-                    this.activeConversationId = activeId;
-                    const conv = saved.find(c => c.id === activeId)!;
-                    this.messages = conv.messages;
-                } else if (saved.length > 0) {
-                    // Load most recent
-                    const sorted = [...saved].sort((a, b) => b.updatedAt - a.updatedAt);
-                    this.activeConversationId = sorted[0].id;
-                    this.messages = sorted[0].messages;
-                }
-            });
+            this.setConversations(saved, activeId);
             log(`Loaded ${saved.length} conversations, active=${activeId}`);
         } catch (e) {
             logError('Failed to load conversations:', e);
-            runInAction(() => { this.conversationsLoaded = true; });
+            this.setConversationsLoaded(true);
         }
     }
 
@@ -270,15 +369,7 @@ class AiAgentStore {
             updatedAt: Date.now(),
         };
 
-        runInAction(() => {
-            this.conversations.unshift(conv);
-            this.activeConversationId = id;
-            this.messages = [];
-            this._lcMessages = [];
-            this.status = 'idle';
-            this.error = null;
-            this.currentToolName = null;
-        });
+        this.addConversation(conv);
 
         (globalThis as any).__octograb_pending_blueprint = undefined;
         this.persistConversations();
@@ -294,14 +385,7 @@ class AiAgentStore {
         const conv = this.conversations.find(c => c.id === id);
         if (!conv) return;
 
-        runInAction(() => {
-            this.activeConversationId = id;
-            this.messages = [...conv.messages];
-            this._lcMessages = []; // LangChain history can't be restored; new messages will work
-            this.status = 'idle';
-            this.error = null;
-            this.currentToolName = null;
-        });
+        this.switchToConversation(id, conv.messages);
 
         (globalThis as any).__octograb_pending_blueprint = undefined;
         browser.storage.local.set({ [STORAGE_KEY_ACTIVE_CONV]: id }).catch(() => { });
@@ -311,29 +395,14 @@ class AiAgentStore {
     deleteConversation(id: string) {
         if (this.isRunning) return;
 
-        runInAction(() => {
-            this.conversations = this.conversations.filter(c => c.id !== id);
-            if (this.activeConversationId === id) {
-                if (this.conversations.length > 0) {
-                    const next = this.conversations[0];
-                    this.activeConversationId = next.id;
-                    this.messages = [...next.messages];
-                } else {
-                    this.activeConversationId = null;
-                    this.messages = [];
-                }
-                this._lcMessages = [];
-            }
-        });
+        this.deleteConversationById(id);
 
         this.persistConversations();
         log(`Deleted conversation: ${id}`);
     }
 
     renameConversation(id: string, title: string) {
-        const conv = this.conversations.find(c => c.id === id);
-        if (!conv) return;
-        runInAction(() => { conv.title = title; });
+        this.updateConversationTitle(id, title);
         this.persistConversations();
     }
 
@@ -342,23 +411,7 @@ class AiAgentStore {
     }
 
     private persistActiveConversation() {
-        if (!this.activeConversationId) return;
-        const conv = this.conversations.find(c => c.id === this.activeConversationId);
-        if (conv) {
-            runInAction(() => {
-                conv.messages = [...this.messages];
-                conv.updatedAt = Date.now();
-                // Auto-title from first user message
-                if (conv.title === 'New Chat' && this.messages.length > 0) {
-                    const firstUser = this.messages.find(m => m.role === 'user');
-                    if (firstUser) {
-                        conv.title = firstUser.content.length > 40
-                            ? firstUser.content.substring(0, 40) + '…'
-                            : firstUser.content;
-                    }
-                }
-            });
-        }
+        this.updateActiveConversationMessages();
         this.persistConversations();
     }
 
@@ -394,20 +447,16 @@ class AiAgentStore {
             timestamp: Date.now(),
             ...opts,
         };
-        runInAction(() => {
-            this.messages.push(msg);
-        });
+        this.addChatMessage(msg);
         // Return the MobX observable proxy, not the raw object
         return this.messages[this.messages.length - 1];
     }
 
     private async runAgent() {
         this._abortController = new AbortController();
-        runInAction(() => {
-            this.status = 'thinking';
-            this.error = null;
-            this.currentToolName = null;
-        });
+        this.setStatus('thinking');
+        this.setError(null);
+        this.setCurrentToolName(null);
 
         log(`Starting agent run — provider=${this.provider}, model=${this.model}, messages=${this._lcMessages.length}`);
         const toolMessages: ChatMessage[] = [];
@@ -428,13 +477,9 @@ class AiAgentStore {
                                     role: 'assistant',
                                     content: event.token,
                                 });
-                                runInAction(() => {
-                                    this.status = 'streaming';
-                                });
+                                this.setStatus('streaming');
                             } else {
-                                runInAction(() => {
-                                    streamingMsg!.content += event.token;
-                                });
+                                streamingMsg.content += event.token;
                             }
                             break;
                         }
@@ -442,17 +487,13 @@ class AiAgentStore {
                         case 'stream_end': {
                             // Stream finished — finalize the message
                             streamingMsg = null;
-                            runInAction(() => {
-                                this.status = 'thinking';
-                            });
+                            this.setStatus('thinking');
                             break;
                         }
 
                         case 'tool_start':
-                            runInAction(() => {
-                                this.status = 'calling_tool';
-                                this.currentToolName = event.toolName;
-                            });
+                            this.setStatus('calling_tool');
+                            this.setCurrentToolName(event.toolName);
                             toolMessages.push(this.addMessage({
                                 role: 'tool',
                                 content: `Calling **${this.formatToolName(event.toolName)}**...`,
@@ -463,33 +504,27 @@ class AiAgentStore {
                         case 'tool_end': {
                             const toolMsg = toolMessages[toolMessages.length - 1];
                             if (toolMsg) {
-                                runInAction(() => {
-                                    toolMsg.content = `**${this.formatToolName(event.toolName)}** completed`;
-                                    toolMsg.toolResult = { name: event.toolName, result: event.result };
-                                });
+                                toolMsg.content = `**${this.formatToolName(event.toolName)}** completed`;
+                                toolMsg.toolResult = { name: event.toolName, result: event.result };
                             }
 
                             try {
                                 const parsed = JSON.parse(event.result);
                                 // Show blueprint preview card when create_blueprint returns
                                 if (parsed?.blueprintId && parsed?.validation) {
-                                    runInAction(() => {
-                                        toolMsg.blueprintPreview = {
-                                            name: parsed.name,
-                                            description: '',
-                                            blockCount: parsed.blockCount,
-                                            valid: parsed.validation?.valid ?? true,
-                                            errors: parsed.validation?.errors ?? [],
-                                            warnings: parsed.validation?.warnings ?? [],
-                                        };
-                                    });
+                                    toolMsg.blueprintPreview = {
+                                        name: parsed.name,
+                                        description: '',
+                                        blockCount: parsed.blockCount,
+                                        valid: parsed.validation?.valid ?? true,
+                                        errors: parsed.validation?.errors ?? [],
+                                        warnings: parsed.validation?.warnings ?? [],
+                                    };
                                 }
                             } catch { /* not JSON, ignore */ }
 
-                            runInAction(() => {
-                                this.status = 'thinking';
-                                this.currentToolName = null;
-                            });
+                            this.setStatus('thinking');
+                            this.setCurrentToolName(null);
                             break;
                         }
 
@@ -503,9 +538,7 @@ class AiAgentStore {
                         }
 
                         case 'error':
-                            runInAction(() => {
-                                this.error = event.message;
-                            });
+                            this.setError(event.message);
                             this.addMessage({
                                 role: 'assistant',
                                 content: `An error occurred: ${event.message}`,
@@ -541,18 +574,13 @@ class AiAgentStore {
             }
 
         } catch (e: any) {
-            runInAction(() => {
-                this.error = e.message;
-            });
+            this.setError(e.message);
             this.addMessage({
                 role: 'assistant',
                 content: `Error: ${e.message}. Please check your API key and try again.`,
             });
         } finally {
-            runInAction(() => {
-                this.status = 'idle';
-                this.currentToolName = null;
-            });
+            this.resetAgentState();
             this._abortController = null;
             // Persist conversation after agent run
             this.persistActiveConversation();

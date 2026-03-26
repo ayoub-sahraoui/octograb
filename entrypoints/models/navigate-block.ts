@@ -1,8 +1,7 @@
 import { v4 as uuidv4 } from 'uuid';
-import { BaseBlock } from './base-block';
-import { makeAutoObservable, toJS } from 'mobx';
+import { BlockBase } from './block-base';
+import { toJS } from 'mobx';
 import { OnErrorStrategy } from "./enums";
-import { Block } from './types';
 
 export enum WaitUntilStrategy {
   LOAD = 'load',
@@ -24,21 +23,13 @@ export interface NavigateConfig {
   timeout?: number;
 }
 
-export class NavigateBlock implements BaseBlock {
+export class NavigateBlock extends BlockBase {
   id: string;
   type: string = 'navigate';
-  label?: string;
-  enabled?: boolean;
-  description?: string;
-  onError?: OnErrorStrategy;
-  maxRetries?: number;
-  retryDelay?: number;
   config: NavigateConfig;
-  parent?: Block | null;
-  children?: Block[];
-  index?: number;
 
   constructor(name: string, config: NavigateConfig) {
+    super();
     this.id = uuidv4();
     this.label = name;
     this.enabled = true;
@@ -47,10 +38,40 @@ export class NavigateBlock implements BaseBlock {
     this.maxRetries = 0;
     this.retryDelay = 0;
     this.config = config;
-    makeAutoObservable(this);
+  }
+
+  // ─── Config-specific actions ───────────────────────────────────────────
+
+  setUrl(url: string) {
+    this.config.url = url;
+  }
+
+  setWaitUntil(strategy: WaitUntilStrategy) {
+    this.config.waitUntil = strategy;
+  }
+
+  setBehavior(behavior: NavigateBehavior) {
+    this.config.behavior = behavior;
+  }
+
+  setTimeout(timeout?: number) {
+    this.config.timeout = timeout;
   }
 
   toJSON() {
     return toJS(this);
+  }
+
+  static fromJson(json: any): NavigateBlock {
+    const block = new NavigateBlock(json.label || 'Navigate', json.config || { url: '' });
+    if (json.id) block.id = json.id;
+    if (json.enabled !== undefined) block.setEnabled(json.enabled);
+    if (json.description !== undefined) block.setDescription(json.description);
+    if (json.onError !== undefined) block.setOnError(json.onError);
+    if (json.maxRetries !== undefined) block.setMaxRetries(json.maxRetries);
+    if (json.retryDelay !== undefined) block.setRetryDelay(json.retryDelay);
+    if (json.maxExecutionTime !== undefined) block.setMaxExecutionTime(json.maxExecutionTime);
+    if (json.index !== undefined) block.setIndex(json.index);
+    return block;
   }
 }

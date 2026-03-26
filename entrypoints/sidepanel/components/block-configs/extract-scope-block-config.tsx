@@ -1,5 +1,4 @@
 import { observer, Observer } from 'mobx-react-lite';
-import { runInAction } from 'mobx';
 import { ExtractScopeBlock, ExtractionField, StaticFieldType } from '@/entrypoints/models/extract-scope-block';
 import { SelectorType } from '@/entrypoints/models/selector';
 import { Input } from '@/components/ui/input';
@@ -61,13 +60,7 @@ export const ExtractScopeBlockConfig = observer(({ block }: ExtractScopeBlockCon
 
     // Ensure every field has a stable ID (backfill for existing blueprints)
     useMemo(() => {
-        runInAction(() => {
-            for (const field of block.config.fields) {
-                if (!field.id) {
-                    field.id = uuidv4();
-                }
-            }
-        });
+        block.ensureFieldIds();
     }, [block.config.fields.length]);
 
     const getFieldId = (field: ExtractionField) => field.id || '';
@@ -103,20 +96,13 @@ export const ExtractScopeBlockConfig = observer(({ block }: ExtractScopeBlockCon
         const newIndex = block.config.fields.findIndex(f => getFieldId(f) === over.id);
         if (oldIndex === -1 || newIndex === -1) return;
 
-        runInAction(() => {
-            // Use splice-based move to preserve MobX observable proxies
-            const [item] = block.config.fields.splice(oldIndex, 1);
-            block.config.fields.splice(newIndex, 0, item);
-        });
+        block.moveField(oldIndex, newIndex);
     };
 
     const moveField = (index: number, direction: 'up' | 'down') => {
         const newIndex = direction === 'up' ? index - 1 : index + 1;
         if (newIndex < 0 || newIndex >= block.config.fields.length) return;
-        runInAction(() => {
-            const [item] = block.config.fields.splice(index, 1);
-            block.config.fields.splice(newIndex, 0, item);
-        });
+        block.moveField(index, newIndex);
     };
 
     const addField = () => {
@@ -131,9 +117,7 @@ export const ExtractScopeBlockConfig = observer(({ block }: ExtractScopeBlockCon
             transformers: [],
             mode: 'extracted',
         };
-        runInAction(() => {
-            block.config.fields.push(newField);
-        });
+        block.addField(newField);
         // Auto-expand newly added field
         setExpandedFields(new Set([...expandedFields, fieldId]));
     };
@@ -149,18 +133,11 @@ export const ExtractScopeBlockConfig = observer(({ block }: ExtractScopeBlockCon
             staticType: 'constant',
             staticValue: '',
         };
-        runInAction(() => {
-            block.config.fields.push(newField);
-        });
+        block.addField(newField);
         setExpandedFields(new Set([...expandedFields, fieldId]));
     };
 
     const addTransformer = (fieldIndex: number, type: TransformerType) => {
-        const field = block.config.fields[fieldIndex];
-        if (!field.transformers) {
-            field.transformers = [];
-        }
-
         let newTransformer: TransformerConfig;
         switch (type) {
             case TransformerType.CurrencyConvert:
@@ -179,36 +156,27 @@ export const ExtractScopeBlockConfig = observer(({ block }: ExtractScopeBlockCon
                 newTransformer = { type };
         }
 
-        runInAction(() => {
-            field.transformers!.push(newTransformer);
-        });
+        block.addTransformer(fieldIndex, newTransformer);
     };
 
     const removeTransformer = (fieldIndex: number, transformerIndex: number) => {
-        const field = block.config.fields[fieldIndex];
-        if (field.transformers) {
-            runInAction(() => {
-                field.transformers!.splice(transformerIndex, 1);
-            });
-        }
+        block.removeTransformer(fieldIndex, transformerIndex);
     };
 
     const removeField = (index: number) => {
-        runInAction(() => {
-            block.config.fields.splice(index, 1);
-        });
+        block.removeFieldByIndex(index);
     };
 
     const updateField = <K extends keyof ExtractionField>(index: number, key: K, value: ExtractionField[K]) => {
-        runInAction(() => {
-            block.config.fields[index][key] = value;
-        });
+        block.updateFieldByIndex(index, key, value);
     };
 
     const updateTransformer = <T extends TransformerConfig, K extends keyof T>(transformer: T, key: K, value: T[K]) => {
-        runInAction(() => {
-            transformer[key] = value;
-        });
+        const fieldIndex = block.config.fields.findIndex(f => f.transformers?.includes(transformer as TransformerConfig));
+        if (fieldIndex === -1) return;
+        const transformerIndex = block.config.fields[fieldIndex].transformers?.findIndex(t => t === transformer);
+        if (transformerIndex === undefined || transformerIndex === -1) return;
+        block.updateTransformer(fieldIndex, transformerIndex, { [key]: value } as Partial<TransformerConfig>);
     };
 
     const [previewData, setPreviewData] = useState<Record<string, any> | null>(null);
@@ -280,23 +248,21 @@ export const ExtractScopeBlockConfig = observer(({ block }: ExtractScopeBlockCon
         const fieldsToAdd = aiSuggestedFields.filter((_, i) => aiSelectedFields.has(i));
         if (fieldsToAdd.length === 0) return;
 
-        runInAction(() => {
-            for (const sf of fieldsToAdd) {
-                const fieldId = uuidv4();
-                const newField: ExtractionField = {
-                    id: fieldId,
-                    key: sf.key,
-                    label: sf.label,
-                    selector: { type: SelectorType.CSS, value: sf.selector },
-                    attribute: sf.attribute as AttributeType || AttributeType.Text,
-                    required: false,
-                    multiple: false,
-                    transformers: [],
-                    mode: 'extracted',
-                };
-                block.config.fields.push(newField);
-            }
-        });
+        for (const sf of fieldsToAdd) {
+            const fieldId = uuidv4();
+            const newField: ExtractionField = {
+                id: fieldId,
+                key: sf.key,
+                label: sf.label,
+                selector: { type: SelectorType.CSS, value: sf.selector },
+                attribute: sf.attribute as AttributeType || AttributeType.Text,
+                required: false,
+                multiple: false,
+                transformers: [],
+                mode: 'extracted',
+            };
+            block.addField(newField);
+        }
 
         setAiDialogOpen(false);
         // Expand newly added fields
@@ -357,12 +323,19 @@ export const ExtractScopeBlockConfig = observer(({ block }: ExtractScopeBlockCon
 
     const applyRegexResult = () => {
         if (!regexResult || !regexTargetTransformer) return;
-        runInAction(() => {
-            regexTargetTransformer.pattern = regexResult.pattern;
-            if (regexResult.flags) regexTargetTransformer.flags = regexResult.flags;
-            if (regexResult.replacement !== undefined) regexTargetTransformer.replacement = regexResult.replacement;
-            if (regexResult.extractGroup !== undefined) regexTargetTransformer.extractGroup = regexResult.extractGroup;
-        });
+        const fieldIndex = block.config.fields.findIndex(f => f.transformers?.includes(regexTargetTransformer));
+        if (fieldIndex === -1) return;
+        const transformerIndex = block.config.fields[fieldIndex].transformers?.findIndex(t => t === regexTargetTransformer);
+        if (transformerIndex === undefined || transformerIndex === -1) return;
+
+        const updates: Partial<RegexTransformerConfig> = {
+            pattern: regexResult.pattern,
+        };
+        if (regexResult.flags) updates.flags = regexResult.flags;
+        if (regexResult.replacement !== undefined) updates.replacement = regexResult.replacement;
+        if (regexResult.extractGroup !== undefined) updates.extractGroup = regexResult.extractGroup;
+
+        block.updateTransformer(fieldIndex, transformerIndex, updates);
         setRegexDialogOpen(false);
     };
 
@@ -505,7 +478,7 @@ export const ExtractScopeBlockConfig = observer(({ block }: ExtractScopeBlockCon
             case 'constant':
                 return field.staticValue ?? '';
             case 'uuid':
-                return crypto.randomUUID();
+                return uuidv4();
             case 'random_number': {
                 const min = field.staticMin ?? 0;
                 const max = field.staticMax ?? 1000;
@@ -613,9 +586,7 @@ export const ExtractScopeBlockConfig = observer(({ block }: ExtractScopeBlockCon
                     id="reset-scope"
                     checked={block.config.resetScope || false}
                     onCheckedChange={(checked) => {
-                        runInAction(() => {
-                            block.config.resetScope = checked as boolean;
-                        });
+                        block.setResetScope(checked as boolean);
                     }}
                 />
                 <div className="flex flex-col">
@@ -634,9 +605,7 @@ export const ExtractScopeBlockConfig = observer(({ block }: ExtractScopeBlockCon
                 helpText="Limit extraction to within this element"
                 selector={block.config.scopeSelector}
                 onSelectorChange={(sel) => {
-                    runInAction(() => {
-                        block.config.scopeSelector = sel;
-                    });
+                    block.setScopeSelector(sel);
                 }}
                 block={block.config.resetScope ? undefined : block}
                 required={false}

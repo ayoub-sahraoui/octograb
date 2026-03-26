@@ -1,5 +1,4 @@
 import { observer } from 'mobx-react-lite';
-import { runInAction } from 'mobx';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Selector, SelectorType } from '@/entrypoints/models/selector';
 import { useBlueprintBuilderStore } from '@/entrypoints/stores/blueprint-builder-store';
@@ -161,14 +160,12 @@ export const SelectorInput = observer(({
 
     const applyOptimizedSelector = (format: 'css' | 'xpath') => {
         if (!aiResult) return;
-        runInAction(() => {
-            const newSelector: Selector = {
-                ...(selector || { type: SelectorType.CSS, value: '' }),
-                type: format === 'xpath' ? SelectorType.XPath : SelectorType.CSS,
-                value: format === 'xpath' ? aiResult.suggestedXPath : aiResult.suggestedSelector,
-            };
-            onSelectorChange(newSelector);
-        });
+        const newSelector: Selector = {
+            ...(selector || { type: SelectorType.CSS, value: '' }),
+            type: format === 'xpath' ? SelectorType.XPath : SelectorType.CSS,
+            value: format === 'xpath' ? aiResult.suggestedXPath : aiResult.suggestedSelector,
+        };
+        onSelectorChange(newSelector);
         setAiDialogOpen(false);
     };
 
@@ -315,33 +312,29 @@ export const SelectorInput = observer(({
 
     // ─── Handlers ─────────────────────────────────────────────────────
     const handleTypeChange = (value: string) => {
-        runInAction(() => {
-            const newSelector: Selector = {
-                ...(selector || { type: SelectorType.CSS, value: '' }),
-                type: value as SelectorType,
-            };
+        const newSelector: Selector = {
+            ...(selector || { type: SelectorType.CSS, value: '' }),
+            type: value as SelectorType,
+        };
 
-            // If we have detected values, swap in the appropriate one
-            if (newSelector.detected) {
-                if (value === SelectorType.CSS && newSelector.detected.css) {
-                    newSelector.value = newSelector.detected.css;
-                } else if (value === SelectorType.XPath && newSelector.detected.xpath) {
-                    newSelector.value = newSelector.detected.xpath;
-                }
+        // If we have detected values, swap in the appropriate one
+        if (newSelector.detected) {
+            if (value === SelectorType.CSS && newSelector.detected.css) {
+                newSelector.value = newSelector.detected.css;
+            } else if (value === SelectorType.XPath && newSelector.detected.xpath) {
+                newSelector.value = newSelector.detected.xpath;
             }
+        }
 
-            onSelectorChange(newSelector);
-        });
+        onSelectorChange(newSelector);
     };
 
     const handleValueChange = (value: string) => {
-        runInAction(() => {
-            const newSelector: Selector = {
-                ...(selector || { type: SelectorType.CSS, value: '' }),
-                value,
-            };
-            onSelectorChange(newSelector);
-        });
+        const newSelector: Selector = {
+            ...(selector || { type: SelectorType.CSS, value: '' }),
+            value,
+        };
+        onSelectorChange(newSelector);
     };
 
     const handlePickElement = async () => {
@@ -352,33 +345,27 @@ export const SelectorInput = observer(({
 
         const success = await store.startPicking((css, xpath) => {
             // Update pending preview — don't commit to block config yet
-            runInAction(() => {
-                store.pendingCss = css;
-                store.pendingXpath = xpath;
-            });
+            store.setPendingSelectors(css, xpath);
         }, computedParentSelector, (doneSuccess) => {
             // Called when user clicks "Done Selecting" or "Cancel" in the page overlay
             if (doneSuccess && store.pendingCss) {
-                runInAction(() => {
-                    const updatedSelector: Selector = {
-                        ...(selector || { type: SelectorType.CSS, value: '' }),
-                        detected: {
-                            css: store.pendingCss,
-                            xpath: store.pendingXpath,
-                        },
-                    };
+                const updatedSelector: Selector = {
+                    ...(selector || { type: SelectorType.CSS, value: '' }),
+                    detected: {
+                        css: store.pendingCss,
+                        xpath: store.pendingXpath,
+                    },
+                };
 
-                    // Set the value based on the currently selected type
-                    if (updatedSelector.type === SelectorType.XPath) {
-                        updatedSelector.value = store.pendingXpath || store.pendingCss;
-                    } else {
-                        updatedSelector.value = store.pendingCss;
-                    }
+                // Set the value based on the currently selected type
+                if (updatedSelector.type === SelectorType.XPath) {
+                    updatedSelector.value = store.pendingXpath || store.pendingCss;
+                } else {
+                    updatedSelector.value = store.pendingCss;
+                }
 
-                    onSelectorChange(updatedSelector);
-                    store.pendingCss = '';
-                    store.pendingXpath = '';
-                });
+                onSelectorChange(updatedSelector);
+                store.setPendingSelectors('', '');
             }
             // If cancelled, pendingCss/pendingXpath are already cleared by the store
         });

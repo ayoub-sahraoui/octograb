@@ -8,12 +8,15 @@ export class Blueprint {
     name: string;
     description: string;
     blocks: Block[];
+    /** Schema version for migration support */
+    version: number;
 
     constructor(name: string, description: string) {
         this.id = uuidv4();
         this.name = name;
         this.description = description;
         this.blocks = [];
+        this.version = 1; // Current schema version
         makeAutoObservable(this);
     }
 
@@ -47,6 +50,10 @@ export class Blueprint {
         this.updateIndices(container);
     }
 
+    setName(name: string) {
+        this.name = name;
+    }
+
     updateIndices(container: Block[] = this.blocks) {
         container.forEach((b, i) => {
             b.index = i;
@@ -58,6 +65,7 @@ export class Blueprint {
             id: this.id,
             name: this.name,
             description: this.description,
+            version: this.version,
             blocks: this.blocks.map(b => this.serializeBlock(b))
         };
     }
@@ -89,6 +97,7 @@ export class Blueprint {
     static fromJSON(json: any): Blueprint {
         const blueprint = new Blueprint(json.name, json.description);
         blueprint.id = json.id;
+        blueprint.version = json.version || 1; // Default to version 1 if not specified
         if (json.blocks && json.blocks.length > 0) {
             blueprint.blocks = json.blocks.map((b: any) => createBlockFromJSON(b));
         }

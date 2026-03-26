@@ -1,5 +1,4 @@
 import { observer } from 'mobx-react-lite';
-import { runInAction } from 'mobx';
 import { NavigateBlock, WaitUntilStrategy, NavigateBehavior } from '@/entrypoints/models/navigate-block';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -25,7 +24,7 @@ export const NavigateBlockConfig = observer(({ block }: NavigateBlockConfigProps
                     type="url"
                     placeholder="https://example.com"
                     value={block.config.url}
-                    onChange={(e) => runInAction(() => { block.config.url = e.target.value; })}
+                    onChange={(e) => block.setUrl(e.target.value)}
                 />
             </div>
 
@@ -33,7 +32,7 @@ export const NavigateBlockConfig = observer(({ block }: NavigateBlockConfigProps
                 <Label htmlFor="waitUntil">Wait Until</Label>
                 <Select
                     value={block.config.waitUntil || WaitUntilStrategy.LOAD}
-                    onValueChange={(value) => runInAction(() => { block.config.waitUntil = value as WaitUntilStrategy; })}
+                    onValueChange={(value) => block.setWaitUntil(value as WaitUntilStrategy)}
                 >
                     <SelectTrigger id="waitUntil">
                         <SelectValue placeholder="Select wait strategy" />
@@ -51,7 +50,7 @@ export const NavigateBlockConfig = observer(({ block }: NavigateBlockConfigProps
                 <Label htmlFor="behavior">Behavior</Label>
                 <Select
                     value={block.config.behavior || NavigateBehavior.SAME_TAB}
-                    onValueChange={(value) => runInAction(() => { block.config.behavior = value as NavigateBehavior; })}
+                    onValueChange={(value) => block.setBehavior(value as NavigateBehavior)}
                 >
                     <SelectTrigger id="behavior">
                         <SelectValue placeholder="Select behavior" />
@@ -71,7 +70,7 @@ export const NavigateBlockConfig = observer(({ block }: NavigateBlockConfigProps
                     type="number"
                     placeholder="30000"
                     value={block.config.timeout || ''}
-                    onChange={(e) => runInAction(() => { block.config.timeout = parseInt(e.target.value) || undefined; })}
+                    onChange={(e) => block.setTimeout(parseInt(e.target.value) || undefined)}
                 />
             </div>
         </div>

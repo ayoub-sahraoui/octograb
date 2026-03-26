@@ -1,20 +1,24 @@
-import { BlockBase } from "./block-base";
 import { toJS } from "mobx";
-import { v4 as uuidv4 } from 'uuid';
+import { BlockBase } from "./block-base";
 import { OnErrorStrategy } from "./enums";
 
-export interface GoBackBlockConfig {
-    steps?: number;
+export interface GetVariableBlockConfig {
+    /** Variable name to retrieve */
+    name: string;
+    /** Default value if variable doesn't exist */
+    defaultValue?: string;
+    /** Variable scope: 'local' (default), 'global', or 'blueprint' */
+    scope?: 'local' | 'global' | 'blueprint';
 }
 
-export class GoBackBlock extends BlockBase {
+export class GetVariableBlock extends BlockBase {
     id: string;
-    type: string = 'go_back';
-    config: GoBackBlockConfig;
+    type: string = 'get_variable';
+    config: GetVariableBlockConfig;
 
-    constructor(name: string, config: GoBackBlockConfig) {
+    constructor(name: string, config: GetVariableBlockConfig) {
         super();
-        this.id = uuidv4();
+        this.id = crypto.randomUUID();
         this.label = name;
         this.enabled = true;
         this.description = '';
@@ -26,16 +30,24 @@ export class GoBackBlock extends BlockBase {
 
     // ─── Config-specific actions ───────────────────────────────────────────
 
-    setSteps(steps: number) {
-        this.config.steps = steps;
+    setVariableName(name: string) {
+        this.config.name = name;
+    }
+
+    setDefaultValue(value: string) {
+        this.config.defaultValue = value;
+    }
+
+    setVariableScope(scope: 'local' | 'global' | 'blueprint') {
+        this.config.scope = scope;
     }
 
     toJSON() {
         return toJS(this);
     }
 
-    static fromJson(json: any): GoBackBlock {
-        const block = new GoBackBlock(json.label || 'Go Back', json.config || { steps: 1 });
+    static fromJson(json: any): GetVariableBlock {
+        const block = new GetVariableBlock(json.label || 'Get Variable', json.config || { name: '' });
         if (json.id) block.id = json.id;
         if (json.enabled !== undefined) block.setEnabled(json.enabled);
         if (json.description !== undefined) block.setDescription(json.description);
