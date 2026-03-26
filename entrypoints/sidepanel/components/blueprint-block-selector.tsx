@@ -24,70 +24,70 @@ const blocks = [
     {
         type: 'navigate',
         icon: Globe,
-        name: 'Navigation',
+        label: 'Navigate',
         description: 'Navigate to a URL',
         createBlock: () => new NavigateBlock("Navigate", { url: "" }),
     },
     {
         type: 'click',
         icon: MousePointer,
-        name: 'Click',
+        label: 'Click',
         description: 'Click on an element',
         createBlock: () => new ClickBlock("Click", { selector: { type: SelectorType.CSS, value: '' } }),
     },
     {
         type: 'input',
         icon: Type,
-        name: 'Input',
+        label: 'Input',
         description: 'Input text into an element',
         createBlock: () => new InputBlock("Input", { selector: { type: SelectorType.CSS, value: '' }, value: '' }),
     },
     {
+        type: 'wait',
+        icon: Hourglass,
+        label: 'Wait',
+        description: 'Wait for a specific time',
+        createBlock: () => new WaitBlock("Wait", { type: 'timeout', timeout: 1000 }),
+    },
+    {
+        type: 'scroll',
+        icon: ScrollText,
+        label: 'Scroll',
+        description: 'Scroll down the page',
+        createBlock: () => new ScrollBlock("Scroll", { target: 'window', behavior: 'bottom' }),
+    },
+    {
+        type: 'go_back',
+        icon: Undo2,
+        label: 'Go Back',
+        description: 'Go back to previous page',
+        createBlock: () => new GoBackBlock("Go Back", {}),
+    },
+    {
         type: 'loop_elements',
         icon: RefreshCcw,
-        name: 'Loop Elements',
+        label: 'Loop Elements',
         description: 'Loop through elements',
         createBlock: () => new LoopElementsBlock("Loop Elements", { selector: { type: SelectorType.CSS, value: '' } }),
     },
     {
         type: 'loop_pagination',
         icon: FileStack,
-        name: 'Loop Pagination',
+        label: 'Loop Pagination',
         description: 'Loop through pagination',
         createBlock: () => new LoopPaginationBlock("Loop Pagination", { nextButtonSelector: { type: SelectorType.CSS, value: '' } }),
     },
     {
         type: 'extract_scope',
         icon: Database,
-        name: 'Extract Scope',
+        label: 'Extract Scope',
         description: 'Extract data from a scope',
         createBlock: () => new ExtractScopeBlock("Extract Scope", { fields: [] }),
     },
     {
-        type: 'go_back',
-        icon: Undo2,
-        name: 'Go Back',
-        description: 'Go back to previous page',
-        createBlock: () => new GoBackBlock("Go Back", {}),
-    },
-    {
-        type: 'scroll',
-        icon: ScrollText,
-        name: 'Scroll',
-        description: 'Scroll down the page',
-        createBlock: () => new ScrollBlock("Scroll", { target: 'window', behavior: 'bottom' }),
-    },
-    {
-        type: 'wait',
-        icon: Hourglass,
-        name: 'Wait',
-        description: 'Wait for a specific time',
-        createBlock: () => new WaitBlock("Wait", { type: 'timeout', timeout: 1000 }),
-    },
-    {
         type: 'condition',
         icon: GitPullRequest,
-        name: 'Condition',
+        label: 'Condition',
         description: 'Conditional execution',
         createBlock: () => new ConditionBlock({ selector: { type: SelectorType.CSS, value: '' }, check: 'exists' }),
     },
@@ -131,24 +131,25 @@ export default function BlueprintBlockSelector({ onBlockSelect, addAsChild = fal
     };
 
     return (
-        <div className='flex flex-col justify-center items-center p-4'>
-            <div className="bg-gray-200 flex w-full gap-2 items-center justify-center border border-dashed border-gray-300 rounded-lg p-2 cursor-pointer">
-                {
-                    blocks.map((block, index) => {
-                        return (
-                            <Tooltip key={index}>
-                                <TooltipTrigger asChild>
-                                    <Button onClick={(e) => handleBlockClick(block.createBlock, e)} size="icon" variant="outline" className='cursor-pointer'>
-                                        <block.icon />
-                                    </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    <p>{block.name}</p>
-                                </TooltipContent>
-                            </Tooltip>
-                        )
-                    })
-                }
+        <div className='flex flex-col items-center p-4 gap-3'>
+            <div className="flex flex-wrap w-full gap-2 items-center justify-center">
+                {blocks.map((block, index) => (
+                    <Tooltip key={index}>
+                        <TooltipTrigger asChild>
+                            <Button
+                                onClick={(e) => handleBlockClick(block.createBlock, e)}
+                                variant="outline"
+                                className='cursor-pointer rounded-full px-3 py-2 h-auto bg-white hover:bg-gray-50 border-gray-200'
+                            >
+                                <block.icon className="w-4 h-4 text-emerald-600 mr-2" />
+                                <span className="text-sm text-gray-700">{block.label}</span>
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p>{block.description}</p>
+                        </TooltipContent>
+                    </Tooltip>
+                ))}
             </div>
         </div>
     )
