@@ -6,7 +6,8 @@ import { useBlueprintBuilderStore } from '@/entrypoints/stores/blueprint-builder
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { Crosshair, Loader2, CheckCircle2, AlertTriangle, XCircle, Search } from 'lucide-react';
+import { Crosshair, Loader2, CheckCircle2, AlertTriangle, XCircle, Search, ChevronDown, ChevronUp, Sparkles, Wand2 } from 'lucide-react';
+import { useConfirm } from './confirm-dialog';
 import {
     Select,
     SelectContent,
@@ -16,13 +17,22 @@ import {
 } from "@/components/ui/select";
 import { Block } from '@/entrypoints/models/types';
 import { sendToContentScript } from '@/core/messaging';
+import { useAiAgentStore } from '@/entrypoints/stores/ai-agent-store';
+import { optimizeSelector, isOverlySpecificSelector, type SelectorOptimization } from '@/core/ai/selector-optimizer';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 
 /** Expected element type for context-aware validation */
 export type ExpectedElementType = 'clickable' | 'input' | 'any';
 
 interface TestResult {
     count: number;
-    elements: { tag: string; isClickable: boolean; isInput: boolean; isVisible: boolean }[];
+    elements: { tag: string; elId?: string; classes?: string; textPreview?: string; isClickable: boolean; isInput: boolean; isVisible: boolean }[];
     error?: string;
 }
 
@@ -103,12 +113,73 @@ export const SelectorInput = observer(({
     required = true,
 }: SelectorInputProps) => {
     const store = useBlueprintBuilderStore();
+    const { alert: showAlert } = useConfirm();
+    const aiStore = useAiAgentStore();
+
+    // ─── Collapsible details state ─────────────────────────────────────
+    const [detailsExpanded, setDetailsExpanded] = useState(true);
+
+    // ─── AI Optimization state ─────────────────────────────────────────
+    const [aiDialogOpen, setAiDialogOpen] = useState(false);
+    const [aiLoading, setAiLoading] = useState(false);
+    const [aiResult, setAiResult] = useState<SelectorOptimization | null>(null);
+    const [aiError, setAiError] = useState<string | null>(null);
+
+    const handleAiOptimize = async () => {
+        if (!aiStore.hasApiKey) {
+            setAiError('Set an API key in Settings first.');
+            setAiDialogOpen(true);
+            return;
+        }
+        if (!currentValue.trim()) return;
+
+        setAiLoading(true);
+        setAiError(null);
+        setAiResult(null);
+        setAiDialogOpen(true);
+
+        try {
+            const result = await optimizeSelector(
+                aiStore.provider,
+                aiStore.apiKey,
+                aiStore.model,
+                currentValue,
+                currentType === SelectorType.XPath ? 'xpath' : 'css',
+            );
+
+            if (result.error) {
+                setAiError(result.error);
+            } else if (result.optimization) {
+                setAiResult(result.optimization);
+            }
+        } catch (e: any) {
+            setAiError(e.message || 'Failed to optimize selector.');
+        } finally {
+            setAiLoading(false);
+        }
+    };
+
+    const applyOptimizedSelector = (format: 'css' | 'xpath') => {
+        if (!aiResult) return;
+        runInAction(() => {
+            const newSelector: Selector = {
+                ...(selector || { type: SelectorType.CSS, value: '' }),
+                type: format === 'xpath' ? SelectorType.XPath : SelectorType.CSS,
+                value: format === 'xpath' ? aiResult.suggestedXPath : aiResult.suggestedSelector,
+            };
+            onSelectorChange(newSelector);
+        });
+        setAiDialogOpen(false);
+    };
 
     // Auto-compute parent scope from block hierarchy, falling back to explicit prop
     const computedParentSelector = block ? getParentScopeSelector(block) : parentSelector;
 
     const currentType = selector?.type || SelectorType.CSS;
     const currentValue = selector?.value || '';
+
+    // Check if current selector looks overly specific (for warning)
+    const showSpecificityWarning = currentValue && isOverlySpecificSelector(currentValue, currentType === SelectorType.XPath ? 'xpath' : 'css');
 
     // ─── Live testing state ───────────────────────────────────────────
     const [testResult, setTestResult] = useState<TestResult | null>(null);
@@ -313,7 +384,7 @@ export const SelectorInput = observer(({
         });
 
         if (!success) {
-            alert('Failed to start element picker. Make sure you have a web page open and the content script is loaded.');
+            showAlert('Picker Failed', 'Failed to start element picker. Make sure you have a web page open and the content script is loaded.');
         }
     };
 
@@ -450,29 +521,67 @@ export const SelectorInput = observer(({
                     </div>
                 )}
 
-                {/* ── Validation + match info (single consolidated line) ── */}
+                {/* ── Validation + match info ── */}
                 {validationMessage && !store.isPicking && (
                     <div className={`flex items-start gap-1.5 text-[11px] leading-snug ${messageColorClass}`}>
                         <span className="mt-px shrink-0"><StatusIcon /></span>
                         <span className="flex-1">
                             {validationMessage}
-                            {/* Inline badges for match details */}
                             {testResult && testResult.count > 0 && (validationState === 'valid' || validationState === 'warning') && (
-                                <span className="inline-flex items-center gap-1 ml-1.5">
-                                    <span className={`inline-flex items-center px-1 py-px rounded text-[9px] font-semibold ${validationState === 'valid'
-                                            ? 'bg-emerald-100 text-emerald-700'
-                                            : 'bg-amber-100 text-amber-700'
-                                        }`}>
-                                        {testResult.count}
-                                    </span>
-                                    {testResult.elements.some(el => !el.isVisible) && (
-                                        <span className="inline-flex items-center px-1 py-px bg-amber-100 text-amber-600 rounded text-[9px] font-semibold">
-                                            {testResult.elements.filter(el => !el.isVisible).length} hidden
-                                        </span>
-                                    )}
+                                <span className={`inline-flex items-center ml-1.5 px-1 py-px rounded text-[9px] font-semibold ${validationState === 'valid' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+                                    {testResult.count}
                                 </span>
                             )}
                         </span>
+                    </div>
+                )}
+
+                {/* ── Specificity Warning ── */}
+                {showSpecificityWarning && computedParentSelector && (
+                    <div className="flex items-start gap-1.5 text-[11px] leading-snug text-amber-600 bg-amber-50 border border-amber-200 rounded px-2 py-1.5">
+                        <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-px" />
+                        <div className="flex-1">
+                            <span className="font-medium">Overly specific selector.</span> This may not work for all items in the loop.
+                            <button
+                                onClick={handleAiOptimize}
+                                className="ml-1.5 text-emerald-600 hover:text-emerald-700 font-medium inline-flex items-center gap-0.5"
+                            >
+                                <Sparkles className="w-3 h-3" />
+                                Optimize with AI
+                            </button>
+                        </div>
+                    </div>
+                )}
+
+                {/* ── Collapsible DOM Element Preview ── */}
+                {testResult && testResult.count > 0 && !store.isPicking && testResult.elements.length > 0 && (
+                    <div className="border rounded-md overflow-hidden">
+                        <button
+                            onClick={() => setDetailsExpanded(!detailsExpanded)}
+                            className="w-full flex items-center justify-between px-2 py-1.5 bg-gray-50 hover:bg-gray-100 text-[11px] text-gray-600 transition-colors"
+                        >
+                            <span className="font-medium">Matched Elements ({testResult.count})</span>
+                            {detailsExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                        </button>
+                        {detailsExpanded && (
+                            <div className="flex flex-col gap-1 p-2 bg-white">
+                                {testResult.elements.map((el, i) => (
+                                    <div key={i} className="flex items-center gap-1 text-[10px] font-mono leading-tight px-2 py-1.5 rounded bg-gray-50 border border-gray-200 overflow-hidden">
+                                        <span className="font-bold text-purple-600">&lt;{el.tag}</span>
+                                        {el.elId && <span className="text-amber-600">#{el.elId}</span>}
+                                        {el.classes && <span className="text-sky-600 truncate max-w-[120px]">.{el.classes.split(' ').join('.')}</span>}
+                                        <span className="font-bold text-purple-600">&gt;</span>
+                                        {el.textPreview && (
+                                            <span className="text-gray-400 truncate max-w-[100px] ml-1">"{el.textPreview}{el.textPreview.length >= 30 ? '...' : ''}"</span>
+                                        )}
+                                        {!el.isVisible && <span className="ml-auto text-[9px] px-1 py-px bg-amber-100 text-amber-600 rounded font-sans">hidden</span>}
+                                    </div>
+                                ))}
+                                {testResult.count > testResult.elements.length && (
+                                    <span className="text-[10px] text-gray-400 pl-1">+{testResult.count - testResult.elements.length} more elements</span>
+                                )}
+                            </div>
+                        )}
                     </div>
                 )}
 
@@ -481,37 +590,147 @@ export const SelectorInput = observer(({
                     <p className="text-[11px] text-muted-foreground leading-snug">{helpText}</p>
                 )}
 
-                {/* ── Metadata row: scope + detected alternatives ── */}
+                {/* ── Enhanced Detected Alternatives Row ── */}
                 {(computedParentSelector || selector?.detected) && (
-                    <div className="flex items-center gap-1.5 flex-wrap">
+                    <div className="flex flex-col gap-2">
                         {computedParentSelector && (
-                            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-emerald-50 text-emerald-600 rounded text-[10px] font-mono border border-emerald-100 max-w-[200px] truncate" title={computedParentSelector}>
-                                <span className="opacity-60">↳</span> {computedParentSelector}
-                            </span>
+                            <div className="flex items-center gap-2">
+                                <span className="inline-flex items-center gap-1 px-2 py-1 bg-emerald-50 text-emerald-600 rounded text-[10px] font-mono border border-emerald-100">
+                                    <span className="opacity-60">↳</span>
+                                    <span className="truncate max-w-[180px]" title={computedParentSelector}>{computedParentSelector}</span>
+                                </span>
+                                <span className="text-[10px] text-muted-foreground">scope</span>
+                            </div>
                         )}
-                        {selector?.detected?.css && currentType !== SelectorType.CSS && (
-                            <button
-                                type="button"
-                                onClick={() => handleTypeChange(SelectorType.CSS)}
-                                className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-gray-50 hover:bg-emerald-50 text-gray-500 hover:text-emerald-600 rounded text-[10px] border border-gray-200 hover:border-emerald-200 transition-colors cursor-pointer font-mono truncate max-w-[180px]"
-                                title={`Switch to CSS: ${selector.detected.css}`}
-                            >
-                                <span className="font-semibold not-italic">CSS</span> {selector.detected.css}
-                            </button>
+
+                        {selector?.detected && (selector.detected.css || selector.detected.xpath) && (
+                            <div className="flex flex-col gap-1.5">
+                                <span className="text-[10px] text-muted-foreground font-medium">Detected alternatives:</span>
+                                <div className="flex flex-wrap gap-1.5">
+                                    {selector.detected.css && currentType !== SelectorType.CSS && (
+                                        <button
+                                            type="button"
+                                            onClick={() => handleTypeChange(SelectorType.CSS)}
+                                            className="inline-flex items-center gap-1 px-2 py-1 bg-white hover:bg-emerald-50 text-gray-600 hover:text-emerald-600 rounded text-[10px] border border-gray-200 hover:border-emerald-200 transition-colors cursor-pointer font-mono"
+                                            title={`Switch to CSS: ${selector.detected.css}`}
+                                        >
+                                            <span className="font-semibold text-emerald-600">CSS</span>
+                                            <span className="truncate max-w-[140px]">{selector.detected.css}</span>
+                                        </button>
+                                    )}
+                                    {selector.detected.xpath && currentType !== SelectorType.XPath && (
+                                        <button
+                                            type="button"
+                                            onClick={() => handleTypeChange(SelectorType.XPath)}
+                                            className="inline-flex items-center gap-1 px-2 py-1 bg-white hover:bg-emerald-50 text-gray-600 hover:text-emerald-600 rounded text-[10px] border border-gray-200 hover:border-emerald-200 transition-colors cursor-pointer font-mono"
+                                            title={`Switch to XPath: ${selector.detected.xpath}`}
+                                        >
+                                            <span className="font-semibold text-purple-600">XPath</span>
+                                            <span className="truncate max-w-[140px]">{selector.detected.xpath}</span>
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
                         )}
-                        {selector?.detected?.xpath && currentType !== SelectorType.XPath && (
+
+                        {/* AI Optimize button (always available) */}
+                        {currentValue && aiStore.hasApiKey && (
                             <button
-                                type="button"
-                                onClick={() => handleTypeChange(SelectorType.XPath)}
-                                className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-gray-50 hover:bg-emerald-50 text-gray-500 hover:text-emerald-600 rounded text-[10px] border border-gray-200 hover:border-emerald-200 transition-colors cursor-pointer font-mono truncate max-w-[180px]"
-                                title={`Switch to XPath: ${selector.detected.xpath}`}
+                                onClick={handleAiOptimize}
+                                className="self-start inline-flex items-center gap-1.5 px-2 py-1 text-[10px] text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded transition-colors"
                             >
-                                <span className="font-semibold not-italic">XPath</span> {selector.detected.xpath}
+                                <Wand2 className="w-3 h-3" />
+                                AI Optimize Selector
                             </button>
                         )}
                     </div>
                 )}
             </div>
+
+            {/* ─── AI Optimization Dialog ─────────────────────────────── */}
+            <Dialog open={aiDialogOpen} onOpenChange={setAiDialogOpen}>
+                <DialogContent className="max-w-lg">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <Sparkles className="w-4 h-4 text-emerald-600" />
+                            AI Selector Optimizer
+                        </DialogTitle>
+                        <DialogDescription>
+                            Get a more generic selector suitable for looping through multiple items.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="space-y-4">
+                        {aiLoading && (
+                            <div className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground">
+                                <Loader2 className="w-4 h-4 animate-spin text-emerald-500" />
+                                Analyzing selector...
+                            </div>
+                        )}
+
+                        {aiError && (
+                            <div className="text-sm text-destructive bg-destructive/10 rounded-md p-3">
+                                {aiError}
+                            </div>
+                        )}
+
+                        {aiResult && (
+                            <div className="space-y-3">
+                                {/* Current selector */}
+                                <div className="border rounded-md p-3 bg-gray-50">
+                                    <Label className="text-[10px] text-gray-500 mb-1 flex items-center gap-1">
+                                        Current
+                                        <span className="text-[9px] px-1 py-0.5 rounded bg-gray-200 text-gray-600">
+                                            {aiResult.selectorType.toUpperCase()}
+                                        </span>
+                                    </Label>
+                                    <pre className="font-mono text-xs text-gray-600 whitespace-pre-wrap break-all max-h-[60px] overflow-y-auto leading-relaxed">{aiResult.originalSelector}</pre>
+                                </div>
+
+                                {/* CSS suggestion */}
+                                <div className="border rounded-md p-3 bg-emerald-50/50 border-emerald-200">
+                                    <div className="flex items-center justify-between mb-1">
+                                        <Label className="text-[10px] text-emerald-700 flex items-center gap-1">
+                                            Suggested
+                                            <span className="text-[9px] px-1 py-0.5 rounded bg-emerald-100 text-emerald-700">CSS</span>
+                                            <span className={`text-[9px] px-1 py-0.5 rounded ${aiResult.confidence === 'high' ? 'bg-emerald-100 text-emerald-700' :
+                                                aiResult.confidence === 'medium' ? 'bg-amber-100 text-amber-700' :
+                                                    'bg-gray-100 text-gray-600'
+                                                }`}>
+                                                {aiResult.confidence}
+                                            </span>
+                                        </Label>
+                                        <Button size="sm" variant="ghost" className="h-6 px-2 text-[10px] text-emerald-700 hover:text-emerald-800 hover:bg-emerald-100" onClick={() => applyOptimizedSelector('css')}>
+                                            Apply CSS
+                                        </Button>
+                                    </div>
+                                    <pre className="font-mono text-xs text-gray-800 whitespace-pre-wrap break-all max-h-[80px] overflow-y-auto leading-relaxed">{aiResult.suggestedSelector}</pre>
+                                </div>
+
+                                {/* XPath suggestion */}
+                                <div className="border rounded-md p-3 bg-gray-50">
+                                    <div className="flex items-center justify-between mb-1">
+                                        <Label className="text-[10px] text-gray-500 flex items-center gap-1">
+                                            Suggested
+                                            <span className="text-[9px] px-1 py-0.5 rounded bg-gray-200 text-gray-600">XPath</span>
+                                        </Label>
+                                        <Button size="sm" variant="ghost" className="h-6 px-2 text-[10px] text-gray-500 hover:text-gray-700 hover:bg-gray-100" onClick={() => applyOptimizedSelector('xpath')}>
+                                            Apply XPath
+                                        </Button>
+                                    </div>
+                                    <pre className="font-mono text-xs text-gray-600 whitespace-pre-wrap break-all max-h-[80px] overflow-y-auto leading-relaxed">{aiResult.suggestedXPath}</pre>
+                                </div>
+
+                                <p className="text-xs text-gray-600">{aiResult.explanation}</p>
+                            </div>
+                        )}
+
+                        <div className="flex justify-end gap-2 pt-2">
+                            <Button variant="outline" size="sm" onClick={() => setAiDialogOpen(false)}>Close</Button>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 });

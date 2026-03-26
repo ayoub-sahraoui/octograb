@@ -1,11 +1,11 @@
-import { CirclePlus, CopyPlus, Database, Download, FileStack, GitPullRequest, Globe, Hourglass, MousePointer, Pause, Play, RefreshCcw, Save, ScrollText, Square, Trash, Type, Undo2, GripVertical, BarChart3, List, Activity, X, RotateCcw, FileDown, FileUp, Upload, Lock } from 'lucide-react'
+import { CirclePlus, CopyPlus, Database, Download, FileStack, GitPullRequest, Globe, Hourglass, MousePointer, Pause, Play, RefreshCcw, Save, ScrollText, Square, Trash, Type, Undo2, GripVertical, BarChart3, List, Activity, X, RotateCcw, FileDown, FileUp, Upload, Lock, ArrowLeft } from 'lucide-react'
 import BlueprintBlock from '../components/blueprint-block'
 import { useBlueprintBuilderStore } from '@/entrypoints/stores/blueprint-builder-store';
 import { useBlueprintExecutorStore } from '@/entrypoints/stores/blueprint-executor-store';
 import { FREE_TIER_LIMITS } from '@/entrypoints/stores/license-store';
 import { toast } from 'sonner';
 import { observer } from 'mobx-react-lite';
-import { runInAction } from 'mobx';
+import { runInAction, reaction, toJS } from 'mobx';
 import { Button } from '@/components/ui/button';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
@@ -22,7 +22,8 @@ import {
     DrawerTrigger,
 } from "@/components/ui/drawer"
 import BlueprintBlockSelector from '../components/blueprint-block-selector'
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
     NavigateBlockConfig,
     ClickBlockConfig,
@@ -54,9 +55,194 @@ import {
 } from "@/components/ui/table"
 import { SortableBlueprintBlock } from '../components/sortable-blueprint-block';
 
+// ─── Extracted observer components (stable identity, never remounted on parent re-render) ───
+
+const BlockConfigDrawer = observer(function BlockConfigDrawer() {
+    const blueprintBuilderStore = useBlueprintBuilderStore();
+    const selectedBlock = blueprintBuilderStore.selectedBlock;
+
+    if (!selectedBlock) {
+        return null;
+    }
+
+    const handleDone = () => {
+        blueprintBuilderStore.clearBlockSelection();
+    };
+
+    const handleDelete = () => {
+        blueprintBuilderStore.removeBlockFromBlueprint(selectedBlock);
+    };
+
+    return (
+        <Drawer direction='right' open={!!selectedBlock} onOpenChange={(open) => {
+            if (!open) {
+                blueprintBuilderStore.clearBlockSelection();
+            }
+        }}>
+            <DrawerContent>
+                <DrawerHeader>
+                    <DrawerTitle>Configure {selectedBlock.label}</DrawerTitle>
+                    <DrawerDescription>
+                        Update the block settings.
+                    </DrawerDescription>
+                </DrawerHeader>
+                <div className="p-4 overflow-y-auto flex-1">
+                    {selectedBlock instanceof NavigateBlock && (
+                        <NavigateBlockConfig block={selectedBlock} />
+                    )}
+                    {selectedBlock instanceof ClickBlock && (
+                        <ClickBlockConfig block={selectedBlock} />
+                    )}
+                    {selectedBlock instanceof InputBlock && (
+                        <InputBlockConfig block={selectedBlock} />
+                    )}
+                    {selectedBlock instanceof WaitBlock && (
+                        <WaitBlockConfig block={selectedBlock} />
+                    )}
+                    {selectedBlock instanceof ScrollBlock && (
+                        <ScrollBlockConfig block={selectedBlock} />
+                    )}
+                    {selectedBlock instanceof GoBackBlock && (
+                        <GoBackBlockConfig block={selectedBlock} />
+                    )}
+                    {selectedBlock instanceof ConditionBlock && (
+                        <ConditionBlockConfig block={selectedBlock} />
+                    )}
+                    {selectedBlock instanceof LoopElementsBlock && (
+                        <LoopElementsBlockConfig block={selectedBlock} />
+                    )}
+                    {selectedBlock instanceof LoopPaginationBlock && (
+                        <LoopPaginationBlockConfig block={selectedBlock} />
+                    )}
+                    {selectedBlock instanceof ExtractScopeBlock && (
+                        <ExtractScopeBlockConfig block={selectedBlock} />
+                    )}
+                </div>
+                <DrawerFooter className="flex flex-row gap-2">
+                    <Button onClick={handleDone} className="flex-1">Done</Button>
+                    <Button variant="destructive" onClick={handleDelete}>
+                        <span className='text-white'>Delete</span>
+                    </Button>
+                </DrawerFooter>
+            </DrawerContent>
+        </Drawer>
+    )
+});
+
+const AddNewChildBlock = observer(function AddNewChildBlock() {
+    const blueprintBuilderStore = useBlueprintBuilderStore();
+    const parentBlock = blueprintBuilderStore.parentBlockForChild;
+
+    const handleChildBlockSelect = () => {
+        blueprintBuilderStore.setParentBlockForChild(null);
+    };
+
+    return (
+        <Drawer open={!!parentBlock} onOpenChange={(open) => {
+            if (!open) {
+                blueprintBuilderStore.setParentBlockForChild(null);
+            }
+        }}>
+            <DrawerContent>
+                <DrawerHeader>
+                    <DrawerTitle>Add Child Block to {parentBlock?.label}</DrawerTitle>
+                    <DrawerDescription>Choose the type of block to add as a child</DrawerDescription>
+                </DrawerHeader>
+                <BlueprintBlockSelector
+                    onBlockSelect={handleChildBlockSelect}
+                    addAsChild={true}
+                />
+                <DrawerFooter>
+                    <DrawerClose asChild>
+                        <Button variant="outline" className="w-full">Cancel</Button>
+                    </DrawerClose>
+                </DrawerFooter>
+            </DrawerContent>
+        </Drawer>
+    );
+});
+
+interface AddNewBlockProps {
+    isOpen: boolean;
+    setIsOpen: (open: boolean) => void;
+}
+
+function AddNewBlock({ isOpen, setIsOpen }: AddNewBlockProps) {
+    return <Drawer open={isOpen} onOpenChange={setIsOpen}>
+        <DrawerTrigger asChild>
+            <Button className='w-40 rounded-full px-3 py-2 mx-auto my-2'>
+                <div className='flex gap-2 items-center'>
+                    <CopyPlus />
+                    <p className='font-semibold'>Add Block</p>
+                </div>
+            </Button>
+        </DrawerTrigger>
+        <DrawerContent>
+            <DrawerHeader>
+                <DrawerTitle>Add New Block</DrawerTitle>
+                <DrawerDescription>Choose the type of block you want to add</DrawerDescription>
+            </DrawerHeader>
+            <BlueprintBlockSelector onBlockSelect={() => setIsOpen(false)} />
+            <DrawerFooter>
+                <DrawerClose asChild>
+                    <Button variant="outline" className="w-full">Cancel</Button>
+                </DrawerClose>
+            </DrawerFooter>
+        </DrawerContent>
+    </Drawer>
+}
+
+interface BlueprintBlocksProps {
+    sensors: ReturnType<typeof useSensors>;
+    handleDragEnd: (event: DragEndEvent) => void;
+    isAddBlockDrawerOpen: boolean;
+    setIsAddBlockDrawerOpen: (open: boolean) => void;
+}
+
+const BlueprintBlocks = observer(function BlueprintBlocks({ sensors, handleDragEnd, isAddBlockDrawerOpen, setIsAddBlockDrawerOpen }: BlueprintBlocksProps) {
+    const blueprintBuilderStore = useBlueprintBuilderStore();
+
+    if (!blueprintBuilderStore.selectedBlueprint) {
+        return null;
+    }
+
+    if (blueprintBuilderStore.selectedBlueprint.blocks.length === 0) {
+        return (
+            <div className="flex flex-col gap-2 items-center justify-center w-full h-full">
+                <div className="flex flex-col gap-2 items-center justify-center">
+                    <CopyPlus className="w-10 h-10" />
+                    <div className='flex flex-col justify-center items-center'>
+                        <h2 className="text-lg font-semibold">No blocks found</h2>
+                        <p className="text-center">Add blocks to your blueprint to start building your automation.</p>
+                    </div>
+                </div>
+                <AddNewBlock isOpen={isAddBlockDrawerOpen} setIsOpen={setIsAddBlockDrawerOpen} />
+            </div>
+        )
+    }
+
+    const blockIds = blueprintBuilderStore.selectedBlueprint.blocks.map(b => b.id);
+
+    return (
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <SortableContext items={blockIds} strategy={verticalListSortingStrategy}>
+                <div className="flex flex-col gap-2 w-full flex-1">
+                    {blueprintBuilderStore.selectedBlueprint.blocks.map((block) => (
+                        <SortableBlueprintBlock key={block.id} block={block} />
+                    ))}
+                    <AddNewBlock isOpen={isAddBlockDrawerOpen} setIsOpen={setIsAddBlockDrawerOpen} />
+                </div>
+            </SortableContext>
+        </DndContext>
+    )
+});
+
+// ─── Main Component ──────────────────────────────────────────────────────────
+
 export default observer(function BlueprintBuilder() {
     const blueprintBuilderStore = useBlueprintBuilderStore();
     const executorStore = useBlueprintExecutorStore();
+    const navigate = useNavigate();
     const [isAddBlockDrawerOpen, setIsAddBlockDrawerOpen] = useState(false);
     const [isResultsDrawerOpen, setIsResultsDrawerOpen] = useState(false);
     const [isEditingName, setIsEditingName] = useState(false);
@@ -113,6 +299,39 @@ export default observer(function BlueprintBuilder() {
             setIsResultsDrawerOpen(true);
         }
     }, [executorStore.extractedData.length]);
+
+    // Keyboard shortcuts for undo/redo
+    useEffect(() => {
+        const handler = (e: KeyboardEvent) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+                e.preventDefault();
+                blueprintBuilderStore.undo();
+            } else if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
+                e.preventDefault();
+                blueprintBuilderStore.redo();
+            }
+        };
+        window.addEventListener('keydown', handler);
+        return () => window.removeEventListener('keydown', handler);
+    }, []);
+
+    // Auto-save: watch for any changes to the selected blueprint and debounce-save
+    const isFirstRender = useRef(true);
+    useEffect(() => {
+        const bp = blueprintBuilderStore.selectedBlueprint;
+        if (!bp) return;
+        isFirstRender.current = true;
+        const dispose = reaction(
+            () => JSON.stringify(toJS(bp), (key, value) => key === 'parent' ? undefined : value),
+            () => {
+                // Skip the initial snapshot (first render)
+                if (isFirstRender.current) { isFirstRender.current = false; return; }
+                blueprintBuilderStore.pushSnapshot();
+                blueprintBuilderStore.triggerAutoSave();
+            },
+        );
+        return () => dispose();
+    }, [blueprintBuilderStore.selectedBlueprint?.id]);
 
     // Drag and drop sensors
     const sensors = useSensors(
@@ -191,169 +410,6 @@ export default observer(function BlueprintBuilder() {
         }
     };
 
-    const AddNewBlock = () => {
-        return <Drawer open={isAddBlockDrawerOpen} onOpenChange={setIsAddBlockDrawerOpen}>
-            <DrawerTrigger asChild>
-                <Button className='w-40 rounded-full px-3 py-2 mx-auto my-2'>
-                    <div className='flex gap-2 items-center'>
-                        <CopyPlus />
-                        <p className='font-semibold'>Add Block</p>
-                    </div>
-                </Button>
-            </DrawerTrigger>
-            <DrawerContent>
-                <DrawerHeader>
-                    <DrawerTitle>Add New Block</DrawerTitle>
-                    <DrawerDescription>Choose the type of block you want to add</DrawerDescription>
-                </DrawerHeader>
-                <BlueprintBlockSelector onBlockSelect={() => setIsAddBlockDrawerOpen(false)} />
-                <DrawerFooter>
-                    <DrawerClose className='flex gap-2 justify-center w-full'>
-                        <Button variant="outline">Cancel</Button>
-                    </DrawerClose>
-                </DrawerFooter>
-            </DrawerContent>
-        </Drawer>
-    }
-
-    const AddNewChildBlock = observer(() => {
-        const parentBlock = blueprintBuilderStore.parentBlockForChild;
-
-        const handleChildBlockSelect = () => {
-            blueprintBuilderStore.setParentBlockForChild(null);
-        };
-
-        return (
-            <Drawer open={!!parentBlock} onOpenChange={(open) => {
-                if (!open) {
-                    blueprintBuilderStore.setParentBlockForChild(null);
-                }
-            }}>
-                <DrawerContent>
-                    <DrawerHeader>
-                        <DrawerTitle>Add Child Block to {parentBlock?.label}</DrawerTitle>
-                        <DrawerDescription>Choose the type of block to add as a child</DrawerDescription>
-                    </DrawerHeader>
-                    <BlueprintBlockSelector
-                        onBlockSelect={handleChildBlockSelect}
-                        addAsChild={true}
-                    />
-                    <DrawerFooter>
-                        <DrawerClose className='flex gap-2 justify-center w-full'>
-                            <Button variant="outline">Cancel</Button>
-                        </DrawerClose>
-                    </DrawerFooter>
-                </DrawerContent>
-            </Drawer>
-        );
-    });
-
-    const BlueprintBlocks = observer(() => {
-        if (!blueprintBuilderStore.selectedBlueprint) {
-            return null;
-        }
-
-        if (blueprintBuilderStore.selectedBlueprint.blocks.length === 0) {
-            return (
-                <div className="flex flex-col gap-2 items-center justify-center w-full h-full">
-                    <div className="flex flex-col gap-2 items-center justify-center">
-                        <CopyPlus className="w-10 h-10" />
-                        <div className='flex flex-col justify-center items-center'>
-                            <h2 className="text-lg font-semibold">No blocks found</h2>
-                            <p className="text-center">Add blocks to your blueprint to start building your automation.</p>
-                        </div>
-                    </div>
-                    <AddNewBlock />
-                </div>
-            )
-        }
-
-        const blockIds = blueprintBuilderStore.selectedBlueprint.blocks.map(b => b.id);
-
-        return (
-            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                <SortableContext items={blockIds} strategy={verticalListSortingStrategy}>
-                    <div className="flex flex-col gap-2 w-full flex-1">
-                        {blueprintBuilderStore.selectedBlueprint.blocks.map((block) => (
-                            <SortableBlueprintBlock key={block.id} block={block} />
-                        ))}
-                        <AddNewBlock />
-                    </div>
-                </SortableContext>
-            </DndContext>
-        )
-    });
-
-    const BlockConfigDrawer = observer(() => {
-        const selectedBlock = blueprintBuilderStore.selectedBlock;
-
-        if (!selectedBlock) {
-            return null;
-        }
-
-        const handleDone = () => {
-            blueprintBuilderStore.clearBlockSelection();
-        };
-
-        const handleDelete = () => {
-            blueprintBuilderStore.removeBlockFromBlueprint(selectedBlock);
-        };
-
-        return (
-            <Drawer direction='right' open={!!selectedBlock} onOpenChange={(open) => {
-                if (!open) {
-                    blueprintBuilderStore.clearBlockSelection();
-                }
-            }}>
-                <DrawerContent>
-                    <DrawerHeader>
-                        <DrawerTitle>Configure {selectedBlock.label}</DrawerTitle>
-                        <DrawerDescription>
-                            Update the block settings.
-                        </DrawerDescription>
-                    </DrawerHeader>
-                    <div className="p-4 overflow-y-auto flex-1">
-                        {selectedBlock instanceof NavigateBlock && (
-                            <NavigateBlockConfig block={selectedBlock} />
-                        )}
-                        {selectedBlock instanceof ClickBlock && (
-                            <ClickBlockConfig block={selectedBlock} />
-                        )}
-                        {selectedBlock instanceof InputBlock && (
-                            <InputBlockConfig block={selectedBlock} />
-                        )}
-                        {selectedBlock instanceof WaitBlock && (
-                            <WaitBlockConfig block={selectedBlock} />
-                        )}
-                        {selectedBlock instanceof ScrollBlock && (
-                            <ScrollBlockConfig block={selectedBlock} />
-                        )}
-                        {selectedBlock instanceof GoBackBlock && (
-                            <GoBackBlockConfig block={selectedBlock} />
-                        )}
-                        {selectedBlock instanceof ConditionBlock && (
-                            <ConditionBlockConfig block={selectedBlock} />
-                        )}
-                        {selectedBlock instanceof LoopElementsBlock && (
-                            <LoopElementsBlockConfig block={selectedBlock} />
-                        )}
-                        {selectedBlock instanceof LoopPaginationBlock && (
-                            <LoopPaginationBlockConfig block={selectedBlock} />
-                        )}
-                        {selectedBlock instanceof ExtractScopeBlock && (
-                            <ExtractScopeBlockConfig block={selectedBlock} />
-                        )}
-                    </div>
-                    <DrawerFooter className="flex flex-row gap-2">
-                        <Button onClick={handleDone} className="flex-1">Done</Button>
-                        <Button variant="destructive" onClick={handleDelete}>
-                            <span className='text-white'>Delete</span>
-                        </Button>
-                    </DrawerFooter>
-                </DrawerContent>
-            </Drawer>
-        )
-    });
 
     const executionResultsDrawer = (
         <Drawer open={isResultsDrawerOpen} onOpenChange={setIsResultsDrawerOpen}>
@@ -548,8 +604,8 @@ export default observer(function BlueprintBuilder() {
                 </Tabs>
 
                 <DrawerFooter>
-                    <DrawerClose className='flex gap-2 justify-center w-full'>
-                        <Button variant="outline">Close</Button>
+                    <DrawerClose asChild>
+                        <Button variant="outline" className="w-full">Close</Button>
                     </DrawerClose>
                 </DrawerFooter>
             </DrawerContent>
@@ -570,40 +626,45 @@ export default observer(function BlueprintBuilder() {
     return (
         <div className="h-full flex-1 flex flex-col gap-2 min-h-0 overflow-hidden">
             <div className='flex justify-between items-center shrink-0'>
-                <div className="flex flex-col ml-2 min-w-0 shrink">
-                    {isEditingName && blueprintBuilderStore.selectedBlueprint ? (
-                        <input
-                            autoFocus
-                            className="text-lg font-semibold bg-transparent border-b border-primary outline-none w-full"
-                            value={editNameValue}
-                            onChange={(e) => setEditNameValue(e.target.value)}
-                            onBlur={async () => {
-                                if (editNameValue.trim() && blueprintBuilderStore.selectedBlueprint) {
-                                    const bp = blueprintBuilderStore.selectedBlueprint;
-                                    runInAction(() => { bp.name = editNameValue.trim(); });
-                                    await blueprintBuilderStore.saveBlueprint(bp);
-                                }
-                                setIsEditingName(false);
-                            }}
-                            onKeyDown={(e) => {
-                                if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
-                                if (e.key === 'Escape') setIsEditingName(false);
-                            }}
-                        />
-                    ) : (
-                        <h1
-                            className={`text-lg font-semibold shrink-0 ${blueprintBuilderStore.selectedBlueprint ? 'cursor-pointer hover:text-primary transition-colors' : ''}`}
-                            title={blueprintBuilderStore.selectedBlueprint ? 'Click to rename' : undefined}
-                            onClick={() => {
-                                if (blueprintBuilderStore.selectedBlueprint) {
-                                    setEditNameValue(blueprintBuilderStore.selectedBlueprint.name);
-                                    setIsEditingName(true);
-                                }
-                            }}
-                        >
-                            {blueprintBuilderStore.selectedBlueprint?.name || 'Blueprint Builder'}
-                        </h1>
-                    )}
+                <div className="flex items-center gap-1 min-w-0 shrink">
+                    <Button size="icon" variant="ghost" onClick={() => navigate('/')} title="Back to Home" className="h-8 w-8 shrink-0">
+                        <ArrowLeft className="w-4 h-4" />
+                    </Button>
+                    <div className="flex flex-col min-w-0">
+                        {isEditingName && blueprintBuilderStore.selectedBlueprint ? (
+                            <input
+                                autoFocus
+                                className="text-lg font-semibold bg-transparent border-b border-primary outline-none w-full"
+                                value={editNameValue}
+                                onChange={(e) => setEditNameValue(e.target.value)}
+                                onBlur={async () => {
+                                    if (editNameValue.trim() && blueprintBuilderStore.selectedBlueprint) {
+                                        const bp = blueprintBuilderStore.selectedBlueprint;
+                                        runInAction(() => { bp.name = editNameValue.trim(); });
+                                        await blueprintBuilderStore.saveBlueprint(bp);
+                                    }
+                                    setIsEditingName(false);
+                                }}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
+                                    if (e.key === 'Escape') setIsEditingName(false);
+                                }}
+                            />
+                        ) : (
+                            <h1
+                                className={`text-lg font-semibold shrink-0 ${blueprintBuilderStore.selectedBlueprint ? 'cursor-pointer hover:text-primary transition-colors' : ''}`}
+                                title={blueprintBuilderStore.selectedBlueprint ? 'Click to rename' : undefined}
+                                onClick={() => {
+                                    if (blueprintBuilderStore.selectedBlueprint) {
+                                        setEditNameValue(blueprintBuilderStore.selectedBlueprint.name);
+                                        setIsEditingName(true);
+                                    }
+                                }}
+                            >
+                                {blueprintBuilderStore.selectedBlueprint?.name || 'Blueprint Builder'}
+                            </h1>
+                        )}
+                    </div>
                 </div>
                 <div className='flex gap-1 flex-wrap justify-end'>
                     <Button
@@ -636,8 +697,17 @@ export default observer(function BlueprintBuilder() {
                             <Database />
                         </Button>
                     )}
-                    <Button size={"icon"} variant={'outline'} onClick={handleSave}>
+                    <Button size={"icon"} variant={'outline'} onClick={() => blueprintBuilderStore.undo()} disabled={!blueprintBuilderStore.canUndo} title="Undo (Ctrl+Z)">
+                        <Undo2 />
+                    </Button>
+                    <Button size={"icon"} variant={'outline'} onClick={() => blueprintBuilderStore.redo()} disabled={!blueprintBuilderStore.canRedo} title="Redo (Ctrl+Y)">
+                        <RefreshCcw />
+                    </Button>
+                    <Button size={"icon"} variant={'outline'} onClick={handleSave} className="relative" title={blueprintBuilderStore.autoSavePending ? 'Saving...' : 'Save blueprint'}>
                         <Save />
+                        {blueprintBuilderStore.autoSavePending && (
+                            <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-amber-400 animate-pulse" />
+                        )}
                     </Button>
                     <Button size={"icon"} variant={'outline'} onClick={() => {
                         const input = document.createElement('input');
@@ -700,7 +770,12 @@ export default observer(function BlueprintBuilder() {
                 } as React.CSSProperties}
             >
                 <div className="flex flex-col items-center p-4 w-full">
-                    <BlueprintBlocks />
+                    <BlueprintBlocks
+                        sensors={sensors}
+                        handleDragEnd={handleDragEnd}
+                        isAddBlockDrawerOpen={isAddBlockDrawerOpen}
+                        setIsAddBlockDrawerOpen={setIsAddBlockDrawerOpen}
+                    />
                     <BlockConfigDrawer />
                     <AddNewChildBlock />
                 </div>

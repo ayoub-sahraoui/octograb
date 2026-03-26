@@ -7,6 +7,7 @@ import { isTampered } from "@/core/integrity";
 import { Loader2, ShieldAlert } from "lucide-react";
 
 import { isDevMode } from '@/core/dev-mode';
+import { ConfirmProvider } from './components/confirm-dialog';
 
 export default observer(function App() {
   const licenseStore = useLicenseStore();
@@ -20,9 +21,11 @@ export default observer(function App() {
   // In dev mode, skip tamper check and license wall entirely
   if (devMode) {
     return (
-      <div className="w-full h-screen bg-gray-200 p-2 flex flex-col gap-2 overflow-hidden">
-        <Router />
-      </div>
+      <ConfirmProvider>
+        <div className="w-full h-screen bg-gray-200 p-2 flex flex-col gap-2 overflow-hidden">
+          <Router />
+        </div>
+      </ConfirmProvider>
     );
   }
 
@@ -57,8 +60,10 @@ export default observer(function App() {
 
   // Activated or free user — show normal app
   return (
-    <div className="w-full h-screen bg-gray-200 p-2 flex flex-col gap-2 overflow-hidden">
-      <Router />
-    </div>
+    <ConfirmProvider>
+      <div className="w-full h-screen bg-gray-200 p-2 flex flex-col gap-2 overflow-hidden">
+        <Router />
+      </div>
+    </ConfirmProvider>
   );
 })

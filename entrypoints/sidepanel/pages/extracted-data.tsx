@@ -1,9 +1,8 @@
 import React, { useEffect, useState } from 'react'
 import { observer } from 'mobx-react-lite'
 import { useBlueprintExecutorStore } from '@/entrypoints/stores/blueprint-executor-store'
-import { useBlueprintBuilderStore } from '@/entrypoints/stores/blueprint-builder-store'
 import { Button } from '@/components/ui/button'
-import { Download, FileJson, FileSpreadsheet, Trash2, Database, ArrowLeft, Clock, ChevronRight } from 'lucide-react'
+import { FileJson, FileSpreadsheet, Trash2, Database, ArrowLeft, Clock, ChevronRight } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { db, ExecutionHistory } from '@/core/database'
 import {
@@ -17,9 +16,10 @@ import {
 
 export default observer(function ExtractedData() {
     const executorStore = useBlueprintExecutorStore();
-    const blueprintBuilderStore = useBlueprintBuilderStore();
     const navigate = useNavigate();
     const [executionHistory, setExecutionHistory] = useState<ExecutionHistory[]>([]);
+    // Track whether we drilled into a history item (vs showing live/current data)
+    const [viewingHistoryId, setViewingHistoryId] = useState<number | null>(null);
 
     useEffect(() => {
         loadHistory();
@@ -33,6 +33,18 @@ export default observer(function ExtractedData() {
     const loadExecutionData = async (execution: ExecutionHistory) => {
         if (execution.id) {
             await executorStore.loadExecutionData(execution.id);
+            setViewingHistoryId(execution.id);
+        }
+    };
+
+    const handleBack = () => {
+        if (viewingHistoryId !== null) {
+            // Go back to history list
+            executorStore.clearResults();
+            setViewingHistoryId(null);
+            loadHistory();
+        } else {
+            navigate('/');
         }
     };
 
@@ -42,12 +54,15 @@ export default observer(function ExtractedData() {
         <div className="h-full flex-1 flex flex-col gap-2 min-h-0 overflow-hidden">
             <div className='flex justify-between items-center shrink-0'>
                 <div className="flex items-center gap-1 shrink-0">
-                    {blueprintBuilderStore.selectedBlueprint && (
-                        <Button size="icon" variant="outline" onClick={() => navigate('/blueprint-builder')} title="Back to Builder" className="h-8 w-8">
-                            <ArrowLeft className="w-4 h-4" />
-                        </Button>
-                    )}
-                    <h1 className="text-lg font-semibold ml-1">Extracted Data</h1>
+                    <Button size="icon" variant="ghost" onClick={handleBack} title={viewingHistoryId !== null ? 'Back to history' : 'Back to Home'} className="h-8 w-8">
+                        <ArrowLeft className="w-4 h-4" />
+                    </Button>
+                    <div className="ml-1">
+                        <h1 className="text-lg font-semibold leading-tight">Extracted Data</h1>
+                        {hasCurrentData && executorStore.runningBlueprintName && (
+                            <p className="text-xs text-muted-foreground leading-tight">{executorStore.runningBlueprintName}</p>
+                        )}
+                    </div>
                 </div>
                 <div className='flex gap-1'>
                     {hasCurrentData && (
@@ -64,7 +79,7 @@ export default observer(function ExtractedData() {
                                 <FileJson className="w-3.5 h-3.5" />
                                 JSON
                             </Button>
-                            <Button size="sm" variant="ghost" onClick={async () => { if (executorStore.currentExecutionId) { await executorStore.deleteExecution(executorStore.currentExecutionId); } else { executorStore.clearResults(); } await loadHistory(); }} className="text-destructive hover:text-destructive h-8 w-8 p-0">
+                            <Button size="sm" variant="ghost" onClick={async () => { if (executorStore.currentExecutionId) { await executorStore.deleteExecution(executorStore.currentExecutionId); } else { executorStore.clearResults(); } setViewingHistoryId(null); await loadHistory(); }} className="text-destructive hover:text-destructive h-8 w-8 p-0">
                                 <Trash2 className="w-4 h-4" />
                             </Button>
                         </>
@@ -136,7 +151,7 @@ export default observer(function ExtractedData() {
                                 >
                                     <Trash2 className="w-3.5 h-3.5" />
                                 </button>
-                                <Database className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                                <Database className="w-4 h-4 text-gray-400 shrink-0" />
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-2">
                                         <span className="font-medium text-sm truncate">{exec.planName}</span>
@@ -157,7 +172,7 @@ export default observer(function ExtractedData() {
                                         {exec.duration && <span>{Math.round(exec.duration / 1000)}s</span>}
                                     </div>
                                 </div>
-                                <ChevronRight className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                                <ChevronRight className="w-4 h-4 text-gray-400 shrink-0" />
                             </div>
                         ))}
                     </div>

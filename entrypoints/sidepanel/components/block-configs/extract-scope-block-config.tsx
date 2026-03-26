@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Plus, Trash2, ChevronDown, ChevronRight, Wand2, ChevronsDownUp, ChevronsUpDown, Database, Calculator, Play, Loader2, Info, FileText, Code, Link, Image, FormInput, Type, GripVertical, ArrowUp, ArrowDown } from 'lucide-react';
+import { Plus, Trash2, ChevronDown, ChevronRight, Wand2, ChevronsDownUp, ChevronsUpDown, Database, Calculator, Play, Loader2, Info, FileText, Code, Link, Image, FormInput, Type, GripVertical, ArrowUp, ArrowDown, Bot, Sparkles } from 'lucide-react';
 import { useState, useMemo } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
@@ -23,6 +23,9 @@ import { AttributeType } from '@/entrypoints/models/enums';
 import { SelectorInput } from '../selector-input';
 import { TransformerType, TransformerConfig, CurrencyConvertTransformerConfig, ReplaceTransformerConfig, RegexTransformerConfig, SplitTransformerConfig } from '@/entrypoints/models/transformer';
 import { sendToContentScript } from '@/core/messaging';
+import { useAiAgentStore } from '@/entrypoints/stores/ai-agent-store';
+import { suggestFields, type SuggestedField } from '@/core/ai/field-suggester';
+import { suggestRegex } from '@/core/ai/regex-helper';
 import {
     Dialog,
     DialogContent,
@@ -212,6 +215,156 @@ export const ExtractScopeBlockConfig = observer(({ block }: ExtractScopeBlockCon
     const [previewLoading, setPreviewLoading] = useState(false);
     const [previewError, setPreviewError] = useState<string | null>(null);
     const [previewOpen, setPreviewOpen] = useState(false);
+
+    // ─── AI Field Suggestion State ─────────────────────────────────────
+    const aiStore = useAiAgentStore();
+    const [aiSuggestLoading, setAiSuggestLoading] = useState(false);
+    const [aiSuggestError, setAiSuggestError] = useState<string | null>(null);
+    const [aiSuggestedFields, setAiSuggestedFields] = useState<SuggestedField[]>([]);
+    const [aiSelectedFields, setAiSelectedFields] = useState<Set<number>>(new Set());
+    const [aiDialogOpen, setAiDialogOpen] = useState(false);
+
+    // Compute parent loop selector from block hierarchy for AI context
+    const getParentLoopSelector = (): string | undefined => {
+        let current = block.parent;
+        while (current) {
+            if ((current as any).type === 'loop_elements' && (current as any).config?.selector?.value) {
+                return (current as any).config.selector.value;
+            }
+            current = (current as any).parent;
+        }
+        return undefined;
+    };
+
+    const handleAiSuggest = async () => {
+        if (!aiStore.hasApiKey) {
+            setAiSuggestError('Set an API key in Settings first.');
+            setAiDialogOpen(true);
+            return;
+        }
+
+        setAiSuggestLoading(true);
+        setAiSuggestError(null);
+        setAiSuggestedFields([]);
+        setAiSelectedFields(new Set());
+        setAiDialogOpen(true);
+
+        try {
+            const result = await suggestFields(
+                aiStore.provider,
+                aiStore.apiKey,
+                aiStore.model,
+                {
+                    loopSelector: getParentLoopSelector(),
+                    scopeSelector: block.config.scopeSelector?.value,
+                },
+            );
+
+            if (result.error) {
+                setAiSuggestError(result.error);
+            } else if (result.fields.length === 0) {
+                setAiSuggestError('No fields could be suggested for this page.');
+            } else {
+                setAiSuggestedFields(result.fields);
+                // Pre-select all by default
+                setAiSelectedFields(new Set(result.fields.map((_, i) => i)));
+            }
+        } catch (e: any) {
+            setAiSuggestError(e.message || 'Failed to get suggestions.');
+        } finally {
+            setAiSuggestLoading(false);
+        }
+    };
+
+    const handleAddSuggestedFields = () => {
+        const fieldsToAdd = aiSuggestedFields.filter((_, i) => aiSelectedFields.has(i));
+        if (fieldsToAdd.length === 0) return;
+
+        runInAction(() => {
+            for (const sf of fieldsToAdd) {
+                const fieldId = uuidv4();
+                const newField: ExtractionField = {
+                    id: fieldId,
+                    key: sf.key,
+                    label: sf.label,
+                    selector: { type: SelectorType.CSS, value: sf.selector },
+                    attribute: sf.attribute as AttributeType || AttributeType.Text,
+                    required: false,
+                    multiple: false,
+                    transformers: [],
+                    mode: 'extracted',
+                };
+                block.config.fields.push(newField);
+            }
+        });
+
+        setAiDialogOpen(false);
+        // Expand newly added fields
+        const newIds = block.config.fields.slice(-fieldsToAdd.length).map(f => getFieldId(f));
+        setExpandedFields(new Set([...expandedFields, ...newIds]));
+    };
+
+    const toggleAiField = (index: number) => {
+        const next = new Set(aiSelectedFields);
+        if (next.has(index)) next.delete(index);
+        else next.add(index);
+        setAiSelectedFields(next);
+    };
+
+    // ─── AI Regex Helper State ─────────────────────────────────────────
+    const [regexDialogOpen, setRegexDialogOpen] = useState(false);
+    const [regexDescription, setRegexDescription] = useState('');
+    const [regexLoading, setRegexLoading] = useState(false);
+    const [regexError, setRegexError] = useState<string | null>(null);
+    const [regexResult, setRegexResult] = useState<{ pattern: string; flags: string; explanation: string; replacement?: string; extractGroup?: number } | null>(null);
+    const [regexTargetTransformer, setRegexTargetTransformer] = useState<RegexTransformerConfig | null>(null);
+
+    const openRegexHelper = (config: RegexTransformerConfig) => {
+        setRegexTargetTransformer(config);
+        setRegexDescription('');
+        setRegexError(null);
+        setRegexResult(null);
+        setRegexDialogOpen(true);
+    };
+
+    const handleRegexSuggest = async () => {
+        if (!regexDescription.trim() || !aiStore.hasApiKey) return;
+        setRegexLoading(true);
+        setRegexError(null);
+        setRegexResult(null);
+
+        const isReplaceMode = regexTargetTransformer?.replacement !== undefined && regexTargetTransformer?.replacement !== '';
+
+        try {
+            const result = await suggestRegex(
+                aiStore.provider,
+                aiStore.apiKey,
+                aiStore.model,
+                regexDescription,
+                isReplaceMode ? 'replace' : 'extract',
+            );
+            if (result.error) {
+                setRegexError(result.error);
+            } else if (result.suggestion) {
+                setRegexResult(result.suggestion);
+            }
+        } catch (e: any) {
+            setRegexError(e.message || 'Failed to generate regex.');
+        } finally {
+            setRegexLoading(false);
+        }
+    };
+
+    const applyRegexResult = () => {
+        if (!regexResult || !regexTargetTransformer) return;
+        runInAction(() => {
+            regexTargetTransformer.pattern = regexResult.pattern;
+            if (regexResult.flags) regexTargetTransformer.flags = regexResult.flags;
+            if (regexResult.replacement !== undefined) regexTargetTransformer.replacement = regexResult.replacement;
+            if (regexResult.extractGroup !== undefined) regexTargetTransformer.extractGroup = regexResult.extractGroup;
+        });
+        setRegexDialogOpen(false);
+    };
 
     const attributeDescriptions: Record<string, string> = {
         [AttributeType.Text]: 'Returns the full visible text of the element and all its children (uses innerText)',
@@ -506,6 +659,10 @@ export const ExtractScopeBlockConfig = observer(({ block }: ExtractScopeBlockCon
                         <Button onClick={addField} size="sm" variant="outline">
                             <Plus className="w-4 h-4 mr-1" />
                             Field
+                        </Button>
+                        <Button onClick={handleAiSuggest} size="sm" variant="outline" className="border-emerald-300 text-emerald-700 hover:bg-emerald-50" disabled={aiSuggestLoading} title="Suggest fields using AI">
+                            {aiSuggestLoading ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Sparkles className="w-4 h-4 mr-1" />}
+                            AI
                         </Button>
                         {block.config.fields.length > 0 && (
                             <Button onClick={allExpanded ? collapseAll : expandAll} size="sm" variant="ghost" className="h-8 px-2 ml-auto" title={allExpanded ? 'Collapse All' : 'Expand All'}>
@@ -985,7 +1142,19 @@ export const ExtractScopeBlockConfig = observer(({ block }: ExtractScopeBlockCon
                                                                                                     </Select>
                                                                                                 </div>
                                                                                                 <div>
-                                                                                                    <Label className="text-xs">Pattern</Label>
+                                                                                                    <div className="flex items-center justify-between">
+                                                                                                        <Label className="text-xs">Pattern</Label>
+                                                                                                        <Button
+                                                                                                            variant="ghost"
+                                                                                                            size="sm"
+                                                                                                            className="h-6 px-2 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
+                                                                                                            onClick={() => openRegexHelper(regexConfig)}
+                                                                                                            title="Get AI help with this regex"
+                                                                                                        >
+                                                                                                            <Sparkles className="w-3 h-3 mr-1" />
+                                                                                                            <span className="text-xs">Help</span>
+                                                                                                        </Button>
+                                                                                                    </div>
                                                                                                     <Input
                                                                                                         className="h-8 font-mono"
                                                                                                         placeholder={isReplaceMode ? "\\d+" : "(\\d+\\.?\\d*)"}
@@ -1160,6 +1329,164 @@ export const ExtractScopeBlockConfig = observer(({ block }: ExtractScopeBlockCon
                                 {Object.keys(previewData).length === 0 && (
                                     <p className="py-4 text-center text-sm text-muted-foreground">No data extracted</p>
                                 )}
+                            </div>
+                        )}
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* ─── AI Field Suggestion Dialog ─────────────────────────────── */}
+            <Dialog open={aiDialogOpen} onOpenChange={setAiDialogOpen}>
+                <DialogContent className="max-w-md max-h-[80vh] flex flex-col">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <Sparkles className="w-4 h-4 text-emerald-600" />
+                            AI Suggested Fields
+                        </DialogTitle>
+                        <DialogDescription>
+                            Select which fields to add to this extraction block.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="flex-1 overflow-y-auto space-y-2 min-h-0">
+                        {aiSuggestLoading && (
+                            <div className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground">
+                                <Loader2 className="w-4 h-4 animate-spin text-emerald-500" />
+                                Analyzing page structure...
+                            </div>
+                        )}
+
+                        {aiSuggestError && (
+                            <div className="text-sm text-destructive bg-destructive/10 rounded-md p-3">
+                                {aiSuggestError}
+                            </div>
+                        )}
+
+                        {aiSuggestedFields.map((sf, i) => (
+                            <div
+                                key={i}
+                                className={`border rounded-lg p-3 cursor-pointer transition-colors ${aiSelectedFields.has(i) ? 'border-emerald-300 bg-emerald-50/50' : 'border-gray-200 hover:border-gray-300'}`}
+                                onClick={() => toggleAiField(i)}
+                            >
+                                <div className="flex items-start gap-2">
+                                    <Checkbox
+                                        checked={aiSelectedFields.has(i)}
+                                        onCheckedChange={() => toggleAiField(i)}
+                                        className="mt-0.5"
+                                    />
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-sm font-medium">{sf.label || sf.key}</span>
+                                            <code className="text-[10px] bg-gray-100 px-1.5 py-0.5 rounded text-emerald-700 font-mono">{sf.key}</code>
+                                        </div>
+                                        <p className="text-xs text-muted-foreground mt-0.5 truncate" title={sf.selector}>
+                                            <code className="font-mono">{sf.selector}</code>
+                                            <span className="mx-1">→</span>
+                                            <span>{sf.attribute}</span>
+                                        </p>
+                                        {sf.description && (
+                                            <p className="text-xs text-gray-500 mt-0.5">{sf.description}</p>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    {aiSuggestedFields.length > 0 && (
+                        <div className="flex items-center justify-between pt-2 border-t">
+                            <button
+                                className="text-xs text-muted-foreground hover:text-foreground"
+                                onClick={() => {
+                                    if (aiSelectedFields.size === aiSuggestedFields.length) {
+                                        setAiSelectedFields(new Set());
+                                    } else {
+                                        setAiSelectedFields(new Set(aiSuggestedFields.map((_, i) => i)));
+                                    }
+                                }}
+                            >
+                                {aiSelectedFields.size === aiSuggestedFields.length ? 'Deselect All' : 'Select All'}
+                            </button>
+                            <Button
+                                size="sm"
+                                className="bg-emerald-600 hover:bg-emerald-700"
+                                onClick={handleAddSuggestedFields}
+                                disabled={aiSelectedFields.size === 0}
+                            >
+                                <Plus className="w-3.5 h-3.5 mr-1" />
+                                Add {aiSelectedFields.size} Field{aiSelectedFields.size !== 1 ? 's' : ''}
+                            </Button>
+                        </div>
+                    )}
+                </DialogContent>
+            </Dialog>
+
+            {/* ─── AI Regex Helper Dialog ─────────────────────────────── */}
+            <Dialog open={regexDialogOpen} onOpenChange={setRegexDialogOpen}>
+                <DialogContent className="max-w-md">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <Sparkles className="w-4 h-4 text-emerald-600" />
+                            AI Regex Helper
+                        </DialogTitle>
+                        <DialogDescription>
+                            Describe what you want to extract or replace, and I'll generate the regex.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="space-y-4">
+                        <div>
+                            <Label className="text-xs mb-1.5 block">What do you want to do?</Label>
+                            <Input
+                                placeholder="e.g., Extract price like $99.99, or remove all non-digits"
+                                value={regexDescription}
+                                onChange={(e) => setRegexDescription(e.target.value)}
+                                className="text-sm"
+                            />
+                        </div>
+
+                        {regexLoading && (
+                            <div className="flex items-center justify-center gap-2 py-4 text-sm text-muted-foreground">
+                                <Loader2 className="w-4 h-4 animate-spin text-emerald-500" />
+                                Generating regex...
+                            </div>
+                        )}
+
+                        {regexError && (
+                            <div className="text-sm text-destructive bg-destructive/10 rounded-md p-3">
+                                {regexError}
+                            </div>
+                        )}
+
+                        {regexResult && (
+                            <div className="space-y-2">
+                                <div className="border rounded-md p-3 bg-emerald-50/50 border-emerald-200">
+                                    <Label className="text-xs text-emerald-700 mb-1.5 block">Suggested Pattern</Label>
+                                    <code className="font-mono text-sm bg-white/80 px-2 py-1 rounded block">/{regexResult.pattern}/{regexResult.flags}</code>
+                                    <p className="text-xs text-gray-600 mt-2">{regexResult.explanation}</p>
+                                </div>
+                            </div>
+                        )}
+
+                        <div className="flex justify-end gap-2 pt-2">
+                            <Button variant="outline" size="sm" onClick={() => setRegexDialogOpen(false)}>Cancel</Button>
+                            <Button
+                                size="sm"
+                                className="bg-emerald-600 hover:bg-emerald-700"
+                                onClick={handleRegexSuggest}
+                                disabled={regexLoading || !regexDescription.trim()}
+                            >
+                                {regexLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4 mr-1" />}
+                                Generate
+                            </Button>
+                        </div>
+
+                        {regexResult && (
+                            <div className="pt-2 border-t flex justify-end">
+                                <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700" onClick={applyRegexResult}>
+                                    <Plus className="w-3.5 h-3.5 mr-1" />
+                                    Apply Regex
+                                </Button>
                             </div>
                         )}
                     </div>

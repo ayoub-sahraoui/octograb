@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { CirclePlus, Database, Settings, House, Bot, Bell, Sparkles, Menu, X, Check, CircleAlert, AlertTriangle, CheckCircle2, XCircle, Info, Lightbulb, Trash2 } from 'lucide-react'
-import { Outlet, useNavigate } from 'react-router-dom'
+import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { useBlueprintBuilderStore } from '@/entrypoints/stores/blueprint-builder-store'
@@ -27,6 +27,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { useConfirm } from '../components/confirm-dialog';
 
 function formatRelativeTime(dateStr: string): string {
     const now = Date.now();
@@ -68,10 +69,12 @@ export default observer(function Layout() {
     const blueprintBuilderStore = useBlueprintBuilderStore();
     const notificationStore = useNotificationStore();
     const navigate = useNavigate();
+    const location = useLocation();
     const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
     const [isAiDialogOpen, setIsAiDialogOpen] = useState(false);
     const [newBlueprintName, setNewBlueprintName] = useState('');
     const [newBlueprintDescription, setNewBlueprintDescription] = useState('');
+    const { alert: showAlert } = useConfirm();
 
     const blueprintBuilderRoute = () => {
         if (!blueprintBuilderStore.canCreateBlueprint) {
@@ -85,9 +88,9 @@ export default observer(function Layout() {
         setIsCreateDialogOpen(true);
     }
 
-    const handleCreateBlueprint = () => {
+    const handleCreateBlueprint = async () => {
         if (!newBlueprintName.trim()) {
-            alert('Please enter a blueprint name');
+            await showAlert('Missing Name', 'Please enter a blueprint name');
             return;
         }
         const created = blueprintBuilderStore.createBlueprint(newBlueprintName.trim(), newBlueprintDescription.trim());
@@ -114,11 +117,11 @@ export default observer(function Layout() {
     }
 
     const navItems = [
-        { icon: House, label: 'Home', action: homeRoute },
-        { icon: CirclePlus, label: 'Create blueprint', action: blueprintBuilderRoute },
-        { icon: Bot, label: 'AI assistant', action: aiChatRoute },
-        { icon: Database, label: 'Extracted data', action: extractedDataRoute },
-        { icon: Settings, label: 'Settings', action: settingsRoute },
+        { icon: House, label: 'Home', action: homeRoute, path: '/' },
+        { icon: CirclePlus, label: 'Create blueprint', action: blueprintBuilderRoute, path: '/blueprint-builder' },
+        { icon: Bot, label: 'AI assistant', action: aiChatRoute, path: '/ai-chat' },
+        { icon: Database, label: 'Extracted data', action: extractedDataRoute, path: '/extracted-data' },
+        { icon: Settings, label: 'Settings', action: settingsRoute, path: '/settings' },
     ];
 
     return (
@@ -137,18 +140,26 @@ export default observer(function Layout() {
                     <div className="flex gap-1.5 items-center shrink-0">
                         {/* Primary nav icons — visible on wider panels */}
                         <div className="hidden min-[420px]:flex gap-1.5 items-center">
-                            {navItems.map((item) => (
-                                <Tooltip key={item.label}>
-                                    <TooltipTrigger asChild>
-                                        <Button size="icon" className="h-9 w-9" onClick={item.action}>
-                                            <item.icon className="h-4 w-4" />
-                                        </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                        <p>{item.label}</p>
-                                    </TooltipContent>
-                                </Tooltip>
-                            ))}
+                            {navItems.map((item) => {
+                                const isActive = location.pathname === item.path;
+                                return (
+                                    <Tooltip key={item.label}>
+                                        <TooltipTrigger asChild>
+                                            <Button
+                                                size="icon"
+                                                variant={isActive ? 'default' : 'outline'}
+                                                className={`h-9 w-9 ${isActive ? 'ring-2 ring-offset-1 ring-primary/30' : ''}`}
+                                                onClick={item.action}
+                                            >
+                                                <item.icon className="h-4 w-4" />
+                                            </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            <p>{item.label}</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                );
+                            })}
                         </div>
 
                         {/* Notification bell — always visible */}
@@ -159,7 +170,7 @@ export default observer(function Layout() {
                                         <Button size="icon" className="h-9 w-9 relative">
                                             <Bell className="h-4 w-4" />
                                             {notificationStore.unreadCount > 0 && (
-                                                <span className="absolute -top-1 -right-1 h-4 min-w-4 px-1 rounded-full bg-red-500 text-[10px] font-bold text-white flex items-center justify-center">
+                                                <span className="absolute -top-1 -right-1 h-4 min-w-4 px-1.5 rounded-full bg-red-500 text-[10px] font-bold text-white flex items-center justify-center">
                                                     {notificationStore.unreadCount > 99 ? '99+' : notificationStore.unreadCount}
                                                 </span>
                                             )}
@@ -249,12 +260,15 @@ export default observer(function Layout() {
                                     </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end" className="w-48">
-                                    {navItems.map((item) => (
-                                        <DropdownMenuItem key={item.label} onClick={item.action} className="gap-2 cursor-pointer">
-                                            <item.icon className="h-4 w-4" />
-                                            {item.label}
-                                        </DropdownMenuItem>
-                                    ))}
+                                    {navItems.map((item) => {
+                                        const isActive = location.pathname === item.path;
+                                        return (
+                                            <DropdownMenuItem key={item.label} onClick={item.action} className={`gap-2 cursor-pointer ${isActive ? 'bg-accent font-medium' : ''}`}>
+                                                <item.icon className="h-4 w-4" />
+                                                {item.label}
+                                            </DropdownMenuItem>
+                                        );
+                                    })}
                                 </DropdownMenuContent>
                             </DropdownMenu>
                         </div>

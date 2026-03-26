@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Play, Pause, Square, SquarePen, Plus, Trash2, Upload, Database, Eye, RotateCcw, Copy, Lock } from "lucide-react";
+import { Play, Pause, Square, Plus, Trash2, Upload, Database, RotateCcw, Copy, Lock, MoreVertical, SquarePen } from "lucide-react";
 import { useBlueprintBuilderStore } from '@/entrypoints/stores/blueprint-builder-store';
 import { useBlueprintExecutorStore } from '@/entrypoints/stores/blueprint-executor-store';
 import { useLicenseStore, FREE_TIER_LIMITS } from '@/entrypoints/stores/license-store';
@@ -15,9 +15,16 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { useConfirm } from '../components/confirm-dialog';
 
 export default observer(function Home() {
     const blueprintBuilderStore = useBlueprintBuilderStore();
@@ -28,6 +35,7 @@ export default observer(function Home() {
     const [newBlueprintName, setNewBlueprintName] = useState('');
     const [newBlueprintDescription, setNewBlueprintDescription] = useState('');
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const { confirm: showConfirm, alert: showAlert } = useConfirm();
 
     useEffect(() => {
         blueprintBuilderStore.loadBlueprints();
@@ -77,11 +85,11 @@ export default observer(function Home() {
     };
 
     const handleDelete = async (blueprintId: string) => {
-        if (confirm('Are you sure you want to delete this blueprint?')) {
-            const blueprint = blueprintBuilderStore.blueprints.find(b => b.id === blueprintId);
-            if (blueprint) {
-                await blueprintBuilderStore.deleteBlueprint(blueprint);
-            }
+        const ok = await showConfirm({ title: 'Delete Blueprint', description: 'Are you sure you want to delete this blueprint?', variant: 'destructive', confirmLabel: 'Delete' });
+        if (!ok) return;
+        const blueprint = blueprintBuilderStore.blueprints.find(b => b.id === blueprintId);
+        if (blueprint) {
+            await blueprintBuilderStore.deleteBlueprint(blueprint);
         }
     };
 
@@ -109,9 +117,9 @@ export default observer(function Home() {
         setIsCreateDialogOpen(true);
     };
 
-    const handleCreateBlueprint = () => {
+    const handleCreateBlueprint = async () => {
         if (!newBlueprintName.trim()) {
-            alert('Please enter a blueprint name');
+            await showAlert('Missing Name', 'Please enter a blueprint name');
             return;
         }
         const created = blueprintBuilderStore.createBlueprint(newBlueprintName.trim(), newBlueprintDescription.trim());
@@ -145,15 +153,22 @@ export default observer(function Home() {
             // Validate JSON can be parsed
             const blueprint = JSON.parse(text);
             if (!blueprint.name || !Array.isArray(blueprint.blocks)) {
-                alert('Invalid blueprint file format');
+                await showAlert('Invalid Format', 'Invalid blueprint file format');
                 return;
             }
 
-            await blueprintBuilderStore.importBlueprint(text);
-            alert(`Blueprint "${blueprint.name}" imported successfully!`);
+            const result = await blueprintBuilderStore.importBlueprint(text);
+            if (result.success) {
+                const msg = result.warnings?.length
+                    ? `Blueprint "${blueprint.name}" imported with ${result.warnings.length} warning(s).`
+                    : `Blueprint "${blueprint.name}" imported successfully!`;
+                await showAlert('Import Complete', msg);
+            } else {
+                await showAlert('Import Failed', result.errors?.join('\n') || 'Unknown error');
+            }
         } catch (error) {
             console.error('Failed to import blueprint:', error);
-            alert('Failed to import blueprint. Please check the file format.');
+            await showAlert('Import Failed', 'Failed to import blueprint. Please check the file format.');
         }
 
         // Reset file input
@@ -221,43 +236,43 @@ export default observer(function Home() {
                         return (
                             <div
                                 key={blueprint.id}
-                                className={`bg-white p-4 border rounded-lg flex flex-col gap-2 transition-all ${isThisRunning ? 'border-emerald-400 ring-2 ring-emerald-200' :
+                                className={`bg-white p-4 border rounded-lg flex flex-col gap-2 transition-all cursor-pointer ${isThisRunning ? 'border-emerald-400 ring-2 ring-emerald-200' :
                                     isThisPaused ? 'border-amber-400 ring-2 ring-amber-200' :
-                                        'border-gray-300 hover:ring-2'
+                                        'border-gray-300 hover:ring-2 hover:ring-emerald-200'
                                     }`}
+                                onClick={() => handleEdit(blueprint.id)}
                             >
                                 <div className="flex justify-between items-start gap-2">
-                                    <div
-                                        className={`flex-1 ${isThisActive ? 'cursor-pointer' : ''}`}
-                                        onClick={isThisActive ? () => handleViewExecution(blueprint.id) : undefined}
-                                    >
+                                    <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-2">
-                                            <h1 className="text-lg font-semibold">{blueprint.name}</h1>
+                                            <h1 className="text-base font-semibold truncate">{blueprint.name}</h1>
                                             {isThisRunning && (
-                                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
+                                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700 shrink-0">
                                                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                                                     Running
                                                 </span>
                                             )}
                                             {isThisPaused && (
-                                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">
+                                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700 shrink-0">
                                                     <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
                                                     Paused
                                                 </span>
                                             )}
                                         </div>
-                                        <p className="text-sm text-gray-600">{blueprint.description || 'No description'}</p>
-                                        <p className="text-xs text-gray-400 mt-1">{blueprint.blocks.length} blocks</p>
+                                        {blueprint.description && (
+                                            <p className="text-sm text-gray-500 mt-0.5 line-clamp-1">{blueprint.description}</p>
+                                        )}
+                                        <p className="text-xs text-gray-400 mt-1">{blueprint.blocks.length} block{blueprint.blocks.length !== 1 ? 's' : ''}</p>
                                     </div>
-                                    <div className="flex gap-1 flex-wrap justify-end shrink-0">
-                                        {/* Play / Pause button */}
+                                    <div className="flex gap-1 items-center shrink-0" onClick={(e) => e.stopPropagation()}>
+                                        {/* Play / Pause / Resume */}
                                         <Button
                                             size="icon"
                                             variant={isThisActive ? 'default' : 'outline'}
                                             onClick={() => handleRun(blueprint.id)}
-                                            title={isThisRunning ? 'Pause' : isThisPaused ? 'Resume' : 'Run Blueprint'}
+                                            title={isThisRunning ? 'Pause' : isThisPaused ? 'Resume' : 'Run'}
                                             disabled={isOtherRunning}
-                                            className={isThisRunning ? 'animate-pulse' : ''}
+                                            className={`h-8 w-8 ${isThisRunning ? 'animate-pulse' : ''}`}
                                         >
                                             {isThisRunning ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
                                         </Button>
@@ -267,66 +282,47 @@ export default observer(function Home() {
                                                 size="icon"
                                                 variant="destructive"
                                                 onClick={() => handleStop(blueprint.id)}
-                                                title="Stop Execution"
-                                                className="text-white"
+                                                title="Stop"
+                                                className="text-white h-8 w-8"
                                             >
                                                 <Square className="w-4 h-4" />
                                             </Button>
                                         )}
-                                        {/* View execution button - when active */}
-                                        {isThisActive && (
-                                            <Button
-                                                size="icon"
-                                                variant="outline"
-                                                onClick={() => handleViewExecution(blueprint.id)}
-                                                title="View Execution"
-                                            >
-                                                <Eye className="w-4 h-4" />
-                                            </Button>
-                                        )}
-                                        {/* Resume button - when stopped with checkpoint (persisted across restart) */}
+                                        {/* Resume from checkpoint */}
                                         {!isThisActive && !isOtherRunning && executorStore.hasResumableCheckpoint(blueprint.id) && (
                                             <Button
                                                 size="icon"
                                                 variant="outline"
                                                 onClick={() => handleResume(blueprint.id)}
-                                                title={`Resume from last checkpoint (${executorStore.resumableBlueprints[blueprint.id]?.itemsScraped || 0} rows)`}
-                                                className="border-emerald-500 text-emerald-500 hover:bg-emerald-50"
+                                                title={`Resume (${executorStore.resumableBlueprints[blueprint.id]?.itemsScraped || 0} rows)`}
+                                                className="border-emerald-500 text-emerald-500 hover:bg-emerald-50 h-8 w-8"
                                             >
                                                 <RotateCcw className="w-4 h-4" />
                                             </Button>
                                         )}
-                                        {/* Edit button */}
-                                        <Button
-                                            size="icon"
-                                            variant="outline"
-                                            onClick={() => handleEdit(blueprint.id)}
-                                            title="Edit Blueprint"
-                                        >
-                                            <SquarePen className="w-4 h-4" />
-                                        </Button>
-                                        {/* Duplicate button - only when not active */}
+                                        {/* More actions dropdown */}
                                         {!isThisActive && (
-                                            <Button
-                                                size="icon"
-                                                variant="outline"
-                                                onClick={() => handleDuplicate(blueprint.id)}
-                                                title="Duplicate Blueprint"
-                                            >
-                                                <Copy className="w-4 h-4" />
-                                            </Button>
-                                        )}
-                                        {/* Delete button - only when not active */}
-                                        {!isThisActive && (
-                                            <Button
-                                                size="icon"
-                                                variant="destructive"
-                                                onClick={() => handleDelete(blueprint.id)}
-                                                title="Delete Blueprint"
-                                                className="text-white"
-                                            >
-                                                <Trash2 className="w-4 h-4" />
-                                            </Button>
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button size="icon" variant="ghost" className="h-8 w-8">
+                                                        <MoreVertical className="w-4 h-4" />
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end" className="w-40">
+                                                    <DropdownMenuItem onClick={() => handleEdit(blueprint.id)} className="gap-2 cursor-pointer">
+                                                        <SquarePen className="w-4 h-4" />
+                                                        Edit
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem onClick={() => handleDuplicate(blueprint.id)} className="gap-2 cursor-pointer">
+                                                        <Copy className="w-4 h-4" />
+                                                        Duplicate
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem onClick={() => handleDelete(blueprint.id)} className="gap-2 cursor-pointer text-destructive focus:text-destructive">
+                                                        <Trash2 className="w-4 h-4" />
+                                                        Delete
+                                                    </DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
                                         )}
                                     </div>
                                 </div>
@@ -340,7 +336,7 @@ export default observer(function Home() {
                                             </span>
                                             <span className="ml-auto shrink-0">
                                                 {executorStore.extractedData.length > 0 && (
-                                                    <span className="mr-2 text-green-600">{executorStore.extractedData.length} rows</span>
+                                                    <span className="mr-2 text-emerald-600">{executorStore.extractedData.length} rows</span>
                                                 )}
                                                 {executorStore.progress.current}/{executorStore.progress.total} blocks
                                             </span>

@@ -33,12 +33,23 @@ export interface ChatMessage {
     action?: { type: string; data: any };
 }
 
-export type AgentStatus = 'idle' | 'thinking' | 'calling_tool' | 'error';
+export type AgentStatus = 'idle' | 'thinking' | 'calling_tool' | 'streaming' | 'error';
+
+export interface Conversation {
+    id: string;
+    title: string;
+    messages: ChatMessage[];
+    createdAt: number;
+    updatedAt: number;
+}
 
 // Storage keys for per-provider API keys
 const STORAGE_KEY_PREFIX = 'ai_provider_key_';
 const STORAGE_KEY_PROVIDER = 'ai_selected_provider';
 const STORAGE_KEY_MODEL = 'ai_selected_model';
+const STORAGE_KEY_CONVERSATIONS = 'ai_conversations';
+const STORAGE_KEY_ACTIVE_CONV = 'ai_active_conversation';
+const MAX_CONVERSATIONS = 30;
 
 // ─── Store ───────────────────────────────────────────────────────────────────
 
@@ -62,17 +73,26 @@ class AiAgentStore {
     /** Whether settings have been loaded from storage */
     settingsLoaded: boolean = false;
 
+    /** Conversation management */
+    conversations: Conversation[] = [];
+    activeConversationId: string | null = null;
+    conversationsLoaded: boolean = false;
+
     /** Abort controller for current agent run */
     private _abortController: AbortController | null = null;
     /** LangChain message history for the agent */
     private _lcMessages: BaseMessage[] = [];
+    /** Debounce timer for conversation persistence */
+    private _saveTimer: ReturnType<typeof setTimeout> | null = null;
 
     constructor() {
         makeAutoObservable(this, {
             _abortController: false,
             _lcMessages: false,
+            _saveTimer: false,
         } as any);
         this.loadSettings();
+        this.loadConversations();
     }
 
     // ─── Settings Management ──────────────────────────────────────────────
@@ -142,7 +162,7 @@ class AiAgentStore {
     }
 
     get isRunning(): boolean {
-        return this.status === 'thinking' || this.status === 'calling_tool';
+        return this.status === 'thinking' || this.status === 'calling_tool' || this.status === 'streaming';
     }
 
     get providerConfig() {
@@ -163,6 +183,11 @@ class AiAgentStore {
         if (this.isRunning) return;
 
         log(`User message: "${content.substring(0, 100)}${content.length > 100 ? '...' : ''}"`);
+
+        // Ensure we have an active conversation
+        if (!this.activeConversationId) {
+            this.newConversation();
+        }
 
         // Add user message
         this.addMessage({ role: 'user', content });
@@ -196,6 +221,169 @@ class AiAgentStore {
             this.currentToolName = null;
         });
         (globalThis as any).__octograb_pending_blueprint = undefined;
+        // Update conversation in storage
+        if (this.activeConversationId) {
+            this.persistActiveConversation();
+        }
+    }
+
+    // ─── Conversation Management ──────────────────────────────────────────
+
+    async loadConversations() {
+        try {
+            const result = await browser.storage.local.get([STORAGE_KEY_CONVERSATIONS, STORAGE_KEY_ACTIVE_CONV]);
+            const saved = (result[STORAGE_KEY_CONVERSATIONS] as Conversation[] | undefined) || [];
+            const activeId = (result[STORAGE_KEY_ACTIVE_CONV] as string | undefined) || null;
+            runInAction(() => {
+                this.conversations = saved;
+                this.conversationsLoaded = true;
+                if (activeId && saved.find(c => c.id === activeId)) {
+                    this.activeConversationId = activeId;
+                    const conv = saved.find(c => c.id === activeId)!;
+                    this.messages = conv.messages;
+                } else if (saved.length > 0) {
+                    // Load most recent
+                    const sorted = [...saved].sort((a, b) => b.updatedAt - a.updatedAt);
+                    this.activeConversationId = sorted[0].id;
+                    this.messages = sorted[0].messages;
+                }
+            });
+            log(`Loaded ${saved.length} conversations, active=${activeId}`);
+        } catch (e) {
+            logError('Failed to load conversations:', e);
+            runInAction(() => { this.conversationsLoaded = true; });
+        }
+    }
+
+    newConversation() {
+        if (this.isRunning) return;
+
+        // Save current conversation first
+        this.persistActiveConversation();
+
+        const id = `conv_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+        const conv: Conversation = {
+            id,
+            title: 'New Chat',
+            messages: [],
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+        };
+
+        runInAction(() => {
+            this.conversations.unshift(conv);
+            this.activeConversationId = id;
+            this.messages = [];
+            this._lcMessages = [];
+            this.status = 'idle';
+            this.error = null;
+            this.currentToolName = null;
+        });
+
+        (globalThis as any).__octograb_pending_blueprint = undefined;
+        this.persistConversations();
+        log(`Created new conversation: ${id}`);
+    }
+
+    switchConversation(id: string) {
+        if (this.isRunning || id === this.activeConversationId) return;
+
+        // Save current
+        this.persistActiveConversation();
+
+        const conv = this.conversations.find(c => c.id === id);
+        if (!conv) return;
+
+        runInAction(() => {
+            this.activeConversationId = id;
+            this.messages = [...conv.messages];
+            this._lcMessages = []; // LangChain history can't be restored; new messages will work
+            this.status = 'idle';
+            this.error = null;
+            this.currentToolName = null;
+        });
+
+        (globalThis as any).__octograb_pending_blueprint = undefined;
+        browser.storage.local.set({ [STORAGE_KEY_ACTIVE_CONV]: id }).catch(() => { });
+        log(`Switched to conversation: ${id}`);
+    }
+
+    deleteConversation(id: string) {
+        if (this.isRunning) return;
+
+        runInAction(() => {
+            this.conversations = this.conversations.filter(c => c.id !== id);
+            if (this.activeConversationId === id) {
+                if (this.conversations.length > 0) {
+                    const next = this.conversations[0];
+                    this.activeConversationId = next.id;
+                    this.messages = [...next.messages];
+                } else {
+                    this.activeConversationId = null;
+                    this.messages = [];
+                }
+                this._lcMessages = [];
+            }
+        });
+
+        this.persistConversations();
+        log(`Deleted conversation: ${id}`);
+    }
+
+    renameConversation(id: string, title: string) {
+        const conv = this.conversations.find(c => c.id === id);
+        if (!conv) return;
+        runInAction(() => { conv.title = title; });
+        this.persistConversations();
+    }
+
+    get activeConversation(): Conversation | null {
+        return this.conversations.find(c => c.id === this.activeConversationId) || null;
+    }
+
+    private persistActiveConversation() {
+        if (!this.activeConversationId) return;
+        const conv = this.conversations.find(c => c.id === this.activeConversationId);
+        if (conv) {
+            runInAction(() => {
+                conv.messages = [...this.messages];
+                conv.updatedAt = Date.now();
+                // Auto-title from first user message
+                if (conv.title === 'New Chat' && this.messages.length > 0) {
+                    const firstUser = this.messages.find(m => m.role === 'user');
+                    if (firstUser) {
+                        conv.title = firstUser.content.length > 40
+                            ? firstUser.content.substring(0, 40) + '…'
+                            : firstUser.content;
+                    }
+                }
+            });
+        }
+        this.persistConversations();
+    }
+
+    private persistConversations() {
+        if (this._saveTimer) clearTimeout(this._saveTimer);
+        this._saveTimer = setTimeout(async () => {
+            try {
+                // Keep only recent conversations + trim tool results for storage
+                const toSave = this.conversations.slice(0, MAX_CONVERSATIONS).map(c => ({
+                    ...c,
+                    messages: c.messages.map(m => ({
+                        ...m,
+                        toolResult: m.toolResult
+                            ? { name: m.toolResult.name, result: m.toolResult.result.substring(0, 200) }
+                            : undefined,
+                    })),
+                }));
+                await browser.storage.local.set({
+                    [STORAGE_KEY_CONVERSATIONS]: toSave,
+                    [STORAGE_KEY_ACTIVE_CONV]: this.activeConversationId,
+                });
+            } catch (e) {
+                logError('Failed to persist conversations:', e);
+            }
+        }, 500);
     }
 
     // ─── Internal ────────────────────────────────────────────────────────
@@ -209,7 +397,8 @@ class AiAgentStore {
         runInAction(() => {
             this.messages.push(msg);
         });
-        return msg;
+        // Return the MobX observable proxy, not the raw object
+        return this.messages[this.messages.length - 1];
     }
 
     private async runAgent() {
@@ -222,6 +411,7 @@ class AiAgentStore {
 
         log(`Starting agent run — provider=${this.provider}, model=${this.model}, messages=${this._lcMessages.length}`);
         const toolMessages: ChatMessage[] = [];
+        let streamingMsg: ChatMessage | null = null;
 
         try {
             const resultMessages = await runAgentStream(
@@ -231,6 +421,33 @@ class AiAgentStore {
                 this.model,
                 (event: AgentStreamEvent) => {
                     switch (event.type) {
+                        case 'token': {
+                            // Accumulate tokens into a streaming assistant message
+                            if (!streamingMsg) {
+                                streamingMsg = this.addMessage({
+                                    role: 'assistant',
+                                    content: event.token,
+                                });
+                                runInAction(() => {
+                                    this.status = 'streaming';
+                                });
+                            } else {
+                                runInAction(() => {
+                                    streamingMsg!.content += event.token;
+                                });
+                            }
+                            break;
+                        }
+
+                        case 'stream_end': {
+                            // Stream finished — finalize the message
+                            streamingMsg = null;
+                            runInAction(() => {
+                                this.status = 'thinking';
+                            });
+                            break;
+                        }
+
                         case 'tool_start':
                             runInAction(() => {
                                 this.status = 'calling_tool';
@@ -277,6 +494,7 @@ class AiAgentStore {
                         }
 
                         case 'agent_message': {
+                            // Fallback for non-streaming providers
                             this.addMessage({
                                 role: 'assistant',
                                 content: event.content,
@@ -336,6 +554,8 @@ class AiAgentStore {
                 this.currentToolName = null;
             });
             this._abortController = null;
+            // Persist conversation after agent run
+            this.persistActiveConversation();
         }
     }
 

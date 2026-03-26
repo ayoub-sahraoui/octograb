@@ -51,7 +51,7 @@ export function createBlockFromJSON(json: any): Block {
 
     // Reapply serialized properties (id, label, enabled, etc.) inside an action
     runInAction(() => {
-        const { children, elseChildren, type, config, ...rest } = json;
+        const { children, elseChildren, type, config, parent, ...rest } = json;
         Object.assign(block, rest);
     });
 

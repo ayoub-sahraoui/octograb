@@ -9,39 +9,151 @@ export const BLUEPRINT_SCHEMA_KNOWLEDGE = `
 A Blueprint = { "name": "string", "description": "string", "blocks": [ ...Block objects... ] }
 
 ### Block Common Shape
-{ "type": "block_type", "label": "Human label", "config": { ... }, "enabled": true, "onError": "stop"|"skip", "children": [ ...only for containers... ] }
+Every block has:
+{ "type": "block_type", "label": "Human label", "config": { ... }, "enabled": true, "onError": "stop"|"skip"|"retry", "maxRetries": 0, "retryDelay": 0, "children": [ ...only for containers... ] }
 
-### Block Types
+### All Block Types & Their Complete Config
 
-**navigate** — Opens a URL. Config: { "url": "https://...", "behavior": "same_tab", "timeout": 30000 }
-**click** — Clicks an element. Config: { "selector": { "type": "css", "value": "..." }, "openInNewTab": false }
-  When openInNewTab: true → children execute in the new tab, then tab closes.
-**input** — Types text. Config: { "selector": { "type": "css", "value": "..." }, "value": "text" }
-**wait** — Pauses. Config: { "type": "timeout"|"selector_visible"|"network_idle", "timeout": 2000 }
-**scroll** — Scrolls page. Config: { "target": "window", "behavior": "bottom"|"top"|"pixels", "pixels": 500 }
-**go_back** — Browser back. Config: {}
+─────────────────────────────────────────
+**navigate** — Opens a URL. MUST be the first block in every blueprint.
+Config:
+- \`url\` (string, REQUIRED): The URL to navigate to.
+- \`behavior\`: "same_tab" (default) | "new_tab" | "replace"
+- \`waitUntil\`: "load" (default) | "domcontentloaded" | "networkidle" | "timeout"
+- \`timeout\`: number (ms), default 30000
 
-**loop_elements** — CONTAINER. Iterates DOM elements matching a selector.
-  Config: { "selector": { "type": "css", "value": "..." }, "maxIterations": 50 }
-  Children execute once per matched element. The current element becomes the **scope** for all children.
+─────────────────────────────────────────
+**click** — Clicks an element. CONTAINER when openInNewTab is true.
+Config:
+- \`selector\` (Selector, REQUIRED): Element to click.
+- \`openInNewTab\`: boolean. When true, the click opens a new tab, children execute IN THAT TAB, then tab closes.
+- \`delayBefore\`: ms to wait before clicking.
+- \`delayAfter\`: ms to wait after clicking.
+- \`waitAfterClick\`: ms to wait for page response after click.
 
+─────────────────────────────────────────
+**input** — Types text into an input/textarea.
+Config:
+- \`selector\` (Selector, REQUIRED): Input element.
+- \`value\` (string, REQUIRED): Text to type.
+- \`delayBefore\`: ms before typing.
+- \`delayAfter\`: ms after typing.
+
+─────────────────────────────────────────
+**wait** — Pauses execution.
+Config:
+- \`type\` (REQUIRED): "timeout" | "selector_visible" | "selector_hidden" | "network_idle" | "dom_content_loaded"
+- \`timeout\`: ms (for "timeout" type or max wait).
+- \`selector\`: Selector (for "selector_visible"/"selector_hidden").
+- \`idleTime\`: ms (for "network_idle").
+
+─────────────────────────────────────────
+**scroll** — Scrolls the page or a specific element.
+Config:
+- \`target\`: "window" (default) | "element"
+- \`behavior\`: "bottom" | "top" | "pixels" | "element_into_view"
+- \`pixels\`: number (when behavior is "pixels")
+- \`selector\`: Selector (when target is "element")
+- \`smooth\`: boolean
+- \`delayAfter\`: ms after scrolling.
+
+─────────────────────────────────────────
+**go_back** — Browser back navigation.
+Config:
+- \`steps\`: number (default 1), how many pages to go back.
+
+─────────────────────────────────────────
+**loop_elements** — CONTAINER. Iterates all DOM elements matching a selector.
+Config:
+- \`selector\` (Selector, REQUIRED): CSS/XPath to find repeating items (e.g. ".product-card").
+- \`maxIterations\`: number (default 50). Safety cap on iterations.
+- \`indexVariable\`: string. Variable name to access current iteration index.
+
+Each matched element becomes the **scope** for all children.
+
+─────────────────────────────────────────
 **loop_pagination** — CONTAINER. Handles multi-page scraping.
-  Config (button): { "paginationType": "button", "nextButtonSelector": { "type": "css", "value": "..." }, "maxPages": 10, "delayBetweenPages": 1500 }
-  Children execute on each page (typically loop_elements → extract_scope).
 
-**extract_scope** — DATA EXTRACTION. Extracts fields from current scope.
-  Config: { "fields": [ { "key": "name", "selector": { "type": "css", "value": ".title" }, "attribute": "text", "transformers": [...] } ] }
-  Optional: "scopeSelector" (narrow scope further), "resetScope" (extract from document root instead of current scope).
+Button pagination config:
+- \`paginationType\`: "button" (default) | "scroll"
+- \`nextButtonSelector\` (Selector, REQUIRED for button): The "Next" button/link.
+- \`maxPages\`: number (default 100). Max pages to process.
+- \`delayBetweenPages\`: ms (default 1000). Wait after page change for content to load.
+- \`onNoNextButton\`: "stop" (default) | "error". What to do when next button disappears.
+- \`stopWhen\`: ConditionConfig. Optional condition to stop early.
 
+Scroll pagination config:
+- \`paginationType\`: "scroll"
+- \`scrollTarget\`: "window" | "element"
+- \`scrollSelector\`: Selector (for scrollable container)
+- \`scrollAmount\`: pixels per scroll (default 1000)
+- \`scrollStrategy\`: "fixed_amount" | "scroll_to_bottom" | "scroll_to_last_item"
+- \`itemSelector\`: Selector (for "scroll_to_last_item" strategy)
+- \`maxPages\`, \`delayBetweenPages\`: same as button.
+
+Children execute on EACH page (typically loop_elements → extract_scope).
+
+⚠️ **PAGINATION CRITICAL RULES:**
+1. The \`nextButtonSelector\` MUST match exactly ONE element — the "Next page" button/link. If it matches multiple elements, pagination will click the wrong one.
+2. Use SPECIFIC selectors like \`a[rel="next"]\`, \`button[aria-label="Next"]\`, \`.pagination .next a\`, \`li.next > a\`. NEVER use generic selectors like \`a\` or \`.btn\`.
+3. The executor automatically detects when the next button is disabled (has \`disabled\` attribute, \`aria-disabled="true"\`, CSS class "disabled", or \`pointer-events: none\`) or hidden — it will gracefully stop pagination. You do NOT need to handle this manually.
+4. Always set \`onNoNextButton: "stop"\` to gracefully end when the last page is reached.
+5. Set \`maxPages\` to a reasonable limit (5-20) unless the user specifically wants more.
+6. Use \`delayBetweenPages: 1500\` or higher for sites with slow loading.
+7. Test the next button selector with \`query_selector\` and verify it matches EXACTLY 1 element.
+
+─────────────────────────────────────────
+**extract_scope** — DATA EXTRACTION. Extracts fields from the current scope.
+Config:
+- \`fields\` (array, REQUIRED): Extraction field definitions (see below).
+- \`scopeSelector\`: Selector (optional — ONLY to narrow scope to a sub-container inside the loop item).
+- \`resetScope\`: boolean (optional — extract from document root instead of current scope).
+
+Field definition:
+{
+  "key": "snake_case_name",
+  "selector": { "type": "css", "value": ".class" },
+  "attribute": "text" | "href" | "src" | "value" | "innerHTML" | "class" | "id" | "custom",
+  "label": "Human label",
+  "required": boolean,
+  "defaultValue": any,
+  "multiple": boolean (extract from ALL matches, join with comma),
+  "transformers": [ { "type": "trim" }, ... ]
+}
+
+Attribute guide:
+- \`text\`: innerText (for visible text content — MOST COMMON)
+- \`href\`: link URL (use on \`a\` tags)
+- \`src\`: image/media URL (use on \`img\`, \`video\`, \`source\` tags)
+- \`value\`: form input value
+- \`innerHTML\`: raw HTML content
+- \`custom\`: specify a custom attribute name
+
+─────────────────────────────────────────
 **condition** — CONTAINER. If/else branching.
-  Config: { "selector": {...}, "check": "exists"|"visible"|"text_contains"|..., "value": "..." }
-  True → children, False → elseChildren.
+Config:
+- \`selector\` (Selector, REQUIRED): Element to check.
+- \`check\` (REQUIRED): "exists" | "not_exists" | "visible" | "hidden" | "text_contains" | "text_equals" | "text_regex" | "count_equals" | "count_greater_than"
+- \`value\`: string | number (comparison value for text/count checks).
+- \`negate\`: boolean (invert the condition).
+
+If condition is true → executes \`children\`. If false → executes \`elseChildren\`.
 
 ### Selector Format
-All selectors: { "type": "css"|"xpath", "value": "selector_string" }. Prefer CSS.
+All selectors: { "type": "css", "value": "selector_string" }
+- ALWAYS prefer CSS selectors. Only use XPath ("type": "xpath") as a last resort.
+- CSS selectors are faster, shorter, and less error-prone.
+- Optional: \`timeout\` (ms), \`waitForVisible\` (boolean), \`fallbacks\` (array of backup selectors).
 
 ### Transformer Types
-trim, uppercase, lowercase, replace: { searchValue, replaceValue }, regex: { pattern, flags, replacement? }, split: { delimiter, index }, parse_number, parse_date: { outputFormat }
+- \`trim\` — Remove whitespace.
+- \`uppercase\` / \`lowercase\` / \`capitalize\` / \`title_case\` — Case transforms.
+- \`replace\` — { "type": "replace", "searchValue": "old", "replaceValue": "new", "global": true }
+- \`regex\` — { "type": "regex", "pattern": "\\\\d+", "flags": "g", "replacement": "" } or { "extractGroup": 1 }
+- \`split\` — { "type": "split", "delimiter": ",", "index": 0 }
+- \`parse_number\` — Strip non-numeric chars, parse as number.
+- \`parse_date\` — { "type": "parse_date", "outputFormat": "YYYY-MM-DD" }
+- \`parse_json\` — Parse a JSON string.
 
 ## ⚠️ CRITICAL: How Block Execution & Scope Works
 
@@ -101,6 +213,19 @@ Every blueprint MUST start with a navigate block so it can run independently.
 **Mistake 4: extract_scope outside loop_elements**
 extract_scope only captures ONE row. To get multiple rows, it MUST be inside loop_elements.
 
+**Mistake 5: Pagination next button matches multiple elements**
+\`\`\`
+loop_pagination (nextButtonSelector: "a")  ← WRONG! Matches all links
+loop_pagination (nextButtonSelector: ".btn")  ← WRONG! Matches all buttons
+\`\`\`
+The next button selector MUST match exactly ONE element. Use specific selectors.
+
+**Mistake 6: Using XPath syntax in CSS selectors**
+\`\`\`
+selector: { type: "css", value: "//button[contains(@class, 'next')]" }  ← WRONG! This is XPath, not CSS
+\`\`\`
+CSS selectors use dots, brackets, colons: \`button.next\`, \`button[aria-label="Next"]\`.
+
 ### Correct Blueprint Patterns (FULL JSON)
 
 **Pattern 1: Simple list extraction**
@@ -118,11 +243,11 @@ extract_scope only captures ONE row. To get multiple rows, it MUST be inside loo
 ]
 \`\`\`
 
-**Pattern 2: Paginated list**
+**Pattern 2: Paginated list (button)**
 \`\`\`json
 [
   { "type": "navigate", "label": "Go to page", "config": { "url": "https://example.com", "behavior": "same_tab", "timeout": 30000 } },
-  { "type": "loop_pagination", "label": "Each page", "config": { "paginationType": "button", "nextButtonSelector": { "type": "css", "value": ".next-page" }, "maxPages": 5, "delayBetweenPages": 2000 }, "children": [
+  { "type": "loop_pagination", "label": "Each page", "config": { "paginationType": "button", "nextButtonSelector": { "type": "css", "value": "li.next > a" }, "maxPages": 10, "delayBetweenPages": 2000, "onNoNextButton": "stop" }, "children": [
     { "type": "loop_elements", "label": "Each product", "config": { "selector": { "type": "css", "value": ".product-card" }, "maxIterations": 50 }, "children": [
       { "type": "extract_scope", "label": "Extract data", "config": { "fields": [
         { "key": "title", "selector": { "type": "css", "value": ".name" }, "attribute": "text" },
@@ -133,7 +258,21 @@ extract_scope only captures ONE row. To get multiple rows, it MUST be inside loo
 ]
 \`\`\`
 
-**Pattern 3: Detail page scraping**
+**Pattern 3: Paginated list (infinite scroll)**
+\`\`\`json
+[
+  { "type": "navigate", "label": "Go to page", "config": { "url": "https://example.com/feed", "behavior": "same_tab", "timeout": 30000 } },
+  { "type": "loop_pagination", "label": "Scroll pages", "config": { "paginationType": "scroll", "scrollTarget": "window", "scrollStrategy": "scroll_to_bottom", "maxPages": 15, "delayBetweenPages": 2000 }, "children": [
+    { "type": "loop_elements", "label": "Each item", "config": { "selector": { "type": "css", "value": ".feed-item" }, "maxIterations": 100 }, "children": [
+      { "type": "extract_scope", "label": "Extract data", "config": { "fields": [
+        { "key": "title", "selector": { "type": "css", "value": "h3" }, "attribute": "text" }
+      ] } }
+    ] }
+  ] }
+]
+\`\`\`
+
+**Pattern 4: Detail page scraping (click into each item)**
 \`\`\`json
 [
   { "type": "navigate", "label": "Go to listing", "config": { "url": "https://example.com/list", "behavior": "same_tab", "timeout": 30000 } },
@@ -143,6 +282,21 @@ extract_scope only captures ONE row. To get multiple rows, it MUST be inside loo
         { "key": "title", "selector": { "type": "css", "value": "h1" }, "attribute": "text" },
         { "key": "description", "selector": { "type": "css", "value": ".description" }, "attribute": "text" },
         { "key": "author", "selector": { "type": "css", "value": ".author" }, "attribute": "text" }
+      ] } }
+    ] }
+  ] }
+]
+\`\`\`
+
+**Pattern 5: Conditional extraction**
+\`\`\`json
+[
+  { "type": "navigate", "label": "Go to page", "config": { "url": "https://example.com", "behavior": "same_tab" } },
+  { "type": "loop_elements", "label": "Each item", "config": { "selector": { "type": "css", "value": ".item" } }, "children": [
+    { "type": "condition", "label": "Has price?", "config": { "selector": { "type": "css", "value": ".price" }, "check": "exists" }, "children": [
+      { "type": "extract_scope", "label": "Extract priced item", "config": { "fields": [
+        { "key": "title", "selector": { "type": "css", "value": ".name" }, "attribute": "text" },
+        { "key": "price", "selector": { "type": "css", "value": ".price" }, "attribute": "text" }
       ] } }
     ] }
   ] }
@@ -205,19 +359,24 @@ Once you know what the user wants, execute ALL steps in a SINGLE turn:
 
 1. \`get_page_url\` — get the current URL for the navigate block
 2. \`analyze_page\` (if not already called) — read page structure
-3. \`query_selector\` — test the loop selector
+3. \`query_selector\` — test the loop selector (the repeating container for items)
 4. \`test_extraction\` — test full extraction with ALL field selectors at once
 5. **QUALITY GATE** — check \`test_extraction\` results:
    - If \`quality_issues\` is present → fix those selectors and call \`test_extraction\` again
    - Max 2 retry rounds. After that, proceed with working fields and note failures.
-6. \`create_blueprint\` — build the blueprint. MUST include:
+6. **IF PAGINATION REQUESTED** — find and test the next button:
+   - Look for \`a[rel="next"]\`, \`.pagination .next a\`, \`li.next > a\`, \`button[aria-label="Next"]\`, or similar
+   - Call \`query_selector\` on your candidate selector — it MUST match exactly 1 element
+   - If it matches 0 or >1 elements, try a more specific selector until you get exactly 1
+   - Common next button patterns: \`a[rel="next"]\`, \`.pagination li:last-child a\`, \`nav.pagination a:last-of-type\`, \`button.next\`, \`[aria-label="Next page"]\`
+7. \`create_blueprint\` — build the blueprint. MUST include:
    - First block: \`navigate\` with the page URL
    - \`loop_elements\` with the tested loop selector
    - \`extract_scope\` as a child of loop_elements, with ONLY \`fields\` in config (NO scopeSelector, NO resetScope unless specifically needed)
-   - If pagination requested: wrap in \`loop_pagination\`
-   - If detail pages requested: add \`click\` with \`openInNewTab: true\`
-7. Present the result — show the blueprint summary + sample data from test_extraction
-8. \`save_blueprint\` → ONLY after user explicitly says "yes" / "save"
+   - If pagination: wrap in \`loop_pagination\` with \`onNoNextButton: "stop"\` and tested next button selector
+   - If detail pages: add \`click\` with \`openInNewTab: true\`
+8. Present the result — show the blueprint summary + sample data from test_extraction
+9. \`save_blueprint\` → ONLY after user explicitly says "yes" / "save"
 
 **CRITICAL: You MUST call \`create_blueprint\` BEFORE presenting results. Never show a blueprint summary without having called the tool first. The user should see the actual validated blueprint, not a text description of what you plan to create.**
 
@@ -267,9 +426,30 @@ Small sidepanel — keep responses SHORT. No long intros, no repeating the user'
 - rate limited → tell user to wait
 
 ## SELECTOR BEST PRACTICES
-- Prefer data attributes and IDs over class names
-- Find the repeating container FIRST, then relative selectors inside it
-- If a class looks auto-generated (random chars), avoid it
-- Field selectors in extract_scope are RELATIVE to the loop item
-- For href/src, use the "attribute" field, not "text"
+
+### General
+- ALWAYS use CSS selectors (type: "css"). NEVER use XPath unless absolutely necessary.
+- Prefer data attributes and IDs over class names.
+- Find the repeating container FIRST, then relative selectors inside it.
+- If a class looks auto-generated (random chars like "sc-abc123"), avoid it.
+- Field selectors in extract_scope are RELATIVE to the loop item.
+- For href/src, use the "attribute" field, not "text".
+
+### Pagination next button selector
+- MUST match exactly 1 element. Test with \`query_selector\` before using.
+- Good: \`li.next > a\`, \`a[rel="next"]\`, \`button[aria-label="Next"]\`, \`.pagination-next\`
+- Bad: \`a\` (too broad), \`.btn\` (matches many), \`button\` (matches all buttons)
+- Many sites use \`<a rel="next">\` — check for this first, it's the most reliable.
+- If the site uses \`<li class="next"><a>...\` patterns, use \`li.next > a\` or \`.next > a\`.
+- The executor handles disabled/hidden buttons automatically — just provide the selector.
+
+### CSS selector syntax reminder
+- Class: \`.class-name\`
+- ID: \`#id-name\`
+- Attribute: \`[attr="value"]\`, \`[attr*="partial"]\`, \`[attr^="starts"]\`, \`[attr$="ends"]\`
+- Descendant: \`.parent .child\`
+- Direct child: \`.parent > .child\`
+- Pseudo: \`:first-child\`, \`:last-child\`, \`:nth-child(2)\`
+- Combined: \`button.next[aria-label="Next"]\`
+- NEVER use XPath syntax (\`//\`, \`contains()\`, \`@attr\`) in a CSS selector — they are completely different languages.
 `;

@@ -1,3 +1,21 @@
+// ─── Theme colors ────────────────────────────────────────────────────────────
+const COLORS = {
+  primary: '#10b981',       // emerald-500
+  primaryDark: '#059669',   // emerald-600
+  primaryLight: '#d1fae5',  // emerald-100
+  primaryBg: 'rgba(16, 185, 129, 0.08)',
+  selected: '#059669',      // emerald-600
+  selectedBg: 'rgba(5, 150, 105, 0.15)',
+  match: '#10b981',         // emerald-500
+  matchBg: 'rgba(16, 185, 129, 0.08)',
+  deselect: '#ef4444',      // red-500
+  scope: '#f59e0b',         // amber-500
+  text: '#1e293b',          // slate-800
+  textMuted: '#64748b',     // slate-500
+  bg: '#ffffff',
+  bgMuted: '#f1f5f9',      // slate-100
+  border: '#e2e8f0',       // slate-200
+};
 
 export class SelectorEngine {
   active: boolean = false;
@@ -22,9 +40,13 @@ export class SelectorEngine {
   parentSelector: string | null = null;
   controlPanel: HTMLElement | null = null;
   infoSpan: HTMLElement | null = null;
+  breadcrumbSpan: HTMLElement | null = null;
+  countBadge: HTMLElement | null = null;
+  clearBtn: HTMLElement | null = null;
   lastMouseX: number = 0;
   lastMouseY: number = 0;
   isKeyboardNavigating: boolean = false;
+  private lastComputedSelector: string = '';
 
   start(
     onSelect: (selector: string, xpath: string) => void,
@@ -39,6 +61,7 @@ export class SelectorEngine {
     this.scopeElement = scopeElement;
     this.parentSelector = parentSelector;
     this.selectedElements = [];
+    this.lastComputedSelector = '';
     this.clearOverlays();
 
     // If parentSelector is provided but no direct scopeElement, resolve it to a DOM element
@@ -65,30 +88,36 @@ export class SelectorEngine {
         position: 'absolute', pointerEvents: 'none', zIndex: '999980',
         top: `${rect.top + window.scrollY}px`, left: `${rect.left + window.scrollX}px`,
         width: `${rect.width}px`, height: `${rect.height}px`,
-        boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.5)', border: '2px dashed #f59e0b',
-        borderRadius: '2px', transition: 'all 0.2s ease'
+        boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.45)',
+        border: `2px dashed ${COLORS.scope}`,
+        borderRadius: '4px', transition: 'all 0.15s ease'
       });
       const scopeLabel = document.createElement('span');
       scopeLabel.textContent = this.parentSelector
         ? `Scope: ${this.parentSelector}`
         : "Extraction Scope";
       Object.assign(scopeLabel.style, {
-        position: 'absolute', top: '-24px', left: '0', backgroundColor: '#f59e0b', color: 'black',
-        padding: '2px 6px', fontSize: '10px', fontWeight: 'bold', borderRadius: '2px',
-        fontFamily: 'monospace', maxWidth: '300px', overflow: 'hidden', textOverflow: 'ellipsis',
-        whiteSpace: 'nowrap'
+        position: 'absolute', top: '-26px', left: '0',
+        backgroundColor: COLORS.scope, color: '#000',
+        padding: '3px 8px', fontSize: '10px', fontWeight: '700', borderRadius: '4px',
+        fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+        maxWidth: '300px', overflow: 'hidden', textOverflow: 'ellipsis',
+        whiteSpace: 'nowrap', letterSpacing: '-0.01em'
       });
       this.maskOverlay.appendChild(scopeLabel);
       document.body.appendChild(this.maskOverlay);
     }
 
-    this.hoverOverlay = this.createOverlayElement('2px solid #3b82f6', 'rgba(59, 130, 246, 0.05)');
+    this.hoverOverlay = this.createOverlayElement(`2px solid ${COLORS.primary}`, COLORS.primaryBg);
     this.label = document.createElement('span');
     Object.assign(this.label.style, {
-      position: 'absolute', top: '-24px', left: '0', backgroundColor: '#3b82f6', color: 'white',
-      padding: '2px 6px', fontSize: '10px', borderRadius: '4px', fontFamily: 'monospace',
-      whiteSpace: 'nowrap', fontWeight: 'bold', boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-      zIndex: '1000000', pointerEvents: 'none'
+      position: 'absolute', top: '-26px', left: '0',
+      backgroundColor: COLORS.primary, color: 'white',
+      padding: '3px 8px', fontSize: '10px', borderRadius: '4px',
+      fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+      whiteSpace: 'nowrap', fontWeight: '700',
+      boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+      zIndex: '1000000', pointerEvents: 'none', letterSpacing: '-0.01em'
     });
     this.hoverOverlay.appendChild(this.label);
     document.body.appendChild(this.hoverOverlay);
@@ -104,50 +133,156 @@ export class SelectorEngine {
   createControlPanel() {
     this.controlPanel = document.createElement('div');
     Object.assign(this.controlPanel.style, {
-      position: 'fixed', bottom: '20px', left: '50%', transform: 'translateX(-50%)',
-      backgroundColor: 'white', padding: '12px 20px', borderRadius: '8px',
-      boxShadow: '0 4px 20px rgba(0,0,0,0.2)', zIndex: '1000001',
-      display: 'flex', alignItems: 'center', gap: '12px', fontFamily: 'sans-serif'
+      position: 'fixed', bottom: '16px', left: '50%', transform: 'translateX(-50%)',
+      backgroundColor: COLORS.bg, padding: '0', borderRadius: '12px',
+      boxShadow: '0 8px 32px rgba(0,0,0,0.18), 0 0 0 1px rgba(0,0,0,0.05)',
+      zIndex: '1000001', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      display: 'flex', flexDirection: 'column', overflow: 'hidden',
+      minWidth: '320px', maxWidth: '500px'
+    });
+
+    // ── Top row: breadcrumb path ──
+    this.breadcrumbSpan = document.createElement('div');
+    Object.assign(this.breadcrumbSpan.style, {
+      padding: '8px 16px', fontSize: '11px',
+      fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+      color: COLORS.textMuted, backgroundColor: COLORS.bgMuted,
+      borderBottom: `1px solid ${COLORS.border}`,
+      whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+      minHeight: '18px', letterSpacing: '-0.01em'
+    });
+    this.breadcrumbSpan.textContent = 'Hover over an element to start';
+    this.controlPanel.appendChild(this.breadcrumbSpan);
+
+    // ── Middle row: info + count badge ──
+    const infoRow = document.createElement('div');
+    Object.assign(infoRow.style, {
+      padding: '10px 16px', display: 'flex', alignItems: 'center', gap: '8px'
     });
 
     this.infoSpan = document.createElement('span');
-    this.infoSpan.textContent = 'Select elements (Arrow keys to navigate)';
-    this.infoSpan.style.fontWeight = '600';
-    this.infoSpan.style.color = '#334155';
-    this.infoSpan.style.fontSize = '14px';
-
-    const doneBtn = document.createElement('button');
-    doneBtn.textContent = 'Done Selecting';
-    Object.assign(doneBtn.style, {
-      backgroundColor: '#2563eb', color: 'white', border: 'none', padding: '8px 16px',
-      borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '14px',
-      transition: 'background 0.2s'
+    this.infoSpan.textContent = 'Click to select';
+    Object.assign(this.infoSpan.style, {
+      fontWeight: '600', color: COLORS.text, fontSize: '13px', flex: '1'
     });
-    doneBtn.onmouseover = () => doneBtn.style.backgroundColor = '#1d4ed8';
-    doneBtn.onmouseout = () => doneBtn.style.backgroundColor = '#2563eb';
-    doneBtn.onclick = (e) => {
-      e.stopPropagation();
-      this.finish(true);
-    };
 
-    const cancelBtn = document.createElement('button');
-    cancelBtn.textContent = 'Cancel';
-    Object.assign(cancelBtn.style, {
-      backgroundColor: '#f1f5f9', color: '#64748b', border: 'none', padding: '8px 16px',
-      borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '14px',
-      transition: 'background 0.2s'
+    this.countBadge = document.createElement('span');
+    this.countBadge.style.display = 'none';
+    Object.assign(this.countBadge.style, {
+      backgroundColor: COLORS.primaryLight, color: COLORS.primaryDark,
+      padding: '2px 8px', borderRadius: '10px', fontSize: '11px', fontWeight: '700',
+      whiteSpace: 'nowrap'
     });
+
+    infoRow.appendChild(this.infoSpan);
+    infoRow.appendChild(this.countBadge);
+    this.controlPanel.appendChild(infoRow);
+
+    // ── Bottom row: action buttons ──
+    const btnRow = document.createElement('div');
+    Object.assign(btnRow.style, {
+      padding: '0 12px 12px', display: 'flex', alignItems: 'center', gap: '8px'
+    });
+
+    const doneBtn = this.createButton('Done Selecting', COLORS.primary, 'white', () => this.finish(true));
+    doneBtn.onmouseover = () => doneBtn.style.backgroundColor = COLORS.primaryDark;
+    doneBtn.onmouseout = () => doneBtn.style.backgroundColor = COLORS.primary;
+
+    this.clearBtn = this.createButton('Clear', COLORS.bgMuted, COLORS.textMuted, () => {
+      this.selectedElements = [];
+      this.lastComputedSelector = '';
+      this.updateSelectionVisuals();
+      this.clearMatchOverlays();
+      this.updateControlPanel();
+    });
+    this.clearBtn.onmouseover = () => { this.clearBtn!.style.backgroundColor = '#e2e8f0'; };
+    this.clearBtn.onmouseout = () => { this.clearBtn!.style.backgroundColor = COLORS.bgMuted; };
+    this.clearBtn.style.display = 'none';
+
+    const cancelBtn = this.createButton('Cancel', COLORS.bgMuted, COLORS.textMuted, () => this.finish(false));
     cancelBtn.onmouseover = () => cancelBtn.style.backgroundColor = '#e2e8f0';
-    cancelBtn.onmouseout = () => cancelBtn.style.backgroundColor = '#f1f5f9';
-    cancelBtn.onclick = (e) => {
-      e.stopPropagation();
-      this.finish(false);
-    };
+    cancelBtn.onmouseout = () => cancelBtn.style.backgroundColor = COLORS.bgMuted;
 
-    this.controlPanel.appendChild(this.infoSpan);
-    this.controlPanel.appendChild(doneBtn);
-    this.controlPanel.appendChild(cancelBtn);
+    btnRow.appendChild(doneBtn);
+    btnRow.appendChild(this.clearBtn);
+    btnRow.appendChild(cancelBtn);
+    this.controlPanel.appendChild(btnRow);
+
     document.body.appendChild(this.controlPanel);
+  }
+
+  private createButton(text: string, bg: string, color: string, onClick: () => void): HTMLButtonElement {
+    const btn = document.createElement('button');
+    btn.textContent = text;
+    Object.assign(btn.style, {
+      backgroundColor: bg, color, border: 'none', padding: '7px 14px',
+      borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '13px',
+      transition: 'all 0.15s ease', lineHeight: '1', whiteSpace: 'nowrap',
+      fontFamily: 'inherit'
+    });
+    btn.onclick = (e) => { e.stopPropagation(); onClick(); };
+    return btn;
+  }
+
+  private updateControlPanel() {
+    const count = this.selectedElements.length;
+
+    if (this.countBadge) {
+      if (count > 0) {
+        this.countBadge.style.display = '';
+        this.countBadge.textContent = `${count} selected`;
+      } else {
+        this.countBadge.style.display = 'none';
+      }
+    }
+
+    if (this.clearBtn) {
+      this.clearBtn.style.display = count > 0 ? '' : 'none';
+    }
+
+    if (this.infoSpan) {
+      if (count === 0) {
+        this.infoSpan.textContent = 'Click to select';
+        this.infoSpan.style.color = COLORS.text;
+      } else {
+        this.infoSpan.textContent = `${count} element${count === 1 ? '' : 's'} selected`;
+        this.infoSpan.style.color = COLORS.primaryDark;
+      }
+    }
+  }
+
+  /** Build a short breadcrumb path for the given element */
+  private getBreadcrumb(el: Element): string {
+    const parts: string[] = [];
+    let curr: Element | null = el;
+    const boundary = this.scopeElement || document.body;
+    let depth = 0;
+
+    while (curr && curr !== boundary && depth < 4) {
+      const tag = curr.tagName.toLowerCase();
+      let seg = tag;
+      if (curr.id) seg += `#${curr.id}`;
+      else {
+        const cls = this.getFirstSemanticClass(curr);
+        if (cls) seg += `.${cls}`;
+      }
+      parts.unshift(seg);
+      curr = curr.parentElement;
+      depth++;
+    }
+    if (curr && curr !== el && curr !== boundary) {
+      parts.unshift('...');
+    }
+    return parts.join(' > ');
+  }
+
+  private getFirstSemanticClass(el: Element): string | null {
+    if (!el.className || typeof el.className !== 'string') return null;
+    const classes = el.className.split(/\s+/).filter(c => c);
+    for (const cls of classes) {
+      if (!this.isUtilityClass(cls)) return cls;
+    }
+    return classes[0] || null;
   }
 
   finish(success: boolean) {
@@ -181,8 +316,9 @@ export class SelectorEngine {
   createOverlayElement(border: string, bg: string): HTMLElement {
     const el = document.createElement('div');
     Object.assign(el.style, {
-      position: 'absolute', pointerEvents: 'none', zIndex: '999990', border: border, backgroundColor: bg,
-      borderRadius: '2px', display: 'none', boxSizing: 'border-box', transition: 'all 0.1s ease'
+      position: 'absolute', pointerEvents: 'none', zIndex: '999990', border, backgroundColor: bg,
+      borderRadius: '3px', display: 'none', boxSizing: 'border-box',
+      transition: 'top 0.08s ease, left 0.08s ease, width 0.08s ease, height 0.08s ease'
     });
     return el;
   }
@@ -210,6 +346,16 @@ export class SelectorEngine {
     this.selectionOverlays = [];
   }
 
+  private positionOverlay(el: HTMLElement, rect: DOMRect) {
+    Object.assign(el.style, {
+      display: 'block',
+      top: `${rect.top + window.scrollY}px`,
+      left: `${rect.left + window.scrollX}px`,
+      width: `${rect.width}px`,
+      height: `${rect.height}px`
+    });
+  }
+
   drawOverlay(rect: DOMRect, type: 'hover' | 'selected' | 'match' = 'hover') {
     if (rect.width === 0 || rect.height === 0) return null;
     let el: HTMLElement;
@@ -217,12 +363,14 @@ export class SelectorEngine {
       if (!this.hoverOverlay) return null;
       el = this.hoverOverlay;
     } else {
-      const style = type === 'selected' ? { border: '2px solid #2563eb', bg: 'rgba(37, 99, 235, 0.2)' } : { border: '2px dashed #10b981', bg: 'rgba(16, 185, 129, 0.1)' };
+      const style = type === 'selected'
+        ? { border: `2px solid ${COLORS.selected}`, bg: COLORS.selectedBg }
+        : { border: `2px dashed ${COLORS.match}`, bg: COLORS.matchBg };
       el = this.createOverlayElement(style.border, style.bg);
       document.body.appendChild(el);
       if (type === 'selected') this.selectionOverlays.push(el); else this.matchOverlays.push(el);
     }
-    Object.assign(el.style, { display: 'block', top: `${rect.top + window.scrollY}px`, left: `${rect.left + window.scrollX}px`, width: `${rect.width}px`, height: `${rect.height}px` });
+    this.positionOverlay(el, rect);
     return el;
   }
 
@@ -242,18 +390,24 @@ export class SelectorEngine {
           this.drawOverlay(el.getBoundingClientRect(), 'match');
         }
       });
+      this.updateControlPanel();
       if (this.infoSpan) {
-        this.infoSpan.textContent = `${matches.length} element${matches.length === 1 ? '' : 's'} selected`;
-        this.infoSpan.style.color = '#2563eb';
+        this.infoSpan.textContent = `${matches.length} element${matches.length === 1 ? '' : 's'} matched`;
+        this.infoSpan.style.color = COLORS.primaryDark;
       }
     } catch (e) { }
   }
 
   handleMouseMove(e: MouseEvent) {
+    // When keyboard navigating, require significant mouse movement to re-engage mouse mode
+    if (this.isKeyboardNavigating) {
+      if (Math.abs(e.clientX - this.lastMouseX) < 10 && Math.abs(e.clientY - this.lastMouseY) < 10) return;
+      this.isKeyboardNavigating = false;
+    }
+
     if (Math.abs(e.clientX - this.lastMouseX) < 2 && Math.abs(e.clientY - this.lastMouseY) < 2) return;
     this.lastMouseX = e.clientX;
     this.lastMouseY = e.clientY;
-    this.isKeyboardNavigating = false;
 
     const el = document.elementFromPoint(e.clientX, e.clientY);
     if (!el || el === this.hoverOverlay || el === this.maskOverlay || el === this.label || this.matchOverlays.includes(el as HTMLElement) || this.selectionOverlays.includes(el as HTMLElement)) return;
@@ -269,47 +423,35 @@ export class SelectorEngine {
     this.hoveredEl = el;
     const rect = el.getBoundingClientRect();
     this.drawOverlay(rect, 'hover');
-
-    const tagName = el.tagName.toLowerCase();
-    let displayText = tagName;
-    if (this.scopeElement) {
-      if (el.className && typeof el.className === 'string' && el.className.trim()) {
-        displayText += `.${el.className.split(' ')[0]}`;
-      }
-    } else {
-      if (el.id) displayText += `#${el.id}`;
-      else if (el.className && typeof el.className === 'string' && el.className.trim()) displayText += `.${el.className.split(' ')[0]}`;
-    }
-
-    if (this.label) {
-      if (this.selectedElements.length > 0) {
-        this.label.textContent = this.selectedElements.includes(el) ? "Click to Deselect" : "Click to Select";
-        this.label.style.backgroundColor = this.selectedElements.includes(el) ? '#ef4444' : '#10b981';
-      } else {
-        this.label.textContent = displayText;
-        this.label.style.backgroundColor = '#3b82f6';
-      }
-    }
+    this.updateHoverLabel(el);
+    this.updateBreadcrumb(el);
   }
 
-  handleClick(e: MouseEvent) {
-    if (this.controlPanel && this.controlPanel.contains(e.target as Node)) return;
+  /** Toggle selection of the currently hovered element and emit the computed selector */
+  private toggleSelection() {
     if (!this.hoveredEl) return;
     if (this.scopeElement && !this.scopeElement.contains(this.hoveredEl)) return;
-    e.preventDefault();
-    e.stopPropagation();
 
     const index = this.selectedElements.indexOf(this.hoveredEl);
     if (index > -1) this.selectedElements.splice(index, 1);
     else this.selectedElements.push(this.hoveredEl);
 
     this.updateSelectionVisuals();
+    this.emitSelector();
+    this.updateControlPanel();
+    // Refresh hover label to show select/deselect state
+    if (this.hoveredEl) this.updateHoverLabel(this.hoveredEl);
+  }
 
+  /** Compute and emit the selector/xpath for the current selection */
+  private emitSelector() {
     let effectiveScope = this.scopeElement;
-    if (!effectiveScope && this.parentSelector) {
-      // Try to find the closest ancestor matching parentSelector
-      effectiveScope = this.hoveredEl.closest(this.parentSelector);
+    if (!effectiveScope && this.parentSelector && this.selectedElements.length > 0) {
+      effectiveScope = this.selectedElements[0].closest(this.parentSelector!);
     }
+
+    // When inside a loop scope, use relative selectors (avoid unique identifiers like text content)
+    const useRelativeMode = effectiveScope !== null;
 
     let finalSelector = '', finalXPath = '';
     if (this.selectedElements.length > 1) {
@@ -317,45 +459,36 @@ export class SelectorEngine {
       if (common) {
         finalSelector = common;
         this.updateMatchVisuals(finalSelector);
-
-        // Generate XPath from the common CSS selector
         finalXPath = this.cssToXPath(finalSelector);
-        if (!finalXPath) {
-          // Fallback: use first element's xpath
-          finalXPath = this.getXPath(this.selectedElements[0]);
-        }
+        if (!finalXPath) finalXPath = this.getXPath(this.selectedElements[0]);
       } else {
-        finalSelector = this.getOptimalSelector(this.selectedElements[this.selectedElements.length - 1], effectiveScope);
+        // Use relative selector if in loop context
+        if (useRelativeMode) {
+          finalSelector = this.getRelativeSelector(this.selectedElements[this.selectedElements.length - 1], effectiveScope);
+          finalXPath = this.getRelativeXPath(this.selectedElements[this.selectedElements.length - 1], effectiveScope);
+        } else {
+          finalSelector = this.getOptimalSelector(this.selectedElements[this.selectedElements.length - 1], effectiveScope);
+          finalXPath = this.getXPath(this.selectedElements[this.selectedElements.length - 1]);
+        }
         this.clearMatchOverlays();
-        // Fallback to last element's xpath
-        const el = this.selectedElements[this.selectedElements.length - 1];
-        finalXPath = this.getXPath(el);
       }
     } else if (this.selectedElements.length === 1) {
       const el = this.selectedElements[0];
-      finalSelector = this.getOptimalSelector(el, effectiveScope);
-
-      // Calculate XPath (prefer smart text-based if available, always fallback to structural)
-      const smartXPath = this.getSmartXPath(el);
-      finalXPath = smartXPath || this.getXPath(el);
-
-      // Final safety check - ensure xpath is never empty
-      if (!finalXPath) {
-        finalXPath = this.getXPath(el);
+      // Use relative selector if in loop context (avoids text-based XPath)
+      if (useRelativeMode) {
+        finalSelector = this.getRelativeSelector(el, effectiveScope);
+        finalXPath = this.getRelativeXPath(el, effectiveScope);
+      } else {
+        finalSelector = this.getOptimalSelector(el, effectiveScope);
+        // Only use text-based XPath in non-loop contexts
+        const smartXPath = this.getSmartXPath(el);
+        finalXPath = smartXPath || this.getXPath(el);
+        if (!finalXPath) finalXPath = this.getXPath(el);
       }
-
       this.clearMatchOverlays();
-      if (this.infoSpan) {
-        this.infoSpan.textContent = '1 element selected';
-        this.infoSpan.style.color = '#334155';
-      }
     } else {
-      // All elements deselected — clear visuals and reset info, don't send empty selector
       this.clearMatchOverlays();
-      if (this.infoSpan) {
-        this.infoSpan.textContent = 'Select elements (Arrow keys to navigate)';
-        this.infoSpan.style.color = '#334155';
-      }
+      this.lastComputedSelector = '';
       return;
     }
 
@@ -366,7 +499,17 @@ export class SelectorEngine {
       if (!finalXPath) finalXPath = this.getXPath(el);
     }
 
+    this.lastComputedSelector = finalSelector;
     if (this.onSelectCallback && finalSelector) this.onSelectCallback(finalSelector, finalXPath);
+  }
+
+  handleClick(e: MouseEvent) {
+    if (this.controlPanel && this.controlPanel.contains(e.target as Node)) return;
+    if (!this.hoveredEl) return;
+    if (this.scopeElement && !this.scopeElement.contains(this.hoveredEl)) return;
+    e.preventDefault();
+    e.stopPropagation();
+    this.toggleSelection();
   }
 
   getSmartXPath(el: Element): string | null {
@@ -376,7 +519,6 @@ export class SelectorEngine {
     // Handle quotes in text
     let textPart = '';
     if (text.includes("'") && text.includes('"')) {
-      // complex case, skip or use concat
       return null;
     } else if (text.includes("'")) {
       textPart = `"${text}"`;
@@ -394,51 +536,68 @@ export class SelectorEngine {
       return;
     }
 
-    if (this.hoveredEl && !this.selectedElements.includes(this.hoveredEl)) {
-      if (e.key === 'ArrowUp') {
-        e.preventDefault();
-        this.isKeyboardNavigating = true;
-        const parent = this.hoveredEl.parentElement;
-        if (parent && parent !== document.body) {
-          if (!this.scopeElement || this.scopeElement.contains(parent)) {
-            this.hoveredEl = parent;
-            this.drawOverlay(this.hoveredEl.getBoundingClientRect(), 'hover');
-            this.updateLabel(this.hoveredEl);
-          }
+    if (!this.hoveredEl) return;
+
+    // Enter / Space — select or deselect current element
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      e.stopPropagation();
+      this.toggleSelection();
+      return;
+    }
+
+    // Arrow keys — navigate DOM tree (works REGARDLESS of selection state)
+    const isArrow = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key);
+    if (!isArrow) return;
+
+    e.preventDefault();
+    this.isKeyboardNavigating = true;
+    let target: Element | null = null;
+
+    if (e.key === 'ArrowUp') {
+      // Navigate to parent
+      const parent = this.hoveredEl.parentElement;
+      if (parent && parent !== document.body && parent !== document.documentElement) {
+        if (!this.scopeElement || this.scopeElement.contains(parent)) {
+          target = parent;
         }
-      } else if (e.key === 'ArrowDown') {
-        e.preventDefault();
-        this.isKeyboardNavigating = true;
-        const child = this.hoveredEl.firstElementChild;
-        if (child) {
-          if (!this.scopeElement || this.scopeElement.contains(child)) {
-            this.hoveredEl = child;
-            this.drawOverlay(this.hoveredEl.getBoundingClientRect(), 'hover');
-            this.updateLabel(this.hoveredEl);
-          }
+      }
+    } else if (e.key === 'ArrowDown') {
+      // Navigate to first child
+      const child = this.hoveredEl.firstElementChild;
+      if (child) {
+        if (!this.scopeElement || this.scopeElement.contains(child)) {
+          target = child;
         }
-      } else if (e.key === 'ArrowLeft') {
-        e.preventDefault();
-        this.isKeyboardNavigating = true;
-        const prev = this.hoveredEl.previousElementSibling;
-        if (prev) {
-          if (!this.scopeElement || this.scopeElement.contains(prev)) {
-            this.hoveredEl = prev;
-            this.drawOverlay(this.hoveredEl.getBoundingClientRect(), 'hover');
-            this.updateLabel(this.hoveredEl);
-          }
+      }
+    } else if (e.key === 'ArrowLeft') {
+      // Navigate to previous sibling
+      const prev = this.hoveredEl.previousElementSibling;
+      if (prev) {
+        if (!this.scopeElement || this.scopeElement.contains(prev)) {
+          target = prev;
         }
-      } else if (e.key === 'ArrowRight') {
-        e.preventDefault();
-        this.isKeyboardNavigating = true;
-        const next = this.hoveredEl.nextElementSibling;
-        if (next) {
-          if (!this.scopeElement || this.scopeElement.contains(next)) {
-            this.hoveredEl = next;
-            this.drawOverlay(this.hoveredEl.getBoundingClientRect(), 'hover');
-            this.updateLabel(this.hoveredEl);
-          }
+      }
+    } else if (e.key === 'ArrowRight') {
+      // Navigate to next sibling
+      const next = this.hoveredEl.nextElementSibling;
+      if (next) {
+        if (!this.scopeElement || this.scopeElement.contains(next)) {
+          target = next;
         }
+      }
+    }
+
+    if (target) {
+      this.hoveredEl = target;
+      this.drawOverlay(this.hoveredEl.getBoundingClientRect(), 'hover');
+      this.updateHoverLabel(this.hoveredEl);
+      this.updateBreadcrumb(this.hoveredEl);
+
+      // Scroll the element into view if it's off-screen
+      const rect = this.hoveredEl.getBoundingClientRect();
+      if (rect.bottom < 0 || rect.top > window.innerHeight || rect.right < 0 || rect.left > window.innerWidth) {
+        this.hoveredEl.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
       }
     }
   }
@@ -447,8 +606,11 @@ export class SelectorEngine {
     // Update all overlay positions on scroll
     this.updateSelectionVisuals();
     if (this.hoveredEl && this.hoverOverlay) {
-      const rect = this.hoveredEl.getBoundingClientRect();
-      this.drawOverlay(rect, 'hover');
+      this.drawOverlay(this.hoveredEl.getBoundingClientRect(), 'hover');
+    }
+    // Also update match overlays on scroll
+    if (this.lastComputedSelector && this.matchOverlays.length > 0) {
+      this.updateMatchVisuals(this.lastComputedSelector);
     }
     if (this.scopeElement && this.maskOverlay) {
       const rect = this.scopeElement.getBoundingClientRect();
@@ -459,19 +621,32 @@ export class SelectorEngine {
     }
   }
 
-  updateLabel(el: Element) {
+  /** Update the floating hover label above the current element */
+  updateHoverLabel(el: Element) {
     if (!this.label) return;
     const tagName = el.tagName.toLowerCase();
     let displayText = tagName;
-    if (this.scopeElement) {
-      if (el.className && typeof el.className === 'string' && el.className.trim()) {
-        displayText += `.${el.className.split(' ')[0]}`;
-      }
+    if (el.id) {
+      displayText += `#${el.id}`;
     } else {
-      if (el.id) displayText += `#${el.id}`;
-      else if (el.className && typeof el.className === 'string' && el.className.trim()) displayText += `.${el.className.split(' ')[0]}`;
+      const cls = this.getFirstSemanticClass(el);
+      if (cls) displayText += `.${cls}`;
     }
-    this.label.textContent = displayText;
+
+    if (this.selectedElements.length > 0) {
+      const isSelected = this.selectedElements.includes(el);
+      this.label.textContent = isSelected ? `✕ ${displayText}` : `+ ${displayText}`;
+      this.label.style.backgroundColor = isSelected ? COLORS.deselect : COLORS.primary;
+    } else {
+      this.label.textContent = displayText;
+      this.label.style.backgroundColor = COLORS.primary;
+    }
+  }
+
+  /** Update the breadcrumb path in the control panel */
+  private updateBreadcrumb(el: Element) {
+    if (!this.breadcrumbSpan) return;
+    this.breadcrumbSpan.textContent = this.getBreadcrumb(el);
   }
 
   /**
@@ -597,6 +772,193 @@ export class SelectorEngine {
     if (/^-?(?:m|p|mx|my|mt|mb|ml|mr|ms|me|px|py|pt|pb|pl|pr|ps|pe|w|h|min-w|min-h|max-w|max-h|size|gap|space-x|space-y|inset|top|right|bottom|left|z|order|col|row|basis|grow|shrink|grid-cols|grid-rows|auto-cols|auto-rows|justify|items|self|place|content|font|text|leading|tracking|decoration|indent|align|whitespace|break|hyphens|bg|from|via|to|border|rounded|outline|ring|divide|shadow|opacity|mix-blend|blur|brightness|contrast|grayscale|hue-rotate|invert|saturate|sepia|backdrop|transition|duration|ease|delay|animate|scale|rotate|translate|skew|origin|cursor|caret|pointer-events|resize|scroll|snap|touch|select|will-change|fill|stroke|float|clear|object|overflow|overscroll|aspect|line-clamp|columns|list|accent)-/.test(cls)) return true;
 
     return false;
+  }
+
+  /**
+   * Get a RELATIVE selector suitable for use within a loop scope.
+   * This avoids unique identifiers (IDs, exact text) and prefers
+   * class-based and structural selectors that work across all loop items.
+   */
+  getRelativeSelector(el: Element, scope: Element | null = null): string {
+    if (!el || el.nodeType !== 1) return '';
+    if (scope && el === scope) return ':scope';
+
+    const root: Element | Document = scope || document;
+    const tag = el.tagName.toLowerCase();
+
+    // Gather classes
+    const allClasses = (el.className && typeof el.className === 'string')
+      ? el.className.split(/\s+/).filter(c => c)
+      : [];
+    const semanticClasses = allClasses.filter(c => !this.isUtilityClass(c));
+    const utilityClasses = allClasses.filter(c => this.isUtilityClass(c));
+
+    // Helper: count matches within root
+    const countMatches = (sel: string): number => {
+      try { return root.querySelectorAll(sel).length; } catch { return 0; }
+    };
+
+    // ── Strategy 1: Semantic class (prefer most specific/longest) ──
+    // Sort by length descending to get most specific class
+    const sortedSemantic = [...semanticClasses].sort((a, b) => b.length - a.length);
+    for (const cls of sortedSemantic) {
+      const sel = `${tag}.${CSS.escape(cls)}`;
+      const count = countMatches(sel);
+      // Good if it matches reasonably (not too many, not just 1 which might be unique)
+      if (count >= 1 && count <= 20) return sel;
+    }
+
+    // ── Strategy 2: Tag + semantic class (any combo) ──
+    for (const cls of sortedSemantic.slice(0, 3)) {
+      const sel = `${tag}.${CSS.escape(cls)}`;
+      if (countMatches(sel) >= 1) return sel;
+    }
+
+    // ── Strategy 3: Multiple semantic classes ──
+    if (sortedSemantic.length >= 2) {
+      const sel = `${tag}.${CSS.escape(sortedSemantic[0])}.${CSS.escape(sortedSemantic[1])}`;
+      if (countMatches(sel) >= 1) return sel;
+    }
+
+    // ── Strategy 4: Semantic class alone ──
+    for (const cls of sortedSemantic.slice(0, 2)) {
+      const sel = `.${CSS.escape(cls)}`;
+      if (countMatches(sel) >= 1 && countMatches(sel) <= 30) return sel;
+    }
+
+    // ── Strategy 5: Role attribute (generic) ──
+    if (el.hasAttribute('role')) {
+      const role = el.getAttribute('role')!;
+      const sel = `${tag}[role="${CSS.escape(role)}"]`;
+      if (countMatches(sel) >= 1) return sel;
+    }
+
+    // ── Strategy 6: Generic data attributes (avoid data-testid which is usually unique) ──
+    const genericAttrs = ['data-type', 'data-category', 'data-variant'];
+    for (const attr of genericAttrs) {
+      if (el.hasAttribute(attr)) {
+        const sel = `${tag}[${attr}]`;
+        if (countMatches(sel) >= 1) return sel;
+      }
+    }
+
+    // ── Strategy 7: Tag alone (if it's a common interactive element) ──
+    const commonInteractiveTags = ['a', 'button', 'input', 'select', 'textarea', 'img'];
+    if (commonInteractiveTags.includes(tag)) {
+      const count = countMatches(tag);
+      if (count >= 1 && count <= 50) return tag;
+    }
+
+    // ── Strategy 8: Structural path from scope ──
+    const boundary = scope || document.body;
+    let path: string[] = [];
+    let curr: Element | null = el;
+
+    while (curr && curr !== boundary && curr !== document.body) {
+      let seg = curr.tagName.toLowerCase();
+      const currClasses = (curr.className && typeof curr.className === 'string')
+        ? curr.className.split(/\s+/).filter(c => c && !this.isUtilityClass(c))
+        : [];
+
+      if (currClasses.length > 0) {
+        // Prefer the most semantic class
+        const bestClass = currClasses.sort((a, b) => b.length - a.length)[0];
+        seg += `.${CSS.escape(bestClass)}`;
+      }
+
+      path.unshift(seg);
+      curr = curr.parentElement;
+
+      // Stop if we have a good relative path (2-3 segments usually enough)
+      if (path.length >= 3) break;
+    }
+
+    if (path.length > 0) {
+      return path.join(' '); // Use descendant combinator for flexibility
+    }
+
+    // ── Strategy 9: Fallback to tag with utility class (last resort) ──
+    for (const cls of utilityClasses.slice(0, 2)) {
+      const sel = `${tag}.${CSS.escape(cls)}`;
+      if (countMatches(sel) >= 1) return sel;
+    }
+
+    // Ultimate fallback
+    return tag;
+  }
+
+  /**
+   * Get XPath that is RELATIVE to a scope (for use in loops).
+   * Avoids unique identifiers and text-based matching.
+   */
+  getRelativeXPath(el: Element, scope: Element | null = null): string {
+    if (!el || el.nodeType !== 1) return '';
+    if (scope && el === scope) return './/self::*';
+
+    const tag = el.tagName.toLowerCase();
+
+    // Gather semantic classes
+    const allClasses = (el.className && typeof el.className === 'string')
+      ? el.className.split(/\s+/).filter(c => c && !this.isUtilityClass(c))
+      : [];
+
+    // Prefer class-based XPath over position-based
+    if (allClasses.length > 0) {
+      const bestClass = allClasses.sort((a, b) => b.length - a.length)[0];
+      return `.//${tag}[contains(concat(" ", @class, " "), " ${bestClass} ")]`;
+    }
+
+    // Role-based (generic)
+    if (el.hasAttribute('role')) {
+      const role = el.getAttribute('role')!;
+      return `.//${tag}[@role="${role}"]`;
+    }
+
+    // Tag-only for common elements
+    const commonTags = ['a', 'button', 'h1', 'h2', 'h3', 'h4', 'img', 'input'];
+    if (commonTags.includes(tag)) {
+      return `.//${tag}`;
+    }
+
+    // Structural: path from scope using positions (less ideal but functional)
+    const boundary = scope || document.body;
+    let path: string[] = [];
+    let curr: Element | null = el;
+
+    while (curr && curr !== boundary && curr !== document.body) {
+      const currTag = curr.tagName.toLowerCase();
+
+      // Try to use class if available
+      const currClasses = (curr.className && typeof curr.className === 'string')
+        ? curr.className.split(/\s+/).filter(c => c && !this.isUtilityClass(c))
+        : [];
+
+      if (currClasses.length > 0) {
+        const bestClass = currClasses.sort((a, b) => b.length - a.length)[0];
+        path.unshift(`${currTag}[contains(concat(" ", @class, " "), " ${bestClass} ")]`);
+      } else {
+        // Use position among siblings of same tag
+        let ix = 0;
+        let sib: Element | null = curr;
+        while (sib = sib.previousElementSibling) {
+          if (sib.tagName === curr.tagName) ix++;
+        }
+        if (ix > 0) {
+          path.unshift(`${currTag}[${ix + 1}]`);
+        } else {
+          path.unshift(currTag);
+        }
+      }
+
+      curr = curr.parentElement;
+      if (path.length >= 3) break;
+    }
+
+    if (path.length > 0) {
+      return './/' + path.join('/');
+    }
+
+    return `.//${tag}`;
   }
 
   getOptimalSelector(el: Element, scope: Element | null = null): string {

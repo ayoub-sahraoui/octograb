@@ -78,9 +78,24 @@ export class BlueprintExecutorStore {
     private _loopState: Record<string, number> = {};
     // Auto-increment counters for static fields: maps "blockId:fieldKey" to current value
     private _autoIncrementCounters: Record<string, number> = {};
+    // Hash-based deduplication set for O(1) lookups instead of O(n) per row
+    private _deduplicationHashes: Set<string> = new Set();
+    // Track which blocks have already been counted for progress (prevents loop inflation)
+    private _progressCounted: Set<string> = new Set();
 
     constructor() {
-        makeAutoObservable(this);
+        makeAutoObservable(this, {
+            _abortController: false,
+            _paused: false,
+            _pausePromise: false,
+            _pauseResolve: false,
+            _returnUrl: false,
+            _targetTabId: false,
+            _loopState: false,
+            _autoIncrementCounters: false,
+            _deduplicationHashes: false,
+            _progressCounted: false,
+        } as any);
         this.loadSettings();
         this.loadResumableBlueprints();
     }
@@ -669,7 +684,10 @@ export class BlueprintExecutorStore {
 
         runInAction(() => {
             this.currentBlock = block;
-            this.progress.current++;
+            if (!this._progressCounted.has(block.id)) {
+                this._progressCounted.add(block.id);
+                this.progress.current++;
+            }
         });
 
         // Detailed logging for debugging
@@ -1375,126 +1393,128 @@ export class BlueprintExecutorStore {
             this.log('info', `  📊 Items already processed: ${processedItems.size}`);
         }
 
-        for (let i = startIndex; i < maxIter; i++) {
-            // Set return URL for this iteration
-            this._returnUrl = loopStartUrl;
-            if (this._abortController?.signal.aborted) break;
-            await this.checkPause();
+        try {
+            for (let i = startIndex; i < maxIter; i++) {
+                // Set return URL for this iteration
+                this._returnUrl = loopStartUrl;
+                if (this._abortController?.signal.aborted) break;
+                await this.checkPause();
 
-            // Update loop state for checkpoint
-            this._loopState[block.id] = i;
+                // Update loop state for checkpoint
+                this._loopState[block.id] = i;
 
-            // Check if this item was already processed
-            if (processedItems.has(i)) {
-                this.log('info', `  ⏭️ Skipping item ${i + 1}/${maxIter} (already processed)`);
-                continue;
-            }
-
-            // Build the child scope for this loop iteration with context
-            const childScope: Scope = {
-                selector: sel.value,
-                selectorType: (sel.type || 'css') as 'css' | 'xpath',
-                index: i,
-                parent: scope,
-                context: {
-                    ...scope?.context,
-                    loopItemIndex: i,
-                    loopTotalItems: totalItems,
-                    loopItemsProcessed: processedItems,
+                // Check if this item was already processed
+                if (processedItems.has(i)) {
+                    this.log('info', `  ⏭️ Skipping item ${i + 1}/${maxIter} (already processed)`);
+                    continue;
                 }
-            };
 
-            this.log('info', `  ━━━ Item ${i + 1}/${maxIter} ━━━`);
+                // Build the child scope for this loop iteration with context
+                const childScope: Scope = {
+                    selector: sel.value,
+                    selectorType: (sel.type || 'css') as 'css' | 'xpath',
+                    index: i,
+                    parent: scope,
+                    context: {
+                        ...scope?.context,
+                        loopItemIndex: i,
+                        loopTotalItems: totalItems,
+                        loopItemsProcessed: processedItems,
+                    }
+                };
 
-            // Wait for the element to exist (in case of navigation/re-render)
-            let elementExists = false;
-            const waitStart = Date.now();
-            const maxWaitTime = 15000;
-            this.log('info', `    🔍 Checking if element at index ${i} exists...`);
-            let checkAttempts = 0;
+                this.log('info', `  ━━━ Item ${i + 1}/${maxIter} ━━━`);
 
-            while (Date.now() - waitStart < maxWaitTime) {
-                checkAttempts++;
+                // Wait for the element to exist (in case of navigation/re-render)
+                let elementExists = false;
+                const waitStart = Date.now();
+                const maxWaitTime = 15000;
+                this.log('info', `    🔍 Checking if element at index ${i} exists...`);
+                let checkAttempts = 0;
+
+                while (Date.now() - waitStart < maxWaitTime) {
+                    checkAttempts++;
+                    try {
+                        const checkResp = await this.send({
+                            type: 'ENV_COUNT',
+                            data: {
+                                selector: childScope.selector,
+                                selectorType: childScope.selectorType,
+                                scope: childScope.parent || undefined,
+                            }
+                        });
+
+                        if (checkResp.success) {
+                            const count = checkResp.data as number;
+                            if (count > i) {
+                                elementExists = true;
+                                this.log('info', `    ✓ Element exists (${count} total elements, check attempt ${checkAttempts})`);
+                                break;
+                            } else {
+                                this.log('info', `    ⏳ Found ${count} elements, need at least ${i + 1} (attempt ${checkAttempts})`);
+                            }
+                        }
+                    } catch (err: any) {
+                        this.log('warn', `    ⚠ Check attempt ${checkAttempts} failed: ${err.message}`);
+                    }
+
+                    await this.delay(500);
+                }
+
+                if (!elementExists) {
+                    this.log('warn', `    ⚠ Element at index ${i} not found after ${checkAttempts} attempts (${maxWaitTime}ms). Loop stopped.`);
+                    break;
+                }
+
+                let iterationFailed = false;
                 try {
-                    const checkResp = await this.send({
-                        type: 'ENV_COUNT',
-                        data: {
-                            selector: childScope.selector,
-                            selectorType: childScope.selectorType,
-                            scope: childScope.parent || undefined,
-                        }
-                    });
+                    for (const child of (block.children || [])) {
+                        if (this._abortController?.signal.aborted) break;
+                        await this.executeBlock(child, childScope);
+                    }
+                } catch (iterErr: any) {
+                    iterationFailed = true;
+                    this.log('warn', `    ⚠ Item ${i + 1} failed: ${iterErr.message}`);
+                    this.log('info', `    🔄 Attempting recovery for next iteration...`);
 
-                    if (checkResp.success) {
-                        const count = checkResp.data as number;
-                        if (count > i) {
-                            elementExists = true;
-                            this.log('info', `    ✓ Element exists (${count} total elements, check attempt ${checkAttempts})`);
+                    // Try to recover by navigating back to loop start URL
+                    if (loopStartUrl) {
+                        try {
+                            await browser.tabs.update(this._targetTabId!, { url: loopStartUrl });
+                            await this.waitForTab(30000);
+                            await this.delay(1000);
+                            this.log('info', `    ✓ Recovered — navigated back to loop URL`);
+                        } catch (recoveryErr: any) {
+                            this.log('error', `    ❌ Recovery failed: ${recoveryErr.message}. Stopping loop.`);
                             break;
-                        } else {
-                            this.log('info', `    ⏳ Found ${count} elements, need at least ${i + 1} (attempt ${checkAttempts})`);
+                        }
+                    } else {
+                        // No stored URL — try browser back as last resort
+                        try {
+                            this.log('info', `    ⬅️ No stored URL, trying browser back for recovery...`);
+                            await browser.tabs.goBack(this._targetTabId!);
+                            await this.waitForTab(30000);
+                            await this.delay(1000);
+                            this.log('info', `    ✓ Recovered via browser back`);
+                        } catch (recoveryErr: any) {
+                            this.log('error', `    ❌ Recovery failed (no URL, back failed): ${recoveryErr.message}. Stopping loop.`);
+                            break;
                         }
                     }
-                } catch (err: any) {
-                    this.log('warn', `    ⚠ Check attempt ${checkAttempts} failed: ${err.message}`);
                 }
 
-                await this.delay(500);
-            }
-
-            if (!elementExists) {
-                this.log('warn', `    ⚠ Element at index ${i} not found after ${checkAttempts} attempts (${maxWaitTime}ms). Loop stopped.`);
-                break;
-            }
-
-            let iterationFailed = false;
-            try {
-                for (const child of (block.children || [])) {
-                    if (this._abortController?.signal.aborted) break;
-                    await this.executeBlock(child, childScope);
+                // Mark this item as processed (even if failed, to avoid re-processing)
+                if (!iterationFailed) {
+                    processedItems.add(i);
                 }
-            } catch (iterErr: any) {
-                iterationFailed = true;
-                this.log('warn', `    ⚠ Item ${i + 1} failed: ${iterErr.message}`);
-                this.log('info', `    🔄 Attempting recovery for next iteration...`);
 
-                // Try to recover by navigating back to loop start URL
-                if (loopStartUrl) {
-                    try {
-                        await browser.tabs.update(this._targetTabId!, { url: loopStartUrl });
-                        await this.waitForTab(30000);
-                        await this.delay(1000);
-                        this.log('info', `    ✓ Recovered — navigated back to loop URL`);
-                    } catch (recoveryErr: any) {
-                        this.log('error', `    ❌ Recovery failed: ${recoveryErr.message}. Stopping loop.`);
-                        break;
-                    }
-                } else {
-                    // No stored URL — try browser back as last resort
-                    try {
-                        this.log('info', `    ⬅️ No stored URL, trying browser back for recovery...`);
-                        await browser.tabs.goBack(this._targetTabId!);
-                        await this.waitForTab(30000);
-                        await this.delay(1000);
-                        this.log('info', `    ✓ Recovered via browser back`);
-                    } catch (recoveryErr: any) {
-                        this.log('error', `    ❌ Recovery failed (no URL, back failed): ${recoveryErr.message}. Stopping loop.`);
-                        break;
-                    }
-                }
+                // Clear return URL after iteration completes
+                this._returnUrl = null;
             }
-
-            // Mark this item as processed (even if failed, to avoid re-processing)
-            if (!iterationFailed) {
-                processedItems.add(i);
-            }
-
-            // Clear return URL after iteration completes
+        } finally {
+            // Ensure return URL is always cleared, even on unexpected errors or aborts
             this._returnUrl = null;
         }
-
-        // Ensure return URL is cleared even if loop breaks early (element not found, abort, etc.)
-        this._returnUrl = null;
 
         this.log('success', `✓ Loop completed: ${maxIter} iterations`);
     }
@@ -1572,14 +1592,16 @@ export class BlueprintExecutorStore {
                 break;
             }
 
-            // Try to find and click the next button
+            // Try to find and click the next button — also check disabled/hidden state
             this.log('info', `    🔍 Looking for next button...`);
-            const countResp = await this.send({
-                type: 'ENV_COUNT',
+            const clickableResp = await this.send({
+                type: 'ENV_CHECK_CLICKABLE',
                 data: { selector: sel.value, selectorType: sel.type || 'css', scope: scope || undefined }
             });
 
-            if (!countResp.success || (countResp.data as number) === 0) {
+            const btnState = clickableResp.success ? clickableResp.data as { exists: boolean; visible: boolean; enabled: boolean; clickable: boolean } : null;
+
+            if (!btnState?.exists) {
                 this.log('info', `    ❌ Next button not found`);
                 if (config.onNoNextButton === 'error') {
                     throw new Error('Next button not found');
@@ -1588,8 +1610,16 @@ export class BlueprintExecutorStore {
                 break;
             }
 
+            if (!btnState.clickable) {
+                // Button exists but is disabled or hidden — this means we're on the last page
+                const reason = !btnState.visible ? 'hidden' : 'disabled';
+                this.log('info', `    ⚠ Next button is ${reason} — reached last page`);
+                this.log('info', `    🛑 Stopping pagination (next button ${reason})`);
+                break;
+            }
+
             // Click next button
-            this.log('info', `    ✓ Next button found`);
+            this.log('info', `    ✓ Next button found and clickable`);
             this.log('info', `    👆 Clicking next button: ${sel.value}`);
 
             // Capture URL before click to detect full-page navigation
@@ -2245,17 +2275,13 @@ export class BlueprintExecutorStore {
             }
         }
 
-        // Deduplication: skip if an identical record already exists
-        const isDuplicate = this.extractedData.some(existing => {
-            const keys = Object.keys(record);
-            if (keys.length !== Object.keys(existing).length) return false;
-            return keys.every(k => existing[k] === record[k]);
-        });
-
-        if (isDuplicate) {
+        // Deduplication: O(1) hash-based check instead of O(n) full scan
+        const hashKey = JSON.stringify(Object.keys(record).sort().map(k => [k, record[k]]));
+        if (this._deduplicationHashes.has(hashKey)) {
             this.log('warn', `  ⏭ Duplicate record skipped`);
             return;
         }
+        this._deduplicationHashes.add(hashKey);
 
         // Update extracted data
         runInAction(() => {
@@ -2563,6 +2589,8 @@ export class BlueprintExecutorStore {
         this.runningBlueprintName = null;
         this._loopState = {};
         this._autoIncrementCounters = {};
+        this._deduplicationHashes = new Set();
+        this._progressCounted = new Set();
     }
 
     private downloadBlob(content: string, filename: string, mimeType: string) {

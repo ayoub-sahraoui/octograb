@@ -1,4 +1,4 @@
-import { makeAutoObservable, runInAction, toJS } from "mobx";
+import { makeObservable, observable, computed, action, runInAction, toJS } from "mobx";
 import { Blueprint } from "../models/blueprint";
 import { Block } from "../models/types";
 import { sendToContentScript, onMessageFromContentScript } from "@/core/messaging";
@@ -23,11 +23,17 @@ function countBlocksRecursive(blocks: Block[]): number {
     return count;
 }
 
+// ─── Undo/redo storage (module-level, completely outside MobX) ────────────
+const _undoStack: string[] = [];
+const _redoStack: string[] = [];
+let _isUndoRedoAction = false;
+const MAX_UNDO_STACK = 50;
+
 export class BlueprintBuilderStore {
     blueprints: Blueprint[] = [];
-    selectedBlueprint?: Blueprint | null = null;
-    selectedBlock?: Block | null = null;
-    parentBlockForChild?: Block | null = null;
+    selectedBlueprint: Blueprint | null = null;
+    selectedBlock: Block | null = null;
+    parentBlockForChild: Block | null = null;
 
     // Validation state
     validationResult: ValidationResult | null = null;
@@ -39,11 +45,52 @@ export class BlueprintBuilderStore {
     pendingCss: string = '';
     pendingXpath: string = '';
     private _messageCleanup: (() => void) | null = null;
+    private _autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
+    autoSavePending: boolean = false;
+
+    // Bumped to let canUndo/canRedo recompute (the only observable piece of undo)
+    undoVersion = 0;
 
     constructor() {
-        makeAutoObservable(this, {
-            pickingCallback: false,
-            pickingDoneCallback: false,
+        makeObservable(this, {
+            blueprints: observable,
+            selectedBlueprint: observable,
+            selectedBlock: observable,
+            parentBlockForChild: observable,
+            validationResult: observable,
+            isPicking: observable,
+            pendingCss: observable,
+            pendingXpath: observable,
+            autoSavePending: observable,
+            undoVersion: observable,
+
+            // Computed
+            canUndo: computed,
+            canRedo: computed,
+            isFreeTier: computed,
+            canCreateBlueprint: computed,
+            hasValidationErrors: computed,
+            hasValidationWarnings: computed,
+
+            // Actions
+            loadBlueprints: action,
+            selectBlueprint: action,
+            selectBlock: action,
+            createBlueprint: action,
+            addBlueprint: action,
+            addBlockToBlueprint: action,
+            setParentBlockForChild: action,
+            addChildBlockToParent: action,
+            removeBlockFromBlueprint: action,
+            clearBlockSelection: action,
+            validateCurrentBlueprint: action,
+            startPicking: action,
+            stopPicking: action,
+            pushSnapshot: action,
+            undo: action,
+            redo: action,
+            clearUndoHistory: action,
+            triggerAutoSave: action,
         });
         this.initMessageListener();
         this.loadBlueprints();
@@ -71,6 +118,86 @@ export class BlueprintBuilderStore {
         } catch (error) {
             console.error('[OctoGrab] Failed to load blueprints:', error);
         }
+    }
+
+    // ─── Undo / Redo ────────────────────────────────────────────────────
+
+    get canUndo(): boolean { void this.undoVersion; return _undoStack.length > 0; }
+    get canRedo(): boolean { void this.undoVersion; return _redoStack.length > 0; }
+
+    pushSnapshot() {
+        if (_isUndoRedoAction) return;
+        const bp = this.selectedBlueprint;
+        if (!bp) return;
+        const snapshot = JSON.stringify(toJS(bp), (key, value) => key === 'parent' ? undefined : value);
+        _undoStack.push(snapshot);
+        if (_undoStack.length > MAX_UNDO_STACK) {
+            _undoStack.shift();
+        }
+        // Any new change clears the redo stack
+        _redoStack.length = 0;
+        this.undoVersion++;
+    }
+
+    undo() {
+        if (!this.canUndo || !this.selectedBlueprint) return;
+        // Save current state to redo stack
+        const currentSnapshot = JSON.stringify(toJS(this.selectedBlueprint), (key, value) => key === 'parent' ? undefined : value);
+        _redoStack.push(currentSnapshot);
+        // Pop last snapshot from undo stack
+        const snapshot = _undoStack.pop()!;
+        this.undoVersion++;
+        this._applySnapshot(snapshot);
+    }
+
+    redo() {
+        if (!this.canRedo || !this.selectedBlueprint) return;
+        // Save current state to undo stack
+        const currentSnapshot = JSON.stringify(toJS(this.selectedBlueprint), (key, value) => key === 'parent' ? undefined : value);
+        _undoStack.push(currentSnapshot);
+        // Pop from redo stack
+        const snapshot = _redoStack.pop()!;
+        this.undoVersion++;
+        this._applySnapshot(snapshot);
+    }
+
+    private _applySnapshot(snapshot: string) {
+        const bp = this.selectedBlueprint;
+        if (!bp) return;
+        try {
+            _isUndoRedoAction = true;
+            const parsed = JSON.parse(snapshot);
+            bp.name = parsed.name;
+            bp.description = parsed.description || '';
+            bp.blocks = (parsed.blocks || []).map((b: any) => createBlockFromJSON(b));
+            this.selectedBlock = null;
+            this.validateCurrentBlueprint();
+            this.triggerAutoSave();
+        } catch (e) {
+            console.error('[OctoGrab] Failed to apply undo/redo snapshot:', e);
+        } finally {
+            _isUndoRedoAction = false;
+        }
+    }
+
+    clearUndoHistory() {
+        _undoStack.length = 0;
+        _redoStack.length = 0;
+        this.undoVersion++;
+    }
+
+    // ─── Auto-save ──────────────────────────────────────────────────────
+
+    triggerAutoSave() {
+        if (!this.selectedBlueprint) return;
+        const bp = this.selectedBlueprint;
+        if (this._autoSaveTimer) clearTimeout(this._autoSaveTimer);
+        runInAction(() => { this.autoSavePending = true; });
+        this._autoSaveTimer = setTimeout(() => {
+            this.saveBlueprint(bp).then(() => {
+                runInAction(() => { this.autoSavePending = false; });
+            });
+        }, 1500);
     }
 
     async saveBlueprint(blueprint: Blueprint) {
@@ -354,12 +481,12 @@ export class BlueprintBuilderStore {
         }
     }
 
-    async importBlueprint(jsonContent: string) {
-        if (!this.canCreateBlueprint) return false;
+    async importBlueprint(jsonContent: string): Promise<{ success: boolean; warnings?: string[]; errors?: string[] }> {
+        if (!this.canCreateBlueprint) return { success: false, errors: ['Blueprint limit reached. Upgrade to create more blueprints.'] };
         try {
             const parsed = JSON.parse(jsonContent);
             if (!parsed.name || !Array.isArray(parsed.blocks)) {
-                throw new Error('Invalid blueprint format');
+                throw new Error('Invalid blueprint format: missing name or blocks array');
             }
 
             // Create new blueprint
@@ -368,19 +495,33 @@ export class BlueprintBuilderStore {
             // Re-create blocks using factory to ensure they are instances of Block classes
             blueprint.blocks = parsed.blocks.map((b: any) => createBlockFromJSON(b));
 
-            // Save and select
+            // Validate the imported blueprint before saving
+            const validation = validateBlueprint(blueprint);
+            if (validation.errors.length > 0) {
+                console.warn('[OctoGrab] Imported blueprint has validation errors:', validation.errors);
+            }
+            if (validation.warnings.length > 0) {
+                console.warn('[OctoGrab] Imported blueprint has warnings:', validation.warnings);
+            }
+
+            // Save and select (allow import even with warnings; block only on critical structural errors)
             runInAction(() => {
                 this.blueprints.push(blueprint);
                 this.selectedBlueprint = blueprint;
             });
 
             await this.saveBlueprint(blueprint);
-            return true;
-        } catch (e) {
+            return {
+                success: true,
+                warnings: validation.warnings.map(w => w.message),
+                errors: validation.errors.map(e => e.message),
+            };
+        } catch (e: any) {
             console.error('Failed to import blueprint:', e);
-            return false;
+            return { success: false, errors: [e.message || 'Failed to import blueprint'] };
         }
     }
+
 }
 
 const blueprintBuilderStore = new BlueprintBuilderStore();

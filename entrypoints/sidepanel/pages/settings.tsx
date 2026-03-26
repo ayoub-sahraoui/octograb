@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Download, Upload, Trash2, Database, Info, AlertCircle, Activity, ArrowLeft, KeyRound, LogOut, Zap, Bot, Eye, EyeOff } from "lucide-react";
 import { db } from "@/core/database";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useBlueprintBuilderStore } from '@/entrypoints/stores/blueprint-builder-store';
 import { useBlueprintExecutorStore } from '@/entrypoints/stores/blueprint-executor-store';
 import { useLicenseStore, FREE_TIER_LIMITS } from '@/entrypoints/stores/license-store';
@@ -14,6 +14,7 @@ import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useConfirm } from '../components/confirm-dialog';
 
 export default observer(function Settings() {
     const blueprintBuilderStore = useBlueprintBuilderStore();
@@ -23,15 +24,16 @@ export default observer(function Settings() {
     const navigate = useNavigate();
     const [stats, setStats] = useState<any>(null);
     const [showApiKey, setShowApiKey] = useState(false);
+    const { confirm: showConfirm, alert: showAlert } = useConfirm();
 
     const loadStats = async () => {
         const statistics = await db.getStatistics();
         setStats(statistics);
     };
 
-    useState(() => {
+    useEffect(() => {
         loadStats();
-    });
+    }, []);
 
     const handleExportDatabase = async () => {
         try {
@@ -45,7 +47,7 @@ export default observer(function Settings() {
             URL.revokeObjectURL(url);
         } catch (error) {
             console.error('Failed to export database:', error);
-            alert('Failed to export database');
+            showAlert('Export Failed', 'Failed to export database');
         }
     };
 
@@ -61,10 +63,10 @@ export default observer(function Settings() {
                     await db.importDatabase(text);
                     await blueprintBuilderStore.loadBlueprints();
                     await loadStats();
-                    alert('Database imported successfully!');
+                    showAlert('Import Complete', 'Database imported successfully!');
                 } catch (error) {
                     console.error('Failed to import database:', error);
-                    alert('Failed to import database');
+                    showAlert('Import Failed', 'Failed to import database');
                 }
             }
         };
@@ -72,47 +74,45 @@ export default observer(function Settings() {
     };
 
     const handleClearDatabase = async () => {
-        if (confirm('Are you sure you want to clear ALL data? This cannot be undone!')) {
-            if (confirm('This will delete all blueprints, execution history, and settings. Are you absolutely sure?')) {
-                try {
-                    await db.plans.clear();
-                    await db.executionHistory.clear();
-                    await db.jobs.clear();
-                    await db.progress.clear();
-                    await blueprintBuilderStore.loadBlueprints();
-                    executorStore.clearResults();
-                    await loadStats();
-                    alert('Database cleared successfully');
-                } catch (error) {
-                    console.error('Failed to clear database:', error);
-                    alert('Failed to clear database');
-                }
-            }
+        const first = await showConfirm({ title: 'Clear All Data', description: 'Are you sure you want to clear ALL data? This cannot be undone!', variant: 'destructive', confirmLabel: 'Continue' });
+        if (!first) return;
+        const second = await showConfirm({ title: 'Are you absolutely sure?', description: 'This will delete all blueprints, execution history, and settings.', variant: 'destructive', confirmLabel: 'Delete Everything' });
+        if (!second) return;
+        try {
+            await db.plans.clear();
+            await db.executionHistory.clear();
+            await db.jobs.clear();
+            await db.progress.clear();
+            await blueprintBuilderStore.loadBlueprints();
+            executorStore.clearResults();
+            await loadStats();
+            await showAlert('Success', 'Database cleared successfully');
+        } catch (error) {
+            console.error('Failed to clear database:', error);
+            await showAlert('Error', 'Failed to clear database');
         }
     };
 
     const handleClearExecutionHistory = async () => {
-        if (confirm('Are you sure you want to clear all execution history?')) {
-            try {
-                await db.executionHistory.clear();
-                await loadStats();
-                alert('Execution history cleared');
-            } catch (error) {
-                console.error('Failed to clear execution history:', error);
-                alert('Failed to clear execution history');
-            }
+        const ok = await showConfirm({ title: 'Clear History', description: 'Are you sure you want to clear all execution history?', variant: 'destructive', confirmLabel: 'Clear' });
+        if (!ok) return;
+        try {
+            await db.executionHistory.clear();
+            await loadStats();
+            await showAlert('Success', 'Execution history cleared');
+        } catch (error) {
+            console.error('Failed to clear execution history:', error);
+            await showAlert('Error', 'Failed to clear execution history');
         }
     };
 
     return (
         <div className="h-full flex-1 flex flex-col gap-2 min-h-0 overflow-hidden">
             <div className="flex items-center gap-2">
-                {blueprintBuilderStore.selectedBlueprint && (
-                    <Button size="icon" variant="outline" onClick={() => navigate('/blueprint-builder')} title="Back to Builder">
-                        <ArrowLeft className="w-4 h-4" />
-                    </Button>
-                )}
-                <h1 className="text-xl font-semibold ml-2">Settings</h1>
+                <Button size="icon" variant="ghost" onClick={() => navigate('/')} title="Back to Home" className="h-8 w-8">
+                    <ArrowLeft className="w-4 h-4" />
+                </Button>
+                <h1 className="text-xl font-semibold">Settings</h1>
             </div>
             <div className="flex-1 bg-gray-100 p-4 border border-gray-300 rounded-lg flex flex-col gap-6 overflow-y-auto">
 
@@ -391,9 +391,8 @@ export default observer(function Settings() {
                             variant="outline"
                             size="sm"
                             onClick={async () => {
-                                if (confirm('Are you sure you want to deactivate this device? You can reactivate later with your license key.')) {
-                                    await licenseStore.deactivate();
-                                }
+                                const ok = await showConfirm({ title: 'Deactivate License', description: 'Are you sure you want to deactivate this device? You can reactivate later with your license key.', variant: 'destructive', confirmLabel: 'Deactivate' });
+                                if (ok) await licenseStore.deactivate();
                             }}
                             className="mt-4 w-full gap-2 text-red-600 hover:text-red-700 hover:bg-red-50"
                         >

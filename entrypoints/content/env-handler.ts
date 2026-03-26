@@ -608,6 +608,9 @@ export function initEnvHandler() {
                         // Return info about first few matched elements (max 5)
                         const elementInfo = elements.slice(0, 5).map(el => {
                             const tag = el.tagName.toLowerCase();
+                            const elId = el.id || '';
+                            const classes = Array.from(el.classList).slice(0, 3).join(' ');
+                            const textPreview = (el.textContent || '').trim().slice(0, 30);
                             const isClickable = tag === 'a' || tag === 'button' || tag === 'input' || tag === 'select' ||
                                 tag === 'textarea' || tag === 'summary' || tag === 'details' ||
                                 el.hasAttribute('onclick') || el.hasAttribute('role') && ['button', 'link', 'tab', 'menuitem', 'checkbox', 'radio'].includes(el.getAttribute('role') || '') ||
@@ -624,13 +627,54 @@ export function initEnvHandler() {
                                     style.visibility !== 'hidden' &&
                                     style.display !== 'none');
                             })();
-                            return { tag, isClickable, isInput, isVisible };
+                            return { tag, elId, classes, textPreview, isClickable, isInput, isVisible };
                         });
                         return { success: true, data: { count, elements: elementInfo } };
                     } catch (e: any) {
                         // Selector syntax error
                         return { success: true, data: { count: 0, elements: [], error: e.message } };
                     }
+                }
+
+                case 'ENV_CHECK_CLICKABLE': {
+                    const { selector, selectorType, scope } = msg.data;
+                    const scopeEl = resolveScope(scope);
+
+                    let target: Element | null = null;
+                    if (selector && selector.trim()) {
+                        target = getElement(selector, selectorType || 'css', scopeEl);
+                    }
+
+                    if (!target) {
+                        return { success: true, data: { exists: false, visible: false, enabled: false, clickable: false } };
+                    }
+
+                    // Visibility check
+                    const cStyle = window.getComputedStyle(target);
+                    const isFixedPos = cStyle.position === 'fixed' || cStyle.position === 'sticky';
+                    const isVis = !!((isFixedPos || (target as HTMLElement).offsetParent !== null) &&
+                        (target as HTMLElement).offsetWidth > 0 &&
+                        (target as HTMLElement).offsetHeight > 0 &&
+                        cStyle.visibility !== 'hidden' &&
+                        cStyle.display !== 'none' &&
+                        cStyle.opacity !== '0');
+
+                    // Disabled check — covers <button disabled>, aria-disabled, and common CSS classes
+                    const htmlEl = target as HTMLElement;
+                    const isDisabled = !!(
+                        htmlEl.hasAttribute('disabled') ||
+                        htmlEl.getAttribute('aria-disabled') === 'true' ||
+                        htmlEl.classList.contains('disabled') ||
+                        htmlEl.classList.contains('is-disabled') ||
+                        cStyle.pointerEvents === 'none'
+                    );
+
+                    const isClickable = isVis && !isDisabled;
+
+                    return {
+                        success: true,
+                        data: { exists: true, visible: isVis, enabled: !isDisabled, clickable: isClickable }
+                    };
                 }
 
                 case 'ENV_WAIT_NETWORK_IDLE': {

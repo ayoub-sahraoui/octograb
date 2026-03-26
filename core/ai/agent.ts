@@ -1,12 +1,13 @@
 /**
- * OctoGrab AI Agent — ReAct-style tool-calling loop.
+ * OctoGrab AI Agent — ReAct-style tool-calling loop with token streaming.
  * Uses LangChain chat models with tool bindings for multi-provider support.
  * Browser-compatible (no Node.js dependencies).
  *
+ * Streams LLM tokens in real-time to the UI for responsive UX.
  * Detailed logging prefixed with [AI Agent] for debugging.
  */
 
-import { SystemMessage, AIMessage, ToolMessage } from '@langchain/core/messages';
+import { SystemMessage, AIMessage, AIMessageChunk, ToolMessage } from '@langchain/core/messages';
 import type { BaseMessage } from '@langchain/core/messages';
 import { SYSTEM_PROMPT } from './prompts';
 import { ALL_TOOLS } from './tools';
@@ -28,6 +29,11 @@ export type AgentStreamEvent = {
 } | {
     type: 'agent_message';
     content: string;
+} | {
+    type: 'token';
+    token: string;
+} | {
+    type: 'stream_end';
 } | {
     type: 'error';
     message: string;
@@ -81,6 +87,72 @@ function manageContext(messages: BaseMessage[], maxTokens: number = 60000): Base
     return result;
 }
 
+// ─── Streaming LLM Call ─────────────────────────────────────────────────────
+
+/**
+ * Call the LLM with streaming. Returns the assembled AIMessage plus
+ * emits 'token' events for each text chunk.
+ * Falls back to non-streaming invoke if streaming fails.
+ */
+async function streamLLMCall(
+    modelWithTools: any,
+    messages: BaseMessage[],
+    onEvent: (event: AgentStreamEvent) => void,
+    abortSignal?: AbortSignal,
+): Promise<AIMessage> {
+    try {
+        const stream = await modelWithTools.stream(messages, {
+            signal: abortSignal,
+        });
+
+        let accumulated: AIMessageChunk | null = null;
+        let textSoFar = '';
+
+        for await (const chunk of stream) {
+            if (abortSignal?.aborted) break;
+
+            // Accumulate chunks to build the full response
+            accumulated = accumulated ? accumulated.concat(chunk) : chunk;
+
+            // Emit text tokens as they arrive
+            const chunkContent = typeof chunk.content === 'string' ? chunk.content : '';
+            if (chunkContent) {
+                textSoFar += chunkContent;
+                onEvent({ type: 'token', token: chunkContent });
+            }
+        }
+
+        if (!accumulated) {
+            return new AIMessage({ content: '' });
+        }
+
+        // Convert the accumulated chunk to a proper AIMessage
+        const toolCalls = accumulated.tool_calls ?? [];
+        const finalContent = typeof accumulated.content === 'string'
+            ? accumulated.content
+            : textSoFar;
+
+        const aiMsg = new AIMessage({
+            content: finalContent,
+            tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
+        });
+
+        return aiMsg;
+    } catch (streamError: any) {
+        // Fallback to non-streaming if streaming is not supported
+        if (streamError.message?.includes('stream') || streamError.message?.includes('not implemented')) {
+            log('Streaming not supported, falling back to invoke()');
+            const response = await modelWithTools.invoke(messages, { signal: abortSignal });
+            const content = typeof response.content === 'string' ? response.content : '';
+            if (content) {
+                onEvent({ type: 'token', token: content });
+            }
+            return response as AIMessage;
+        }
+        throw streamError;
+    }
+}
+
 // ─── Agent Runner ────────────────────────────────────────────────────────────
 
 export async function runAgentStream(
@@ -132,11 +204,11 @@ export async function runAgentStream(
         currentMessages = manageContext(currentMessages);
         log(`Sending ${currentMessages.length} messages (~${estimateTokens(currentMessages)} tokens)`);
 
-        // ─── Call the LLM ────────────────────────────────────────────────
+        // ─── Stream the LLM response ─────────────────────────────────────
         let response: AIMessage;
         try {
             const startTime = Date.now();
-            response = await modelWithTools.invoke(currentMessages) as AIMessage;
+            response = await streamLLMCall(modelWithTools, currentMessages, onEvent, abortSignal);
             const elapsed = Date.now() - startTime;
             log(`LLM responded in ${elapsed}ms`);
         } catch (e: any) {
@@ -164,6 +236,11 @@ export async function runAgentStream(
 
         // ─── Handle tool calls ───────────────────────────────────────────
         if (toolCalls.length > 0) {
+            // If the LLM emitted text before tool calls, signal stream end
+            if (responseContent) {
+                onEvent({ type: 'stream_end' });
+            }
+
             for (const toolCall of toolCalls) {
                 if (abortSignal?.aborted) break;
 
@@ -234,11 +311,13 @@ export async function runAgentStream(
         }
 
         // ─── Final text response (no tool calls) ────────────────────────
-        if (responseContent) {
-            log(`Final response: ${responseContent.substring(0, 200)}${responseContent.length > 200 ? '...' : ''}`);
-            onEvent({ type: 'agent_message', content: responseContent });
-        } else {
+        // Tokens were already streamed via 'token' events during streamLLMCall
+        onEvent({ type: 'stream_end' });
+
+        if (!responseContent) {
             log('Empty final response from LLM');
+        } else {
+            log(`Final response: ${responseContent.substring(0, 200)}${responseContent.length > 200 ? '...' : ''}`);
         }
 
         onEvent({ type: 'done' });
