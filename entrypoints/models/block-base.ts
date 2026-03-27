@@ -22,7 +22,8 @@ export abstract class BlockBase {
     index?: number;
 
     constructor() {
-        makeAutoObservable(this);
+        // Note: makeAutoObservable must be called in subclass constructors
+        // because MobX doesn't allow makeAutoObservable on classes with superclasses
     }
 
     // ─── Label ───────────────────────────────────────────────────────────

@@ -35,6 +35,12 @@ import {
     LoopElementsBlockConfig,
     LoopPaginationBlockConfig,
     ExtractScopeBlockConfig,
+    AssertBlockConfig,
+    GetVariableBlockConfig,
+    HoverBlockConfig,
+    MacroBlockConfig,
+    SetVariableBlockConfig,
+    SwitchFrameBlockConfig,
 } from '../components/block-configs';
 import { ClickBlock } from '@/entrypoints/models/click-block';
 import { InputBlock } from '@/entrypoints/models/input-block';
@@ -45,6 +51,12 @@ import { ConditionBlock } from '@/entrypoints/models/condition-block';
 import { LoopElementsBlock } from '@/entrypoints/models/loop-elements-block';
 import { LoopPaginationBlock } from '@/entrypoints/models/loop-pagination-block';
 import { ExtractScopeBlock } from '@/entrypoints/models/extract-scope-block';
+import { AssertBlock } from '@/entrypoints/models/assert-block';
+import { GetVariableBlock } from '@/entrypoints/models/get-variable-block';
+import { HoverBlock } from '@/entrypoints/models/hover-block';
+import { MacroBlock } from '@/entrypoints/models/macro-block';
+import { SetVariableBlock } from '@/entrypoints/models/set-variable-block';
+import { SwitchFrameBlock } from '@/entrypoints/models/switch-frame-block';
 import {
     Table,
     TableBody,
@@ -116,6 +128,24 @@ const BlockConfigDrawer = observer(function BlockConfigDrawer() {
                     )}
                     {selectedBlock instanceof ExtractScopeBlock && (
                         <ExtractScopeBlockConfig block={selectedBlock} />
+                    )}
+                    {selectedBlock instanceof AssertBlock && (
+                        <AssertBlockConfig block={selectedBlock} />
+                    )}
+                    {selectedBlock instanceof GetVariableBlock && (
+                        <GetVariableBlockConfig block={selectedBlock} />
+                    )}
+                    {selectedBlock instanceof HoverBlock && (
+                        <HoverBlockConfig block={selectedBlock} />
+                    )}
+                    {selectedBlock instanceof MacroBlock && (
+                        <MacroBlockConfig block={selectedBlock} />
+                    )}
+                    {selectedBlock instanceof SetVariableBlock && (
+                        <SetVariableBlockConfig block={selectedBlock} />
+                    )}
+                    {selectedBlock instanceof SwitchFrameBlock && (
+                        <SwitchFrameBlockConfig block={selectedBlock} />
                     )}
                 </div>
                 <DrawerFooter className="flex flex-row gap-2">

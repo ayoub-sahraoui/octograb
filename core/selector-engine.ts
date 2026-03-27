@@ -25,7 +25,7 @@ export class SelectorEngine {
   hoverOverlay: HTMLElement | null = null;
   selectionOverlays: HTMLElement[] = [];
   matchOverlays: HTMLElement[] = [];
-  onSelectCallback: ((selector: string, xpath: string) => void) | null = null;
+  onSelectCallback: ((selector: string, xpath: string, elementInfo?: { tag: string; id?: string; classes?: string; text?: string; attributes: Record<string, string> }) => void) | null = null;
   onFinishCallback: ((success: boolean) => void) | null = null;
   selectedElements: Element[] = [];
   label: HTMLElement | null = null;
@@ -443,6 +443,37 @@ export class SelectorEngine {
     if (this.hoveredEl) this.updateHoverLabel(this.hoveredEl);
   }
 
+  /**
+   * Extract detailed element information for AI selector generation
+   */
+  getElementInfo(el: Element): {
+    tag: string;
+    id?: string;
+    classes?: string;
+    text?: string;
+    attributes: Record<string, string>;
+  } {
+    const tag = el.tagName.toLowerCase();
+    const id = el.id || undefined;
+    const classes = (el.className && typeof el.className === 'string')
+      ? el.className.split(/\s+/).filter(c => c && !this.isUtilityClass(c)).join(' ')
+      : undefined;
+
+    // Get text content (truncated)
+    const text = el.textContent?.trim().substring(0, 100) || undefined;
+
+    // Get relevant attributes
+    const attributes: Record<string, string> = {};
+    const relevantAttrs = ['data-testid', 'data-cy', 'data-type', 'role', 'name', 'aria-label', 'placeholder', 'type', 'href', 'src', 'alt'];
+    for (const attr of relevantAttrs) {
+      if (el.hasAttribute(attr)) {
+        attributes[attr] = el.getAttribute(attr)!;
+      }
+    }
+
+    return { tag, id, classes, text, attributes };
+  }
+
   /** Compute and emit the selector/xpath for the current selection */
   private emitSelector() {
     let effectiveScope = this.scopeElement;
@@ -500,7 +531,12 @@ export class SelectorEngine {
     }
 
     this.lastComputedSelector = finalSelector;
-    if (this.onSelectCallback && finalSelector) this.onSelectCallback(finalSelector, finalXPath);
+    if (this.onSelectCallback && finalSelector) {
+      const elementInfo = this.selectedElements.length > 0
+        ? this.getElementInfo(this.selectedElements[this.selectedElements.length - 1])
+        : undefined;
+      this.onSelectCallback(finalSelector, finalXPath, elementInfo);
+    }
   }
 
   handleClick(e: MouseEvent) {

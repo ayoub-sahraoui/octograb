@@ -1,5 +1,5 @@
+import { ArrowDown, BookOpen, ChevronDown, ChevronUp, Database, GitBranch, Globe, GripVertical, MousePointerClick, Plus, Repeat, Settings2, Type, Undo2, Clock, Bug, Download, Hand, Puzzle, Variable, Frame } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { ChevronDown, ChevronsDown, ChevronsDownUp, ChevronsUp, ChevronUp, Database, FileStack, GitPullRequest, Globe, Hourglass, MousePointer, Plus, RefreshCcw, ScrollText, Settings2, Type, Undo2, GripVertical } from 'lucide-react'
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -22,6 +22,12 @@ import { ConditionBlock } from '@/entrypoints/models/condition-block';
 import { LoopElementsBlock } from '@/entrypoints/models/loop-elements-block';
 import { LoopPaginationBlock } from '@/entrypoints/models/loop-pagination-block';
 import { ExtractScopeBlock } from '@/entrypoints/models/extract-scope-block';
+import { AssertBlock } from '@/entrypoints/models/assert-block';
+import { GetVariableBlock } from '@/entrypoints/models/get-variable-block';
+import { HoverBlock } from '@/entrypoints/models/hover-block';
+import { MacroBlock } from '@/entrypoints/models/macro-block';
+import { SetVariableBlock } from '@/entrypoints/models/set-variable-block';
+import { SwitchFrameBlock } from '@/entrypoints/models/switch-frame-block';
 import { SelectorType } from '@/entrypoints/models/selector';
 
 // Block type definitions with icons and factory functions
@@ -34,7 +40,7 @@ const blockTypes = [
     },
     {
         type: 'click',
-        icon: MousePointer,
+        icon: MousePointerClick,
         name: 'Click',
         createBlock: () => new ClickBlock("Click", { selector: { type: SelectorType.CSS, value: '' } }),
     },
@@ -46,13 +52,13 @@ const blockTypes = [
     },
     {
         type: 'loop_elements',
-        icon: RefreshCcw,
+        icon: Repeat,
         name: 'Loop Elements',
         createBlock: () => new LoopElementsBlock("Loop Elements", { selector: { type: SelectorType.CSS, value: '' } }),
     },
     {
         type: 'loop_pagination',
-        icon: FileStack,
+        icon: BookOpen,
         name: 'Loop Pagination',
         createBlock: () => new LoopPaginationBlock("Loop Pagination", { nextButtonSelector: { type: SelectorType.CSS, value: '' } }),
     },
@@ -70,21 +76,57 @@ const blockTypes = [
     },
     {
         type: 'scroll',
-        icon: ScrollText,
+        icon: ArrowDown,
         name: 'Scroll',
         createBlock: () => new ScrollBlock("Scroll", { target: 'window', behavior: 'bottom' }),
     },
     {
         type: 'wait',
-        icon: Hourglass,
+        icon: Clock,
         name: 'Wait',
         createBlock: () => new WaitBlock("Wait", { type: 'timeout', timeout: 1000 }),
     },
     {
+        type: 'assert',
+        icon: Bug,
+        name: 'Assert',
+        createBlock: () => new AssertBlock("Assert", { selector: { type: SelectorType.CSS, value: '' }, check: 'exists' }),
+    },
+    {
         type: 'condition',
-        icon: GitPullRequest,
+        icon: GitBranch,
         name: 'Condition',
         createBlock: () => new ConditionBlock({ selector: { type: SelectorType.CSS, value: '' }, check: 'exists' }),
+    },
+    {
+        type: 'get_variable',
+        icon: Download,
+        name: 'Get Variable',
+        createBlock: () => new GetVariableBlock("Get Variable", { name: '' }),
+    },
+    {
+        type: 'hover',
+        icon: Hand,
+        name: 'Hover',
+        createBlock: () => new HoverBlock("Hover", { selector: { type: SelectorType.CSS, value: '' } }),
+    },
+    {
+        type: 'macro',
+        icon: Puzzle,
+        name: 'Macro',
+        createBlock: () => new MacroBlock("Macro", { macroId: '' }),
+    },
+    {
+        type: 'set_variable',
+        icon: Variable,
+        name: 'Set Variable',
+        createBlock: () => new SetVariableBlock("Set Variable", { name: '', value: '' }),
+    },
+    {
+        type: 'switch_frame',
+        icon: Frame,
+        name: 'Switch Frame',
+        createBlock: () => new SwitchFrameBlock("Switch Frame", { target: 'main' }),
     },
 ];
 

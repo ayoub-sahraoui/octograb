@@ -1,6 +1,6 @@
 import { BlockBase } from "./block-base";
+import { makeObservable, observable, action, toJS } from "mobx";
 import { OnErrorStrategy } from "./enums";
-import { toJS } from "mobx";
 import { v4 as uuidv4 } from 'uuid';
 import { Selector } from "./selector";
 import { ConditionConfig } from "./condition-block";
@@ -26,6 +26,47 @@ export class LoopPaginationBlock extends BlockBase {
 
     constructor(name: string, config: LoopPaginationBlockConfig) {
         super();
+        makeObservable(this, {
+            id: observable,
+            type: observable,
+            config: observable,
+            label: observable,
+            enabled: observable,
+            description: observable,
+            onError: observable,
+            maxRetries: observable,
+            retryDelay: observable,
+            parent: observable,
+            children: observable,
+            index: observable,
+            setLabel: action,
+            setEnabled: action,
+            toggleEnabled: action,
+            setDescription: action,
+            setOnError: action,
+            setMaxRetries: action,
+            setRetryDelay: action,
+            setMaxExecutionTime: action,
+            setConfig: action,
+            updateConfig: action,
+            setConfigValue: action,
+            setParent: action,
+            addChild: action,
+            removeChild: action,
+            moveChild: action,
+            clearChildren: action,
+            setIndex: action,
+            setPaginationType: action,
+            setNextButtonSelector: action,
+            setScrollTarget: action,
+            setScrollSelector: action,
+            setScrollAmount: action,
+            setScrollStrategy: action,
+            setItemSelector: action,
+            setMaxPages: action,
+            setDelayBetweenPages: action,
+            setOnNoNextButton: action,
+        });
         this.id = uuidv4();
         this.label = name;
         this.enabled = true;

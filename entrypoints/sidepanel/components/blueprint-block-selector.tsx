@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button'
-import { Database, FileStack, GitPullRequest, Globe, Hourglass, MousePointer, RefreshCcw, ScrollText, Type, Undo2 } from 'lucide-react'
+import { ArrowDown, BookOpen, Clock, Database, GitBranch, Globe, MousePointerClick, Repeat, Type, Undo2, Bug, Download, Hand, Puzzle, Variable, Frame } from 'lucide-react'
 import {
     Tooltip,
     TooltipContent,
@@ -15,6 +15,12 @@ import { ConditionBlock } from '@/entrypoints/models/condition-block';
 import { LoopElementsBlock } from '@/entrypoints/models/loop-elements-block';
 import { LoopPaginationBlock } from '@/entrypoints/models/loop-pagination-block';
 import { ExtractScopeBlock } from '@/entrypoints/models/extract-scope-block';
+import { AssertBlock } from '@/entrypoints/models/assert-block';
+import { GetVariableBlock } from '@/entrypoints/models/get-variable-block';
+import { HoverBlock } from '@/entrypoints/models/hover-block';
+import { MacroBlock } from '@/entrypoints/models/macro-block';
+import { SetVariableBlock } from '@/entrypoints/models/set-variable-block';
+import { SwitchFrameBlock } from '@/entrypoints/models/switch-frame-block';
 import { useBlueprintBuilderStore } from '@/entrypoints/stores/blueprint-builder-store';
 import { SelectorType } from '@/entrypoints/models/selector';
 import { toast } from 'sonner';
@@ -30,7 +36,7 @@ const blocks = [
     },
     {
         type: 'click',
-        icon: MousePointer,
+        icon: MousePointerClick,
         label: 'Click',
         description: 'Click on an element',
         createBlock: () => new ClickBlock("Click", { selector: { type: SelectorType.CSS, value: '' } }),
@@ -44,14 +50,14 @@ const blocks = [
     },
     {
         type: 'wait',
-        icon: Hourglass,
+        icon: Clock,
         label: 'Wait',
         description: 'Wait for a specific time',
         createBlock: () => new WaitBlock("Wait", { type: 'timeout', timeout: 1000 }),
     },
     {
         type: 'scroll',
-        icon: ScrollText,
+        icon: ArrowDown,
         label: 'Scroll',
         description: 'Scroll down the page',
         createBlock: () => new ScrollBlock("Scroll", { target: 'window', behavior: 'bottom' }),
@@ -65,14 +71,14 @@ const blocks = [
     },
     {
         type: 'loop_elements',
-        icon: RefreshCcw,
+        icon: Repeat,
         label: 'Loop Elements',
         description: 'Loop through elements',
         createBlock: () => new LoopElementsBlock("Loop Elements", { selector: { type: SelectorType.CSS, value: '' } }),
     },
     {
         type: 'loop_pagination',
-        icon: FileStack,
+        icon: BookOpen,
         label: 'Loop Pagination',
         description: 'Loop through pagination',
         createBlock: () => new LoopPaginationBlock("Loop Pagination", { nextButtonSelector: { type: SelectorType.CSS, value: '' } }),
@@ -85,11 +91,53 @@ const blocks = [
         createBlock: () => new ExtractScopeBlock("Extract Scope", { fields: [] }),
     },
     {
+        type: 'assert',
+        icon: Bug,
+        label: 'Assert',
+        description: 'Assert element state',
+        createBlock: () => new AssertBlock("Assert", { selector: { type: SelectorType.CSS, value: '' }, check: 'exists' }),
+    },
+    {
         type: 'condition',
-        icon: GitPullRequest,
+        icon: GitBranch,
         label: 'Condition',
         description: 'Conditional execution',
         createBlock: () => new ConditionBlock({ selector: { type: SelectorType.CSS, value: '' }, check: 'exists' }),
+    },
+    {
+        type: 'get_variable',
+        icon: Download,
+        label: 'Get Variable',
+        description: 'Get variable value',
+        createBlock: () => new GetVariableBlock("Get Variable", { name: '' }),
+    },
+    {
+        type: 'hover',
+        icon: Hand,
+        label: 'Hover',
+        description: 'Hover over element',
+        createBlock: () => new HoverBlock("Hover", { selector: { type: SelectorType.CSS, value: '' } }),
+    },
+    {
+        type: 'macro',
+        icon: Puzzle,
+        label: 'Macro',
+        description: 'Run a macro blueprint',
+        createBlock: () => new MacroBlock("Macro", { macroId: '' }),
+    },
+    {
+        type: 'set_variable',
+        icon: Variable,
+        label: 'Set Variable',
+        description: 'Set variable value',
+        createBlock: () => new SetVariableBlock("Set Variable", { name: '', value: '' }),
+    },
+    {
+        type: 'switch_frame',
+        icon: Frame,
+        label: 'Switch Frame',
+        description: 'Switch to iframe',
+        createBlock: () => new SwitchFrameBlock("Switch Frame", { target: 'main' }),
     },
 ]
 

@@ -1,4 +1,4 @@
-import { toJS } from "mobx";
+import { makeObservable, observable, action, toJS } from "mobx";
 import { BlockBase } from "./block-base";
 import { OnErrorStrategy } from "./enums";
 import { Selector } from "./selector";
@@ -30,6 +30,42 @@ export class AssertBlock extends BlockBase {
 
     constructor(name: string, config: AssertBlockConfig) {
         super();
+        makeObservable(this, {
+            id: observable,
+            type: observable,
+            config: observable,
+            label: observable,
+            enabled: observable,
+            description: observable,
+            onError: observable,
+            maxRetries: observable,
+            retryDelay: observable,
+            parent: observable,
+            children: observable,
+            index: observable,
+            setLabel: action,
+            setEnabled: action,
+            toggleEnabled: action,
+            setDescription: action,
+            setOnError: action,
+            setMaxRetries: action,
+            setRetryDelay: action,
+            setMaxExecutionTime: action,
+            setConfig: action,
+            updateConfig: action,
+            setConfigValue: action,
+            setParent: action,
+            addChild: action,
+            removeChild: action,
+            moveChild: action,
+            clearChildren: action,
+            setIndex: action,
+            setSelector: action,
+            setCheck: action,
+            setValue: action,
+            setTimeout: action,
+            setFailMessage: action,
+        });
         this.id = crypto.randomUUID();
         this.label = name;
         this.enabled = true;
@@ -54,7 +90,7 @@ export class AssertBlock extends BlockBase {
         this.config.value = value;
     }
 
-    setTimeout(timeout: number) {
+    setTimeout(timeout: number | undefined) {
         this.config.timeout = timeout;
     }
 

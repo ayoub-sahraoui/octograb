@@ -1,7 +1,7 @@
 import { BlockBase } from './block-base';
+import { makeObservable, observable, action, toJS } from "mobx";
 import { Selector } from "./selector";
 import { v4 as uuidv4 } from 'uuid';
-import { toJS } from "mobx";
 import { OnErrorStrategy } from "./enums";
 import { Block } from "./types";
 
@@ -26,6 +26,42 @@ export class ConditionBlock extends BlockBase {
 
     constructor(config: ConditionConfig) {
         super();
+        makeObservable(this, {
+            id: observable,
+            type: observable,
+            label: observable,
+            enabled: observable,
+            description: observable,
+            onError: observable,
+            maxRetries: observable,
+            retryDelay: observable,
+            config: observable,
+            elseChildren: observable,
+            setLabel: action,
+            setEnabled: action,
+            toggleEnabled: action,
+            setDescription: action,
+            setOnError: action,
+            setMaxRetries: action,
+            setRetryDelay: action,
+            setMaxExecutionTime: action,
+            setConfig: action,
+            updateConfig: action,
+            setConfigValue: action,
+            setParent: action,
+            addChild: action,
+            removeChild: action,
+            moveChild: action,
+            clearChildren: action,
+            setIndex: action,
+            setSelector: action,
+            setCheck: action,
+            setValue: action,
+            setNegate: action,
+            addElseChild: action,
+            removeElseChild: action,
+            clearElseChildren: action,
+        });
         this.id = uuidv4();
         this.label = 'Condition';
         this.enabled = true;

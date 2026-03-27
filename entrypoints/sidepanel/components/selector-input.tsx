@@ -5,7 +5,7 @@ import { useBlueprintBuilderStore } from '@/entrypoints/stores/blueprint-builder
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { Crosshair, Loader2, CheckCircle2, AlertTriangle, XCircle, Search, ChevronDown, ChevronUp, Sparkles, Wand2 } from 'lucide-react';
+import { Crosshair, Loader2, CheckCircle2, AlertTriangle, XCircle, Search, ChevronDown, ChevronUp, Sparkles, Wand2, Bot } from 'lucide-react';
 import { useConfirm } from './confirm-dialog';
 import {
     Select,
@@ -18,6 +18,7 @@ import { Block } from '@/entrypoints/models/types';
 import { sendToContentScript } from '@/core/messaging';
 import { useAiAgentStore } from '@/entrypoints/stores/ai-agent-store';
 import { optimizeSelector, isOverlySpecificSelector, type SelectorOptimization } from '@/core/ai/selector-optimizer';
+import { generateSelectorFromElement } from '@/core/ai/selector-generator';
 import {
     Dialog,
     DialogContent,
@@ -123,6 +124,14 @@ export const SelectorInput = observer(({
     const [aiLoading, setAiLoading] = useState(false);
     const [aiResult, setAiResult] = useState<SelectorOptimization | null>(null);
     const [aiError, setAiError] = useState<string | null>(null);
+
+    // ─── AI Extract state ───────────────────────────────────────────────
+    const [aiExtractDialogOpen, setAiExtractDialogOpen] = useState(false);
+    const [aiExtractLoading, setAiExtractLoading] = useState(false);
+    const [aiExtractResult, setAiExtractResult] = useState<{ css: string; xpath: string; description: string; confidence: 'high' | 'medium' | 'low' } | null>(null);
+    const [aiExtractError, setAiExtractError] = useState<string | null>(null);
+    const pendingElementInfoRef = useRef<{ tag: string; id?: string; classes?: string; text?: string; attributes: Record<string, string> } | null>(null);
+    const [pickingMode, setPickingMode] = useState<'normal' | 'ai' | null>(null);
 
     const handleAiOptimize = async () => {
         if (!aiStore.hasApiKey) {
@@ -340,12 +349,14 @@ export const SelectorInput = observer(({
     const handlePickElement = async () => {
         if (store.isPicking) {
             await store.stopPicking();
+            setPickingMode(null);
             return;
         }
 
-        const success = await store.startPicking((css, xpath) => {
+        setPickingMode('normal');
+        const success = await store.startPicking((css, xpath, elementInfo) => {
             // Update pending preview — don't commit to block config yet
-            store.setPendingSelectors(css, xpath);
+            store.setPendingSelectors(css, xpath, elementInfo);
         }, computedParentSelector, (doneSuccess) => {
             // Called when user clicks "Done Selecting" or "Cancel" in the page overlay
             if (doneSuccess && store.pendingCss) {
@@ -367,10 +378,11 @@ export const SelectorInput = observer(({
                 onSelectorChange(updatedSelector);
                 store.setPendingSelectors('', '');
             }
-            // If cancelled, pendingCss/pendingXpath are already cleared by the store
+            setPickingMode(null);
         });
 
         if (!success) {
+            setPickingMode(null);
             showAlert('Picker Failed', 'Failed to start element picker. Make sure you have a web page open and the content script is loaded.');
         }
     };
@@ -379,6 +391,89 @@ export const SelectorInput = observer(({
         if (currentValue.trim()) {
             testSelector(currentValue, currentType);
         }
+    };
+
+    // ─── AI Extract handlers ──────────────────────────────────────────
+    const handleAiExtract = async () => {
+        if (!aiStore.hasApiKey) {
+            setAiExtractError('Set an API key in Settings first.');
+            setAiExtractDialogOpen(true);
+            return;
+        }
+
+        if (store.isPicking) {
+            await store.stopPicking();
+            setPickingMode(null);
+            return;
+        }
+
+        setPickingMode('ai');
+        setAiExtractLoading(true);
+        setAiExtractError(null);
+        setAiExtractResult(null);
+        pendingElementInfoRef.current = null;
+
+        const success = await store.startPicking((css, xpath, elementInfo) => {
+            // Called when element is hovered/selected - store info in ref for immediate access
+            if (elementInfo) {
+                pendingElementInfoRef.current = elementInfo;
+            }
+        }, computedParentSelector, async (doneSuccess) => {
+            // Called when user clicks "Done Selecting"
+            if (doneSuccess && pendingElementInfoRef.current) {
+                // Generate selector from picked element
+                setAiExtractDialogOpen(true);
+                try {
+                    const result = await generateSelectorFromElement(
+                        aiStore.provider,
+                        aiStore.apiKey,
+                        aiStore.model,
+                        pendingElementInfoRef.current,
+                        expectedElement,
+                    );
+
+                    if (result.error) {
+                        setAiExtractError(result.error);
+                    } else if (result.selector) {
+                        setAiExtractResult(result.selector);
+                    }
+                } catch (e: any) {
+                    setAiExtractError(e.message || 'Failed to generate selector.');
+                } finally {
+                    setAiExtractLoading(false);
+                    setPickingMode(null);
+                    pendingElementInfoRef.current = null;
+                    store.setPendingSelectors('', '');
+                }
+            } else {
+                // Cancelled or no element selected
+                setAiExtractLoading(false);
+                setPickingMode(null);
+                pendingElementInfoRef.current = null;
+            }
+        });
+
+        if (!success) {
+            setAiExtractLoading(false);
+            setPickingMode(null);
+            showAlert('Picker Failed', 'Failed to start element picker. Make sure you have a web page open and the content script is loaded.');
+        }
+    };
+
+    const applyAiExtractedSelector = (format: 'css' | 'xpath') => {
+        if (!aiExtractResult) return;
+        const newSelector: Selector = {
+            ...(selector || { type: SelectorType.CSS, value: '' }),
+            type: format === 'xpath' ? SelectorType.XPath : SelectorType.CSS,
+            value: format === 'xpath' ? aiExtractResult.xpath : aiExtractResult.css,
+            detected: {
+                css: aiExtractResult.css,
+                xpath: aiExtractResult.xpath,
+            },
+        };
+        onSelectorChange(newSelector);
+        setAiExtractDialogOpen(false);
+        setAiExtractResult(null);
     };
 
     // ─── Validation visual helpers ────────────────────────────────────
@@ -451,15 +546,15 @@ export const SelectorInput = observer(({
                 </Button>
                 <Button
                     type="button"
-                    variant={store.isPicking ? 'default' : 'outline'}
+                    variant={pickingMode === 'normal' ? 'default' : 'outline'}
                     size="sm"
-                    className={`h-9 gap-1.5 shrink-0 transition-all ${store.isPicking
+                    className={`h-9 gap-1.5 shrink-0 transition-all ${pickingMode === 'normal'
                         ? 'bg-emerald-600 hover:bg-emerald-700 text-white ring-2 ring-emerald-300 animate-pulse'
                         : 'hover:border-emerald-400 hover:text-emerald-600'
                         }`}
                     onClick={handlePickElement}
                 >
-                    {store.isPicking ? (
+                    {pickingMode === 'normal' ? (
                         <>
                             <Loader2 className="w-3.5 h-3.5 animate-spin" />
                             <span className="text-xs">Picking...</span>
@@ -468,6 +563,30 @@ export const SelectorInput = observer(({
                         <>
                             <Crosshair className="w-3.5 h-3.5" />
                             <span className="text-xs">Pick</span>
+                        </>
+                    )}
+                </Button>
+                <Button
+                    type="button"
+                    variant={pickingMode === 'ai' ? 'default' : 'outline'}
+                    size="sm"
+                    className={`h-9 gap-1 shrink-0 transition-all ${pickingMode === 'ai'
+                        ? 'bg-emerald-600 hover:bg-emerald-700 text-white ring-2 ring-emerald-300 animate-pulse'
+                        : 'hover:border-emerald-400 hover:text-emerald-600 border-emerald-200'
+                        }`}
+                    onClick={handleAiExtract}
+                    disabled={store.isPicking && pickingMode !== 'ai'}
+                    title={pickingMode === 'ai' ? 'Picking element for AI...' : 'Pick element with AI'}
+                >
+                    {pickingMode === 'ai' ? (
+                        <>
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            <span className="text-xs">Picking...</span>
+                        </>
+                    ) : (
+                        <>
+                            <Bot className="w-3.5 h-3.5" />
+                            <span className="text-xs">AI</span>
                         </>
                     )}
                 </Button>
@@ -622,13 +741,15 @@ export const SelectorInput = observer(({
 
                         {/* AI Optimize button (always available) */}
                         {currentValue && aiStore.hasApiKey && (
-                            <button
+                            <Button
+                                variant="outline"
+                                size="sm"
                                 onClick={handleAiOptimize}
-                                className="self-start inline-flex items-center gap-1.5 px-2 py-1 text-[10px] text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded transition-colors"
+                                className="h-8 gap-1.5 text-[10px] text-emerald-600 border-emerald-200 hover:border-emerald-400 hover:bg-emerald-50 hover:text-emerald-700"
                             >
-                                <Wand2 className="w-3 h-3" />
-                                AI Optimize Selector
-                            </button>
+                                <Sparkles className="w-3 h-3" />
+                                AI Optimize
+                            </Button>
                         )}
                     </div>
                 )}
@@ -714,6 +835,80 @@ export const SelectorInput = observer(({
 
                         <div className="flex justify-end gap-2 pt-2">
                             <Button variant="outline" size="sm" onClick={() => setAiDialogOpen(false)}>Close</Button>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* ─── AI Extract Dialog ─────────────────────────────────────── */}
+            <Dialog open={aiExtractDialogOpen} onOpenChange={setAiExtractDialogOpen}>
+                <DialogContent className="max-w-lg">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <Bot className="w-4 h-4 text-emerald-600" />
+                            AI Selector Generator
+                        </DialogTitle>
+                        <DialogDescription>
+                            AI-generated selector based on the element you picked.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="space-y-4">
+                        {aiExtractLoading && (
+                            <div className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground">
+                                <Loader2 className="w-4 h-4 animate-spin text-emerald-500" />
+                                Analyzing element and generating selector...
+                            </div>
+                        )}
+
+                        {aiExtractError && (
+                            <div className="text-sm text-destructive bg-destructive/10 rounded-md p-3">
+                                {aiExtractError}
+                            </div>
+                        )}
+
+                        {aiExtractResult && (
+                            <div className="space-y-3">
+                                <p className="text-xs text-gray-600">{aiExtractResult.description}</p>
+
+                                {/* CSS suggestion */}
+                                <div className="border rounded-md p-3 bg-emerald-50/50 border-emerald-200">
+                                    <div className="flex items-center justify-between mb-1">
+                                        <Label className="text-[10px] text-emerald-700 flex items-center gap-1">
+                                            Generated
+                                            <span className="text-[9px] px-1 py-0.5 rounded bg-emerald-100 text-emerald-700">CSS</span>
+                                            <span className={`text-[9px] px-1 py-0.5 rounded ${aiExtractResult.confidence === 'high' ? 'bg-emerald-100 text-emerald-700' :
+                                                aiExtractResult.confidence === 'medium' ? 'bg-amber-100 text-amber-700' :
+                                                    'bg-gray-100 text-gray-600'
+                                                }`}>
+                                                {aiExtractResult.confidence}
+                                            </span>
+                                        </Label>
+                                        <Button size="sm" variant="ghost" className="h-6 px-2 text-[10px] text-emerald-700 hover:text-emerald-800 hover:bg-emerald-100" onClick={() => applyAiExtractedSelector('css')}>
+                                            Apply CSS
+                                        </Button>
+                                    </div>
+                                    <pre className="font-mono text-xs text-gray-800 whitespace-pre-wrap break-all max-h-[80px] overflow-y-auto leading-relaxed">{aiExtractResult.css}</pre>
+                                </div>
+
+                                {/* XPath suggestion */}
+                                <div className="border rounded-md p-3 bg-gray-50">
+                                    <div className="flex items-center justify-between mb-1">
+                                        <Label className="text-[10px] text-gray-500 flex items-center gap-1">
+                                            Generated
+                                            <span className="text-[9px] px-1 py-0.5 rounded bg-gray-200 text-gray-600">XPath</span>
+                                        </Label>
+                                        <Button size="sm" variant="ghost" className="h-6 px-2 text-[10px] text-gray-500 hover:text-gray-700 hover:bg-gray-100" onClick={() => applyAiExtractedSelector('xpath')}>
+                                            Apply XPath
+                                        </Button>
+                                    </div>
+                                    <pre className="font-mono text-xs text-gray-600 whitespace-pre-wrap break-all max-h-[80px] overflow-y-auto leading-relaxed">{aiExtractResult.xpath}</pre>
+                                </div>
+                            </div>
+                        )}
+
+                        <div className="flex justify-end gap-2 pt-2">
+                            <Button variant="outline" size="sm" onClick={() => setAiExtractDialogOpen(false)}>Close</Button>
                         </div>
                     </div>
                 </DialogContent>

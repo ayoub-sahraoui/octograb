@@ -40,10 +40,11 @@ export class BlueprintBuilderStore {
 
     // Element picker state
     isPicking: boolean = false;
-    pickingCallback: ((css: string, xpath: string) => void) | null = null;
+    pickingCallback: ((css: string, xpath: string, elementInfo?: { tag: string; id?: string; classes?: string; text?: string; attributes: Record<string, string> }) => void) | null = null;
     pickingDoneCallback: ((success: boolean) => void) | null = null;
     pendingCss: string = '';
     pendingXpath: string = '';
+    pendingElementInfo: { tag: string; id?: string; classes?: string; text?: string; attributes: Record<string, string> } | null = null;
     private _messageCleanup: (() => void) | null = null;
     private _autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
     autoSavePending: boolean = false;
@@ -81,6 +82,7 @@ export class BlueprintBuilderStore {
         this.pickingDoneCallback = null;
         this.pendingCss = '';
         this.pendingXpath = '';
+        this.pendingElementInfo = null;
     }
 
     setPendingCss(css: string) {
@@ -91,9 +93,12 @@ export class BlueprintBuilderStore {
         this.pendingXpath = xpath;
     }
 
-    setPendingSelectors(css: string, xpath: string) {
+    setPendingSelectors(css: string, xpath: string, elementInfo?: { tag: string; id?: string; classes?: string; text?: string; attributes: Record<string, string> }) {
         this.pendingCss = css;
         this.pendingXpath = xpath;
+        if (elementInfo) {
+            this.pendingElementInfo = elementInfo;
+        }
     }
 
     // ─── Async Methods ─────────────────────────────────────────────────────
@@ -245,15 +250,18 @@ export class BlueprintBuilderStore {
     private initMessageListener() {
         this._messageCleanup = onMessageFromContentScript((message) => {
             if (message.type === 'ELEMENT_SELECTED' && this.pickingCallback) {
-                const { selector, xpath } = message.data;
-                this.pickingCallback(selector, xpath);
+                const { selector, xpath, elementInfo } = message.data;
+                this.pickingCallback(selector, xpath, elementInfo);
             }
 
             if (message.type === 'PICKING_DONE') {
                 const doneCallback = this.pickingDoneCallback;
                 const success = message.data?.success ?? false;
+                // Don't clear state yet - let the callback access pending values first
+                if (doneCallback) {
+                    doneCallback(success);
+                }
                 this.clearPickingState();
-                if (doneCallback) doneCallback(success);
             }
         });
     }
@@ -264,7 +272,7 @@ export class BlueprintBuilderStore {
      * The callback is called on every selection (not just once), so the UI can update in real-time.
      */
     async startPicking(
-        onSelect: (css: string, xpath: string) => void,
+        onSelect: (css: string, xpath: string, elementInfo?: { tag: string; id?: string; classes?: string; text?: string; attributes: Record<string, string> }) => void,
         parentSelector: string | null = null,
         onDone?: (success: boolean) => void
     ) {

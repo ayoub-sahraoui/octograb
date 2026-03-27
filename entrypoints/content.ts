@@ -33,11 +33,11 @@ export default defineContentScript({
               .catch(err => console.error('[OctoGrab] Error sending PICKING_DONE:', err));
           };
 
-          selectorEngine.start((selector, xpath) => {
+          selectorEngine.start((selector: string, xpath: string, elementInfo?: unknown) => {
             // Send selected element info back to sidepanel
             browser.runtime.sendMessage({
               type: 'ELEMENT_SELECTED',
-              data: { selector, xpath }
+              data: { selector, xpath, elementInfo }
             });
           }, message.scopeElement || null, doneHandler, message.parentSelector || null);
           sendResponse({ success: true });
