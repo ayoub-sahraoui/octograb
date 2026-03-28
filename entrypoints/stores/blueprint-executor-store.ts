@@ -3,6 +3,7 @@ import { Blueprint } from "../models/blueprint";
 import { Block } from "../models/types";
 import { createBlockFromJSON } from "../models/block-factory";
 import { ExtractionField } from "../models/extract-scope-block";
+import { toDomExtractionFields } from "@/core/extraction-contract";
 import { Scope } from "@/core/env";
 import { sendToTab, isContentScriptReady } from "@/core/messaging";
 import { browser } from "wxt/browser";
@@ -2510,15 +2511,7 @@ export class BlueprintExecutorStore {
         if (extractedFields.length > 0) {
             // Build extraction fields in the format env-handler expects
             // IMPORTANT: Convert MobX Proxy objects to plain JS objects for Chrome messaging
-            const envFields = extractedFields.map((f: any) => ({
-                key: f.key,
-                selector: f.selector?.value || '',
-                selectorType: (f.selector?.type || 'css') as string,
-                attribute: f.attribute || 'text',
-                transformers: f.transformers ? JSON.parse(JSON.stringify(f.transformers)) : [],
-                required: f.required || false,
-                multiple: f.multiple || false,
-            }));
+            const envFields = toDomExtractionFields(extractedFields as ExtractionField[]);
 
             this.log('info', `  📤 Extraction fields being sent: ${envFields.map((f: any) => f.key).join(', ')}`);
 

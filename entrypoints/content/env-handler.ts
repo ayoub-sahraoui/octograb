@@ -1,8 +1,8 @@
 import { registerRpcHandler, MessageResponse, Message } from '@/core/messaging';
 import { resolveScope, getElement, getElements } from '@/core/dom-query';
-import { ExtractionField } from '@/core/types';
 import { createDomSnapshot, queryElementPreview, testExtraction } from '@/core/ai/dom-snapshot';
 import { buildSwitchFrameResult } from './switch-frame-result';
+import { DomExtractionField } from '@/core/extraction-contract';
 
 // ─── Utility: Scope Marker Cleanup ─────────────────────────────────────────
 
@@ -661,7 +661,7 @@ export function initEnvHandler() {
                     const scopeEl = resolveScope(scope);
                     const result: Record<string, any> = {};
 
-                    for (const field of (fields as ExtractionField[])) {
+                    for (const field of (fields as DomExtractionField[])) {
                         throwIfAborted(); // Check before each field extraction
                         const key = field.key;
                         let value: any = null;

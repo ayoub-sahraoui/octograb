@@ -45,6 +45,8 @@ export interface ExtractionField {
   multiple?: boolean;
 }
 
+export type { DomExtractionField } from './extraction-contract';
+
 export interface SerializedBlockNode {
   id: string;
   type: string;

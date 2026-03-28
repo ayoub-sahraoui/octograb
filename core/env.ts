@@ -1,5 +1,4 @@
-
-import { ExtractionField } from './types';
+import { DomExtractionField } from './extraction-contract';
 
 export interface BlockContext {
   // Loop metadata
@@ -36,7 +35,7 @@ export interface ExecutionEnvironment {
 
   // Query
   count(selector: string, type: 'css' | 'xpath', scope?: Scope): Promise<number>;
-  extract(fields: ExtractionField[], scope?: Scope): Promise<Record<string, any>>;
+  extract(fields: DomExtractionField[], scope?: Scope): Promise<Record<string, any>>;
   isVisible(selector: string, type: 'css' | 'xpath', scope?: Scope): Promise<boolean>;
 
   // Debug
