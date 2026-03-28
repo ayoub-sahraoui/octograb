@@ -1,4 +1,3 @@
-export type BlockType = 'navigate' | 'click' | 'input' | 'loop_elements' | 'loop_pagination' | 'extract_scope' | 'go_back' | 'scroll' | 'wait' | 'condition';
 export type SelectorType = 'css' | 'xpath';
 
 export type TransformerType =
@@ -19,26 +18,18 @@ export type TransformerType =
 
 export interface Transformer {
   type: TransformerType;
-  // replace
   searchValue?: string;
   replaceValue?: string;
-  // regex
   pattern?: string;
   flags?: string;
   replacement?: string;
   extractGroup?: number;
-  // split
   delimiter?: string;
   index?: number;
-  // currency_convert
   fixedRate?: number;
-  // parse_json
   path?: string;
-  // parse_date
   outputFormat?: string;
-  // custom (not supported in Chrome extensions due to CSP)
   functionBody?: string;
-  // error handling
   skipOnError?: boolean;
 }
 
@@ -54,60 +45,20 @@ export interface ExtractionField {
   multiple?: boolean;
 }
 
-export interface PaginationConfig {
-  nextButtonSelector: string;
-  nextButtonSelectorType?: SelectorType;
-  detectedCssSelector?: string;
-  detectedXpathSelector?: string;
-  maxPages?: number;
-}
-
-export interface ScrollConfig {
-  target: 'window' | 'element';
-  behavior: 'bottom' | 'top' | 'pixels';
-  pixels?: number;
-  selector?: string; // If target is element
-  selectorType?: SelectorType;
-  detectedCssSelector?: string;
-  detectedXpathSelector?: string;
-}
-
-export interface WaitConfig {
-  type: 'timeout' | 'selector_visible' | 'selector_hidden' | 'dom_content_loaded' | 'network_idle';
-  timeout?: number; // ms
-  selector?: string;
-  selectorType?: SelectorType;
-  detectedCssSelector?: string;
-  detectedXpathSelector?: string;
-}
-
-export interface ConditionConfig {
-  selector: string;
-  selectorType?: SelectorType;
-  detectedCssSelector?: string;
-  detectedXpathSelector?: string;
-  check: 'exists' | 'not_exists' | 'visible' | 'hidden' | 'text_contains' | 'text_equals' | 'text_regex' | 'count_equals' | 'count_greater_than';
-  value?: string; // For text/count checks
-  negate?: boolean;
-}
-
-export interface Block {
+export interface SerializedBlockNode {
   id: string;
-  type: BlockType;
-  children?: Block[];      // Used as THEN branch for condition
-  elseChildren?: Block[];  // Used as ELSE branch for condition
-  url?: string;
-  selector?: string;
-  selectorType?: SelectorType;
-  detectedCssSelector?: string;
-  detectedXpathSelector?: string;
-  value?: string;
-  config?: PaginationConfig;
-  scrollConfig?: ScrollConfig; // For scroll blocks
-  waitConfig?: WaitConfig; // For wait blocks
-  conditionConfig?: ConditionConfig; // For condition blocks
-  fields?: ExtractionField[];
-  navigationBehavior?: 'new_tab' | 'default';
+  type: string;
+  label?: string;
+  description?: string;
+  enabled?: boolean;
+  onError?: string;
+  maxRetries?: number;
+  retryDelay?: number;
+  maxExecutionTime?: number;
+  config?: Record<string, any>;
+  index?: number;
+  children?: SerializedBlockNode[];
+  elseChildren?: SerializedBlockNode[];
 }
 
 export interface PlanMeta {
@@ -123,7 +74,7 @@ export interface PlanVariables {
 export interface Plan {
   meta: PlanMeta;
   variables: PlanVariables;
-  pipeline: Block[];
+  pipeline: SerializedBlockNode[];
 }
 
 export interface SavedPlan {
@@ -137,7 +88,7 @@ export type JobStatus = 'queued' | 'running' | 'completed' | 'failed';
 
 export interface Job {
   id: string;
-  planId?: string; // Reference to the plan that should be executed
+  planId?: string;
   planName: string;
   status: JobStatus;
   submittedAt: string;

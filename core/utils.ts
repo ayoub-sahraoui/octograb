@@ -1,7 +1,7 @@
 
-import { Block } from './types';
+import { SerializedBlockNode } from './types';
 
-export const findBlock = (blocks: Block[] | undefined, id: string): Block | null => {
+export const findBlock = (blocks: SerializedBlockNode[] | undefined, id: string): SerializedBlockNode | null => {
   if (!blocks) return null;
   for (const block of blocks) {
     if (block.id === id) return block;
@@ -17,11 +17,11 @@ export const findBlock = (blocks: Block[] | undefined, id: string): Block | null
   return null;
 };
 
-export const findParentBlock = (blocks: Block[] | undefined, childId: string): Block | null => {
+export const findParentBlock = (blocks: SerializedBlockNode[] | undefined, childId: string): SerializedBlockNode | null => {
   if (!blocks) return null;
   for (const block of blocks) {
-    if (block.children && block.children.some(child => child.id === childId)) return block;
-    if (block.elseChildren && block.elseChildren.some(child => child.id === childId)) return block;
+    if (block.children && block.children.some((child) => child.id === childId)) return block;
+    if (block.elseChildren && block.elseChildren.some((child) => child.id === childId)) return block;
 
     if (block.children) {
       const found = findParentBlock(block.children, childId);
@@ -35,7 +35,7 @@ export const findParentBlock = (blocks: Block[] | undefined, childId: string): B
   return null;
 };
 
-export const updateBlockInTree = (blocks: Block[] | undefined, id: string, updates: Partial<Block>): Block[] => {
+export const updateBlockInTree = (blocks: SerializedBlockNode[] | undefined, id: string, updates: Partial<SerializedBlockNode>): SerializedBlockNode[] => {
   if (!blocks) return [];
   return blocks.map(block => {
     if (block.id === id) return { ...block, ...updates };
@@ -54,7 +54,7 @@ export const updateBlockInTree = (blocks: Block[] | undefined, id: string, updat
   });
 };
 
-export const addBlockToTree = (blocks: Block[] | undefined, parentId: string | null, newBlock: Block, targetProperty: 'children' | 'elseChildren' = 'children'): Block[] => {
+export const addBlockToTree = (blocks: SerializedBlockNode[] | undefined, parentId: string | null, newBlock: SerializedBlockNode, targetProperty: 'children' | 'elseChildren' = 'children'): SerializedBlockNode[] => {
   if (!blocks) return parentId ? [] : [newBlock]; // If no blocks and no parent, it's root
   if (!parentId) return [...blocks, newBlock];
 
@@ -79,7 +79,7 @@ export const addBlockToTree = (blocks: Block[] | undefined, parentId: string | n
   });
 };
 
-export const deleteBlockFromTree = (blocks: Block[] | undefined, id: string): Block[] => {
+export const deleteBlockFromTree = (blocks: SerializedBlockNode[] | undefined, id: string): SerializedBlockNode[] => {
   if (!blocks) return [];
   return blocks.filter(block => block.id !== id).map(block => {
     if (block.children) {
