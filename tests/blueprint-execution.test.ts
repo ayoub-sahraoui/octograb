@@ -6,6 +6,7 @@ import { InputBlock } from '../entrypoints/models/input-block';
 import { WaitBlock } from '../entrypoints/models/wait-block';
 import { LoopElementsBlock } from '../entrypoints/models/loop-elements-block';
 import { ExtractScopeBlock } from '../entrypoints/models/extract-scope-block';
+import { ConditionBlock } from '../entrypoints/models/condition-block';
 import { createBlockFromJSON } from '../entrypoints/models/block-factory';
 import { SelectorType } from '../entrypoints/models/selector';
 
@@ -127,6 +128,21 @@ describe('Blueprint Execution Logic', () => {
             expect(restored.blocks[1].type).toBe('loop_elements');
             expect(restored.blocks[1].children?.length).toBe(1);
             expect(restored.blocks[1].children?.[0].type).toBe('extract_scope');
+        });
+
+        it('should preserve block description and max execution time during roundtrip serialization', () => {
+            const blueprint = new Blueprint('Test', 'Description');
+            const nav = new NavigateBlock('Nav', { url: 'https://example.com' });
+            nav.setDescription('Navigate to the catalog page');
+            nav.setMaxExecutionTime(15000);
+            blueprint.addBlock(nav);
+
+            const json = blueprint.toJSON();
+            const restored = Blueprint.fromJSON(json);
+            const restoredNav = restored.blocks[0];
+
+            expect(restoredNav.description).toBe('Navigate to the catalog page');
+            expect(restoredNav.maxExecutionTime).toBe(15000);
         });
 
         it('should handle circular parent references', () => {
@@ -253,6 +269,27 @@ describe('Blueprint Execution Logic', () => {
             expect(block2.index).toBe(0);
             expect(block3.index).toBe(1);
             expect(block1.index).toBe(2);
+        });
+
+        it('should reorder condition else branch blocks within elseChildren', () => {
+            const condition = new ConditionBlock({
+                selector: { value: '.element', type: SelectorType.CSS },
+                check: 'exists'
+            });
+            const thenBlock = new WaitBlock('Then Wait', { type: 'timeout', timeout: 1000 });
+            const elseBlock1 = new NavigateBlock('Else Nav 1', { url: 'https://example.com/1' });
+            const elseBlock2 = new NavigateBlock('Else Nav 2', { url: 'https://example.com/2' });
+
+            condition.addChild(thenBlock);
+            condition.addElseChild(elseBlock1);
+            condition.addElseChild(elseBlock2);
+            blueprint.addBlock(condition);
+
+            blueprint.reorderBlock(elseBlock1, 1);
+
+            expect((condition as any).elseChildren?.[0]).toBe(elseBlock2);
+            expect((condition as any).elseChildren?.[1]).toBe(elseBlock1);
+            expect(condition.children?.[0]).toBe(thenBlock);
         });
     });
 

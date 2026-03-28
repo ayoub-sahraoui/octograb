@@ -1606,6 +1606,10 @@ export class BlueprintExecutorStore {
         });
 
         if (!response.success) throw new Error(response.error || 'Switch frame failed');
+        if ((response.data as any)?.switched === false) {
+            this.log('warn', `⚠ Frame "${target}" exists, but execution context did not switch. Continuing with current runtime limitations.`);
+            return;
+        }
         this.log('success', `✓ Switched to frame: ${target}`);
     }
 

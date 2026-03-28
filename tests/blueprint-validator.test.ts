@@ -8,6 +8,12 @@ import { LoopElementsBlock } from '../entrypoints/models/loop-elements-block';
 import { LoopPaginationBlock } from '../entrypoints/models/loop-pagination-block';
 import { ExtractScopeBlock } from '../entrypoints/models/extract-scope-block';
 import { ConditionBlock } from '../entrypoints/models/condition-block';
+import { AssertBlock } from '../entrypoints/models/assert-block';
+import { SetVariableBlock } from '../entrypoints/models/set-variable-block';
+import { GetVariableBlock } from '../entrypoints/models/get-variable-block';
+import { HoverBlock } from '../entrypoints/models/hover-block';
+import { SwitchFrameBlock } from '../entrypoints/models/switch-frame-block';
+import { MacroBlock } from '../entrypoints/models/macro-block';
 import { validateBlueprint } from '../entrypoints/models/blueprint-validator';
 import { SelectorType } from '../entrypoints/models/selector';
 
@@ -296,6 +302,75 @@ describe('BlueprintValidator', () => {
 
             const result = validateBlueprint(blueprint);
             expect(result.valid).toBe(true);
+        });
+    });
+
+    describe('Newer Block Type Validation', () => {
+        it('should accept assert blocks as valid block types', () => {
+            const block = new AssertBlock('Assert', {
+                selector: { value: '.element', type: SelectorType.CSS },
+                check: 'exists'
+            });
+            blueprint.addBlock(block);
+
+            const result = validateBlueprint(blueprint);
+            expect(result.errors.some(e => e.message.includes('Invalid block type'))).toBe(false);
+        });
+
+        it('should require variable name for set variable blocks', () => {
+            const block = new SetVariableBlock('Set Variable', {
+                name: '',
+                value: 'value'
+            });
+            blueprint.addBlock(block);
+
+            const result = validateBlueprint(blueprint);
+            expect(result.valid).toBe(false);
+            expect(result.errors.some(e => e.message.includes('Variable') && e.message.includes('name'))).toBe(true);
+        });
+
+        it('should require variable name for get variable blocks', () => {
+            const block = new GetVariableBlock('Get Variable', {
+                name: ''
+            });
+            blueprint.addBlock(block);
+
+            const result = validateBlueprint(blueprint);
+            expect(result.valid).toBe(false);
+            expect(result.errors.some(e => e.message.includes('Variable') && e.message.includes('name'))).toBe(true);
+        });
+
+        it('should require selector for hover blocks outside loops', () => {
+            const block = new HoverBlock('Hover', {
+                selector: { value: '', type: SelectorType.CSS }
+            });
+            blueprint.addBlock(block);
+
+            const result = validateBlueprint(blueprint);
+            expect(result.valid).toBe(false);
+            expect(result.errors.some(e => e.message.includes('Hover') && e.message.includes('selector'))).toBe(true);
+        });
+
+        it('should require target for switch frame blocks', () => {
+            const block = new SwitchFrameBlock('Switch Frame', {
+                target: undefined as any
+            });
+            blueprint.addBlock(block);
+
+            const result = validateBlueprint(blueprint);
+            expect(result.valid).toBe(false);
+            expect(result.errors.some(e => e.message.includes('Switch Frame') && e.message.includes('target'))).toBe(true);
+        });
+
+        it('should require macro id for macro blocks', () => {
+            const block = new MacroBlock('Macro', {
+                macroId: ''
+            });
+            blueprint.addBlock(block);
+
+            const result = validateBlueprint(blueprint);
+            expect(result.valid).toBe(false);
+            expect(result.errors.some(e => e.message.includes('macroId'))).toBe(true);
         });
     });
 

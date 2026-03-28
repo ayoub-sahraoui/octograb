@@ -97,6 +97,7 @@ export class ConditionBlock extends BlockBase {
             this.elseChildren = [];
         }
         child.parent = this;
+        child.parentBranch = 'elseChildren';
         child.index = this.elseChildren.length;
         this.elseChildren.push(child);
     }

@@ -18,6 +18,7 @@ export abstract class BlockBase {
     maxExecutionTime?: number;
     abstract config: any;
     parent?: Block | null;
+    parentBranch?: 'children' | 'elseChildren';
     children?: Block[];
     index?: number;
 
@@ -93,6 +94,7 @@ export abstract class BlockBase {
             this.children = [];
         }
         child.parent = this as unknown as Block;
+        child.parentBranch = 'children';
         child.index = this.children.length;
         this.children.push(child);
     }

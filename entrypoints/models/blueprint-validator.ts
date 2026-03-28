@@ -88,7 +88,8 @@ export class BlueprintValidator {
     private validateBlockType(block: Block, path: string) {
         const validTypes = [
             'navigate', 'click', 'input', 'wait', 'scroll', 'go_back',
-            'condition', 'loop_elements', 'loop_pagination', 'extract_scope'
+            'condition', 'loop_elements', 'loop_pagination', 'extract_scope',
+            'assert', 'set_variable', 'get_variable', 'hover', 'switch_frame', 'macro'
         ];
 
         if (!validTypes.includes(block.type)) {
@@ -307,12 +308,74 @@ export class BlueprintValidator {
                     }
                 }
                 break;
+
+            case 'assert':
+                if (!config.check) {
+                    this.addError('Assert block requires check type', block.id, block.label, path);
+                }
+                if (!config.selector?.value && !this.isInLoopContext(block)) {
+                    this.addError(
+                        'Assert block requires selector (unless inside a loop)',
+                        block.id,
+                        block.label,
+                        path
+                    );
+                }
+                if (
+                    ['text_contains', 'text_equals', 'text_regex'].includes(config.check) &&
+                    (config.value === undefined || config.value === null || config.value === '')
+                ) {
+                    this.addError(
+                        `Assert check "${config.check}" requires a value`,
+                        block.id,
+                        block.label,
+                        path
+                    );
+                }
+                break;
+
+            case 'set_variable':
+                if (!config.name || config.name.trim() === '') {
+                    this.addError('Set Variable block requires variable name', block.id, block.label, path);
+                }
+                break;
+
+            case 'get_variable':
+                if (!config.name || config.name.trim() === '') {
+                    this.addError('Get Variable block requires variable name', block.id, block.label, path);
+                }
+                break;
+
+            case 'hover':
+                if (!config.selector?.value && !this.isInLoopContext(block)) {
+                    this.addError(
+                        'Hover block requires selector (unless inside a loop)',
+                        block.id,
+                        block.label,
+                        path
+                    );
+                }
+                break;
+
+            case 'switch_frame':
+                if (config.target === undefined || config.target === null || config.target === '') {
+                    this.addError('Switch Frame block requires target', block.id, block.label, path);
+                }
+                break;
+
+            case 'macro':
+                if (!config.macroId || config.macroId.trim() === '') {
+                    this.addError('Macro block requires macroId', block.id, block.label, path);
+                }
+                break;
         }
     }
 
     private validateParentChildRelationship(block: Block, parent: Block | null, path: string) {
-        const blocksWithoutChildren = ['navigate', 'input', 'go_back', 'wait', 'scroll'];
-        const containerBlocks = ['loop_elements', 'loop_pagination', 'condition', 'extract_scope', 'click'];
+        const blocksWithoutChildren = [
+            'navigate', 'input', 'go_back', 'wait', 'scroll',
+            'assert', 'set_variable', 'get_variable', 'hover', 'switch_frame', 'macro'
+        ];
 
         if (blocksWithoutChildren.includes(block.type) && block.children && block.children.length > 0) {
             this.addError(

@@ -2,6 +2,7 @@ import { registerRpcHandler, MessageResponse, Message } from '@/core/messaging';
 import { resolveScope, getElement, getElements } from '@/core/dom-query';
 import { ExtractionField } from '@/core/types';
 import { createDomSnapshot, queryElementPreview, testExtraction } from '@/core/ai/dom-snapshot';
+import { buildSwitchFrameResult } from './switch-frame-result';
 
 // ─── Utility: Scope Marker Cleanup ─────────────────────────────────────────
 
@@ -501,14 +502,7 @@ export function initEnvHandler() {
                             // into iframes due to same-origin policy and security restrictions.
                             // We can only validate the frame exists. The caller must track frame
                             // context separately and route messages appropriately.
-                            return {
-                                success: true,
-                                message: 'Frame found but switching is limited in Chrome extensions',
-                                data: {
-                                    frameFound: true,
-                                    warning: 'Use frame-specific selectors instead of context switching'
-                                }
-                            };
+                            return buildSwitchFrameResult(target);
                         }
 
                         await new Promise(r => setTimeout(r, 100));

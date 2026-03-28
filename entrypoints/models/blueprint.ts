@@ -31,7 +31,11 @@ export class Blueprint {
     }
 
     reorderBlock(block: Block, newIndex: number) {
-        const container = block.parent ? block.parent.children : this.blocks;
+        const container: Block[] | undefined = block.parent
+            ? (block.parentBranch === 'elseChildren'
+                ? (block.parent as any).elseChildren
+                : block.parent.children)
+            : this.blocks;
 
         if (!container) return;
 
@@ -75,10 +79,12 @@ export class Blueprint {
             id: block.id,
             type: block.type,
             label: block.label,
+            description: block.description,
             config: toJS(block.config),
             enabled: block.enabled,
             maxRetries: block.maxRetries,
             retryDelay: block.retryDelay,
+            maxExecutionTime: block.maxExecutionTime,
             onError: block.onError,
             index: block.index
         };
