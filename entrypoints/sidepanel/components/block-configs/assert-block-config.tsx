@@ -40,6 +40,7 @@ export const AssertBlockConfig = observer(({ block }: AssertBlockConfigProps) =>
                 selector={block.config.selector}
                 onSelectorChange={(sel) => block.setSelector(sel)}
                 block={block}
+                selectorCardinality={block.config.check === 'exists' || block.config.check === 'not_exists' ? 'any' : 'single'}
             />
 
             <div className="flex flex-col gap-2">

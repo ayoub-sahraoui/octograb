@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { NavigateBlock } from '@/entrypoints/models/navigate-block';
 import {
     Drawer,
@@ -21,6 +22,15 @@ import {
     DrawerTitle,
     DrawerTrigger,
 } from "@/components/ui/drawer"
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog"
 import BlueprintBlockSelector from '../components/blueprint-block-selector'
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -36,11 +46,8 @@ import {
     LoopPaginationBlockConfig,
     ExtractScopeBlockConfig,
     AssertBlockConfig,
-    GetVariableBlockConfig,
-    HoverBlockConfig,
     MacroBlockConfig,
     SetVariableBlockConfig,
-    SwitchFrameBlockConfig,
 } from '../components/block-configs';
 import { ClickBlock } from '@/entrypoints/models/click-block';
 import { InputBlock } from '@/entrypoints/models/input-block';
@@ -52,11 +59,8 @@ import { LoopElementsBlock } from '@/entrypoints/models/loop-elements-block';
 import { LoopPaginationBlock } from '@/entrypoints/models/loop-pagination-block';
 import { ExtractScopeBlock } from '@/entrypoints/models/extract-scope-block';
 import { AssertBlock } from '@/entrypoints/models/assert-block';
-import { GetVariableBlock } from '@/entrypoints/models/get-variable-block';
-import { HoverBlock } from '@/entrypoints/models/hover-block';
 import { MacroBlock } from '@/entrypoints/models/macro-block';
 import { SetVariableBlock } from '@/entrypoints/models/set-variable-block';
-import { SwitchFrameBlock } from '@/entrypoints/models/switch-frame-block';
 import {
     Table,
     TableBody,
@@ -66,6 +70,7 @@ import {
     TableRow,
 } from "@/components/ui/table"
 import { SortableBlueprintBlock } from '../components/sortable-blueprint-block';
+import { buildExecutionTraceDisplay, buildExecutionTraceSummary, filterExecutionTraces } from '../components/execution-trace-display';
 
 // ─── Extracted observer components (stable identity, never remounted on parent re-render) ───
 
@@ -132,20 +137,11 @@ const BlockConfigDrawer = observer(function BlockConfigDrawer() {
                     {selectedBlock instanceof AssertBlock && (
                         <AssertBlockConfig block={selectedBlock} />
                     )}
-                    {selectedBlock instanceof GetVariableBlock && (
-                        <GetVariableBlockConfig block={selectedBlock} />
-                    )}
-                    {selectedBlock instanceof HoverBlock && (
-                        <HoverBlockConfig block={selectedBlock} />
-                    )}
                     {selectedBlock instanceof MacroBlock && (
                         <MacroBlockConfig block={selectedBlock} />
                     )}
                     {selectedBlock instanceof SetVariableBlock && (
                         <SetVariableBlockConfig block={selectedBlock} />
-                    )}
-                    {selectedBlock instanceof SwitchFrameBlock && (
-                        <SwitchFrameBlockConfig block={selectedBlock} />
                     )}
                 </div>
                 <DrawerFooter className="flex flex-row gap-2">
@@ -168,27 +164,25 @@ const AddNewChildBlock = observer(function AddNewChildBlock() {
     };
 
     return (
-        <Drawer open={!!parentBlock} onOpenChange={(open) => {
+        <Dialog open={!!parentBlock} onOpenChange={(open) => {
             if (!open) {
                 blueprintBuilderStore.setParentBlockForChild(null);
             }
         }}>
-            <DrawerContent>
-                <DrawerHeader>
-                    <DrawerTitle>Add Child Block to {parentBlock?.label}</DrawerTitle>
-                    <DrawerDescription>Choose the type of block to add as a child</DrawerDescription>
-                </DrawerHeader>
+            <DialogContent className="flex h-[min(85vh,760px)] w-[min(560px,calc(100vw-1rem))] min-h-0 flex-col gap-0 bg-background p-0 overflow-hidden">
+                <DialogHeader className="px-6 pt-6 pb-2">
+                    <DialogTitle>Add Child Block to {parentBlock?.label}</DialogTitle>
+                    <DialogDescription>Choose the type of block to add as a child</DialogDescription>
+                </DialogHeader>
                 <BlueprintBlockSelector
                     onBlockSelect={handleChildBlockSelect}
                     addAsChild={true}
                 />
-                <DrawerFooter>
-                    <DrawerClose asChild>
-                        <Button variant="outline" className="w-full">Cancel</Button>
-                    </DrawerClose>
-                </DrawerFooter>
-            </DrawerContent>
-        </Drawer>
+                <DialogFooter className="border-t px-6 py-4">
+                    <Button variant="outline" className="w-full sm:w-auto" onClick={handleChildBlockSelect}>Cancel</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
     );
 });
 
@@ -198,28 +192,26 @@ interface AddNewBlockProps {
 }
 
 function AddNewBlock({ isOpen, setIsOpen }: AddNewBlockProps) {
-    return <Drawer open={isOpen} onOpenChange={setIsOpen}>
-        <DrawerTrigger asChild>
+    return <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <DialogTrigger asChild>
             <Button className='w-40 rounded-full px-3 py-2 mx-auto my-2'>
                 <div className='flex gap-2 items-center'>
                     <CopyPlus />
                     <p className='font-semibold'>Add Block</p>
                 </div>
             </Button>
-        </DrawerTrigger>
-        <DrawerContent>
-            <DrawerHeader>
-                <DrawerTitle>Add New Block</DrawerTitle>
-                <DrawerDescription>Choose the type of block you want to add</DrawerDescription>
-            </DrawerHeader>
+        </DialogTrigger>
+        <DialogContent className="bg-white flex h-[min(85vh,760px)] w-[min(560px,calc(100vw-1rem))] min-h-0 flex-col gap-0 p-0 overflow-hidden">
+            <DialogHeader className="px-6 pt-6 pb-2">
+                <DialogTitle>Add New Block</DialogTitle>
+                <DialogDescription>Choose the type of block you want to add</DialogDescription>
+            </DialogHeader>
             <BlueprintBlockSelector onBlockSelect={() => setIsOpen(false)} />
-            <DrawerFooter>
-                <DrawerClose asChild>
-                    <Button variant="outline" className="w-full">Cancel</Button>
-                </DrawerClose>
-            </DrawerFooter>
-        </DrawerContent>
-    </Drawer>
+            <DialogFooter className="border-t px-6 py-4">
+                <Button variant="outline" className="w-full sm:w-auto" onClick={() => setIsOpen(false)}>Cancel</Button>
+            </DialogFooter>
+        </DialogContent>
+    </Dialog>
 }
 
 interface BlueprintBlocksProps {
@@ -277,6 +269,32 @@ export default observer(function BlueprintBuilder() {
     const [isResultsDrawerOpen, setIsResultsDrawerOpen] = useState(false);
     const [isEditingName, setIsEditingName] = useState(false);
     const [editNameValue, setEditNameValue] = useState('');
+    const [traceStatusFilter, setTraceStatusFilter] = useState<'all' | 'start' | 'success' | 'error'>('all');
+    const [traceSearch, setTraceSearch] = useState('');
+    const [traceNewestFirst, setTraceNewestFirst] = useState(true);
+
+    const copyTraceText = async (value: string, label: string) => {
+        try {
+            await navigator.clipboard.writeText(value);
+            toast.success(`${label} copied`);
+        } catch {
+            toast.error(`Failed to copy ${label.toLowerCase()}`);
+        }
+    };
+
+    const visibleTraces = filterExecutionTraces(executorStore.traces, {
+        status: traceStatusFilter,
+        search: traceSearch,
+        newestFirst: traceNewestFirst,
+    });
+    const traceSummary = buildExecutionTraceSummary(visibleTraces);
+
+    const formatTraceSummaryDuration = (value: number) => {
+        if (value <= 0) return '0ms';
+        if (value < 1000) return `${value}ms`;
+        if (value < 60000) return `${(value / 1000).toFixed(1)}s`;
+        return `${Math.floor(value / 60000)}m ${Math.round((value % 60000) / 1000)}s`;
+    };
 
     // Reset executor state when component unmounts
     useEffect(() => {
@@ -599,29 +617,195 @@ export default observer(function BlueprintBuilder() {
                         <TabsContent value="trace" className="max-h-[50vh] overflow-auto mt-2">
                             <div className="space-y-2">
                                 {executorStore.traces.length > 0 ? (
-                                    executorStore.traces.map((trace, idx) => (
-                                        <div key={idx} className={`p-3 rounded-lg border ${trace.status === 'error' ? 'border-red-200 bg-red-50' :
-                                            trace.status === 'success' ? 'border-green-200 bg-green-50' :
-                                                'border-emerald-200 bg-emerald-50'
-                                            }`}>
-                                            <div className="flex items-center justify-between mb-1">
-                                                <div className="flex items-center gap-2">
-                                                    <span className={`w-2 h-2 rounded-full ${trace.status === 'error' ? 'bg-red-500' :
-                                                        trace.status === 'success' ? 'bg-green-500' :
-                                                            'bg-emerald-500'
-                                                        }`} />
-                                                    <span className="font-semibold text-sm">{trace.blockLabel}</span>
-                                                    <span className="text-xs text-gray-500">({trace.blockType})</span>
+                                    <>
+                                        <div className="rounded-lg border bg-muted/30 p-2 space-y-2">
+                                            <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+                                                <div className="rounded-md border bg-background/80 p-2">
+                                                    <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Visible Traces</div>
+                                                    <div className="mt-1 text-lg font-semibold">{traceSummary.total}</div>
+                                                    <div className="text-[11px] text-muted-foreground">
+                                                        start {traceSummary.counts.start} | success {traceSummary.counts.success} | error {traceSummary.counts.error}
+                                                    </div>
                                                 </div>
-                                                {trace.duration && (
-                                                    <span className="text-xs text-gray-600">{trace.duration}ms</span>
-                                                )}
+                                                <div className="rounded-md border bg-background/80 p-2">
+                                                    <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Durations</div>
+                                                    <div className="mt-1 text-sm font-semibold">
+                                                        avg {formatTraceSummaryDuration(traceSummary.duration.averageMs)}
+                                                    </div>
+                                                    <div className="text-[11px] text-muted-foreground">
+                                                        slowest {formatTraceSummaryDuration(traceSummary.duration.slowestMs)}
+                                                        {traceSummary.duration.slowestBlockLabel ? ` · ${traceSummary.duration.slowestBlockLabel}` : ''}
+                                                    </div>
+                                                </div>
+                                                <div className="rounded-md border bg-background/80 p-2">
+                                                    <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Timeline</div>
+                                                    <div className="mt-1 text-sm font-semibold">
+                                                        {formatTraceSummaryDuration(traceSummary.timeline.elapsedMs)}
+                                                    </div>
+                                                    <div className="text-[11px] text-muted-foreground">
+                                                        {traceSummary.timeline.firstAt !== null && traceSummary.timeline.lastAt !== null
+                                                            ? `${new Date(traceSummary.timeline.firstAt).toLocaleTimeString()} -> ${new Date(traceSummary.timeline.lastAt).toLocaleTimeString()}`
+                                                            : 'No visible timeline'}
+                                                    </div>
+                                                </div>
+                                                <div className="rounded-md border bg-background/80 p-2">
+                                                    <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Latest Visible</div>
+                                                    <div className="mt-1 text-sm font-semibold truncate">
+                                                        {traceSummary.timeline.latestBlockLabel || 'None'}
+                                                    </div>
+                                                    <div className="text-[11px] text-muted-foreground capitalize">
+                                                        {traceSummary.timeline.latestStatus || 'No status'}
+                                                    </div>
+                                                </div>
                                             </div>
-                                            <div className="text-xs text-gray-600 ml-4">
-                                                {new Date(trace.timestamp).toLocaleTimeString()}
+                                            <div className="flex flex-wrap items-center gap-2">
+                                                <input
+                                                    value={traceSearch}
+                                                    onChange={(e) => setTraceSearch(e.target.value)}
+                                                    placeholder="Search traces by block, type, executor, scope..."
+                                                    className="h-8 min-w-[220px] flex-1 rounded-md border bg-background px-3 text-xs outline-none"
+                                                />
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    className="h-8 px-2 text-xs"
+                                                    onClick={() => setTraceNewestFirst((current) => !current)}
+                                                >
+                                                    {traceNewestFirst ? 'Newest First' : 'Oldest First'}
+                                                </Button>
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    className="h-8 px-2 text-xs"
+                                                    onClick={() => copyTraceText(JSON.stringify(visibleTraces, null, 2), 'Filtered traces')}
+                                                >
+                                                    Copy Visible
+                                                </Button>
+                                            </div>
+                                            <div className="flex flex-wrap gap-1.5">
+                                                {(['all', 'start', 'success', 'error'] as const).map((status) => (
+                                                    <Button
+                                                        key={status}
+                                                        size="sm"
+                                                        variant={traceStatusFilter === status ? 'default' : 'outline'}
+                                                        className="h-7 px-2 text-xs capitalize"
+                                                        onClick={() => setTraceStatusFilter(status)}
+                                                    >
+                                                        {status}
+                                                    </Button>
+                                                ))}
+                                                <span className="ml-auto text-[11px] text-muted-foreground self-center">
+                                                    Showing {visibleTraces.length} of {executorStore.traces.length}
+                                                </span>
                                             </div>
                                         </div>
-                                    ))
+
+                                        {visibleTraces.length > 0 ? (
+                                            <Accordion type="multiple" className="space-y-2">
+                                                {visibleTraces.map((trace, idx) => {
+                                                    const display = buildExecutionTraceDisplay(trace);
+                                                    const cardClasses = trace.status === 'error'
+                                                        ? 'border-red-200 bg-red-50'
+                                                        : trace.status === 'success'
+                                                            ? 'border-green-200 bg-green-50'
+                                                            : 'border-emerald-200 bg-emerald-50';
+                                                    const dotClasses = trace.status === 'error'
+                                                        ? 'bg-red-500'
+                                                        : trace.status === 'success'
+                                                            ? 'bg-green-500'
+                                                            : 'bg-emerald-500';
+
+                                                    return (
+                                                        <AccordionItem key={trace.id || idx} value={trace.id || `trace-${idx}`} className={`rounded-lg border px-3 ${cardClasses}`}>
+                                                            <AccordionTrigger className="py-3 hover:no-underline">
+                                                                <div className="flex flex-1 flex-col gap-2 text-left pr-3">
+                                                                    <div className="flex items-center justify-between gap-3">
+                                                                        <div className="flex min-w-0 items-center gap-2">
+                                                                            <span className={`w-2 h-2 rounded-full shrink-0 ${dotClasses}`} />
+                                                                            <span className="font-semibold text-sm truncate">{trace.blockLabel}</span>
+                                                                            <span className="text-xs text-gray-500 shrink-0">({trace.blockType})</span>
+                                                                        </div>
+                                                                        <div className="flex items-center gap-2 shrink-0">
+                                                                            {trace.duration !== undefined && (
+                                                                                <span className="text-xs text-gray-600">{trace.duration}ms</span>
+                                                                            )}
+                                                                            <span className="text-xs text-gray-600">{new Date(trace.timestamp).toLocaleTimeString()}</span>
+                                                                        </div>
+                                                                    </div>
+                                                                    {display.hints.length > 0 && (
+                                                                        <div className="flex flex-wrap gap-1.5">
+                                                                            {display.hints.map((hint) => (
+                                                                                <span key={`${trace.id}-${hint.label}`} className="rounded-full border border-white/70 bg-white/70 px-2 py-0.5 text-[11px] text-gray-700">
+                                                                                    <span className="font-medium">{hint.label}</span>: {hint.value}
+                                                                                </span>
+                                                                            ))}
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            </AccordionTrigger>
+                                                            <AccordionContent className="pt-1">
+                                                                <div className="space-y-3">
+                                                                    {display.sections.map((section) => (
+                                                                        <div key={`${trace.id}-${section.title}`} className="rounded-md border border-white/70 bg-white/60 p-3">
+                                                                            <div className="mb-2 flex items-center justify-between gap-2">
+                                                                                <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+                                                                                    {section.title}
+                                                                                </div>
+                                                                                {(section.json || section.rows.length > 0) && (
+                                                                                    <Button
+                                                                                        size="sm"
+                                                                                        variant="outline"
+                                                                                        className="h-6 px-2 text-[11px]"
+                                                                                        onClick={(event) => {
+                                                                                            event.stopPropagation();
+                                                                                            const payload = section.json || JSON.stringify(section.rows, null, 2);
+                                                                                            void copyTraceText(payload, `${section.title} details`);
+                                                                                        }}
+                                                                                    >
+                                                                                        Copy
+                                                                                    </Button>
+                                                                                )}
+                                                                            </div>
+                                                                            <div className="space-y-1.5">
+                                                                                {section.rows.map((row) => (
+                                                                                    <div key={`${section.title}-${row.label}`} className="flex items-start justify-between gap-3 text-xs">
+                                                                                        <span className="text-gray-500 shrink-0">{row.label}</span>
+                                                                                        <span className="text-right break-all text-gray-800">{row.value}</span>
+                                                                                    </div>
+                                                                                ))}
+                                                                            </div>
+                                                                            {section.json && (
+                                                                                <pre className="mt-3 max-h-48 overflow-auto rounded-md bg-gray-950/90 p-3 text-[11px] text-gray-100 whitespace-pre-wrap break-all">
+                                                                                    {section.json}
+                                                                                </pre>
+                                                                            )}
+                                                                        </div>
+                                                                    ))}
+                                                                    <div className="flex justify-end">
+                                                                        <Button
+                                                                            size="sm"
+                                                                            variant="outline"
+                                                                            className="h-7 px-2 text-xs"
+                                                                            onClick={(event) => {
+                                                                                event.stopPropagation();
+                                                                                void copyTraceText(JSON.stringify(trace, null, 2), 'Trace');
+                                                                            }}
+                                                                        >
+                                                                            Copy Trace JSON
+                                                                        </Button>
+                                                                    </div>
+                                                                </div>
+                                                            </AccordionContent>
+                                                        </AccordionItem>
+                                                    );
+                                                })}
+                                            </Accordion>
+                                        ) : (
+                                            <div className="text-center text-muted-foreground py-8 text-sm">
+                                                No traces match the current filters.
+                                            </div>
+                                        )}
+                                    </>
                                 ) : (
                                     <div className="text-center text-muted-foreground py-8 text-sm">
                                         No trace data yet

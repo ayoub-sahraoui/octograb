@@ -20,6 +20,16 @@ import { useAiAgentStore } from '@/entrypoints/stores/ai-agent-store';
 import { optimizeSelector, isOverlySpecificSelector, type SelectorOptimization } from '@/core/ai/selector-optimizer';
 import { generateSelectorFromElement } from '@/core/ai/selector-generator';
 import {
+    getSelectorCardinalityDescription,
+    getSelectorCardinalityLabel,
+    getSelectorCardinalityWarning,
+    type SelectorCardinality,
+} from './selector-cardinality';
+import {
+    getSelectorRoleGuidance,
+    type SelectorRole,
+} from './selector-guidance';
+import {
     Dialog,
     DialogContent,
     DialogDescription,
@@ -96,6 +106,10 @@ interface SelectorInputProps {
     parentSelector?: string | null;
     /** Expected element type for validation hints */
     expectedElement?: ExpectedElementType;
+    /** Whether runtime expects one element, many elements, or either */
+    selectorCardinality?: SelectorCardinality;
+    /** Semantic role of this selector for block-specific guidance */
+    selectorRole?: SelectorRole;
     /** Whether the selector is required (shows warning when empty) */
     required?: boolean;
 }
@@ -110,6 +124,8 @@ export const SelectorInput = observer(({
     block = null,
     parentSelector = null,
     expectedElement = 'any',
+    selectorCardinality = 'any',
+    selectorRole,
     required = true,
 }: SelectorInputProps) => {
     const store = useBlueprintBuilderStore();
@@ -249,6 +265,13 @@ export const SelectorInput = observer(({
                 return;
             }
 
+            const cardinalityWarning = getSelectorCardinalityWarning(selectorCardinality, data.count);
+            if (cardinalityWarning) {
+                setValidationState('warning');
+                setValidationMessage(cardinalityWarning);
+                return;
+            }
+
             // Context-aware validation
             if (expectedElement === 'clickable' && data.elements.length > 0) {
                 const allClickable = data.elements.every(el => el.isClickable);
@@ -292,7 +315,7 @@ export const SelectorInput = observer(({
             setValidationState('idle');
             setValidationMessage('');
         }
-    }, [expectedElement, required]);
+    }, [expectedElement, required, selectorCardinality]);
 
     // Trigger test when selector changes (debounced)
     useEffect(() => {
@@ -510,6 +533,31 @@ export const SelectorInput = observer(({
         }
     })();
 
+    const selectorModeLabel = selectorCardinality === 'any'
+        ? null
+        : getSelectorCardinalityLabel(selectorCardinality);
+    const selectorModeDescription = selectorCardinality === 'any'
+        ? null
+        : getSelectorCardinalityDescription(selectorCardinality);
+    const selectorRoleGuidance = getSelectorRoleGuidance(selectorRole);
+    const diagnosticsToneClass = (() => {
+        switch (validationState) {
+            case 'valid':
+                return 'border-emerald-200 bg-emerald-50/50';
+            case 'warning':
+                return 'border-amber-200 bg-amber-50/60';
+            case 'error':
+                return 'border-red-200 bg-red-50/60';
+            default:
+                return 'border-slate-200 bg-slate-50/70';
+        }
+    })();
+
+    useEffect(() => {
+        if (!testResult || store.isPicking) return;
+        setDetailsExpanded(testResult.count <= 4);
+    }, [testResult?.count, store.isPicking]);
+
     return (
         <div className="flex flex-col gap-3">
             {/* Selector Type + Pick Button + Test Button Row */}
@@ -627,64 +675,106 @@ export const SelectorInput = observer(({
                     </div>
                 )}
 
-                {/* ── Validation + match info ── */}
-                {validationMessage && !store.isPicking && (
-                    <div className={`flex items-start gap-1.5 text-[11px] leading-snug ${messageColorClass}`}>
-                        <span className="mt-px shrink-0"><StatusIcon /></span>
-                        <span className="flex-1">
-                            {validationMessage}
-                            {testResult && testResult.count > 0 && (validationState === 'valid' || validationState === 'warning') && (
-                                <span className={`inline-flex items-center ml-1.5 px-1 py-px rounded text-[9px] font-semibold ${validationState === 'valid' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
-                                    {testResult.count}
+                {/* ── Selector diagnostics ── */}
+                {!store.isPicking && (validationMessage || selectorModeLabel || selectorRoleGuidance || (showSpecificityWarning && computedParentSelector) || (testResult && testResult.count > 0 && testResult.elements.length > 0)) && (
+                    <div className={`rounded-lg border p-3 space-y-2 ${diagnosticsToneClass}`}>
+                        <div className="flex flex-wrap items-center gap-1.5">
+                            {selectorModeLabel && (
+                                <span className="inline-flex items-center rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[10px] font-semibold text-slate-700">
+                                    {selectorModeLabel}
                                 </span>
                             )}
-                        </span>
-                    </div>
-                )}
-
-                {/* ── Specificity Warning ── */}
-                {showSpecificityWarning && computedParentSelector && (
-                    <div className="flex items-start gap-1.5 text-[11px] leading-snug text-amber-600 bg-amber-50 border border-amber-200 rounded px-2 py-1.5">
-                        <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-px" />
-                        <div className="flex-1">
-                            <span className="font-medium">Overly specific selector.</span> This may not work for all items in the loop.
-                            <button
-                                onClick={handleAiOptimize}
-                                className="ml-1.5 text-emerald-600 hover:text-emerald-700 font-medium inline-flex items-center gap-0.5"
-                            >
-                                <Sparkles className="w-3 h-3" />
-                                Optimize with AI
-                            </button>
+                            {testResult && testResult.count > 0 && (
+                                <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${validationState === 'valid'
+                                    ? 'bg-emerald-100 text-emerald-700'
+                                    : validationState === 'error'
+                                        ? 'bg-red-100 text-red-700'
+                                        : 'bg-amber-100 text-amber-700'
+                                    }`}>
+                                    {testResult.count} match{testResult.count === 1 ? '' : 'es'}
+                                </span>
+                            )}
+                            {selectorCardinality === 'single' && testResult && testResult.count > 1 && (
+                                <span className="inline-flex items-center rounded-full bg-slate-800 px-2 py-0.5 text-[10px] font-semibold text-white">
+                                    Uses first match
+                                </span>
+                            )}
                         </div>
-                    </div>
-                )}
 
-                {/* ── Collapsible DOM Element Preview ── */}
-                {testResult && testResult.count > 0 && !store.isPicking && testResult.elements.length > 0 && (
-                    <div className="border rounded-md overflow-hidden">
-                        <button
-                            onClick={() => setDetailsExpanded(!detailsExpanded)}
-                            className="w-full flex items-center justify-between px-2 py-1.5 bg-gray-50 hover:bg-gray-100 text-[11px] text-gray-600 transition-colors"
-                        >
-                            <span className="font-medium">Matched Elements ({testResult.count})</span>
-                            {detailsExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-                        </button>
-                        {detailsExpanded && (
-                            <div className="flex flex-col gap-1 p-2 bg-white">
-                                {testResult.elements.map((el, i) => (
-                                    <div key={i} className="flex items-center gap-1 text-[10px] font-mono leading-tight px-2 py-1.5 rounded bg-gray-50 border border-gray-200 overflow-hidden">
-                                        <span className="font-bold text-purple-600">&lt;{el.tag}</span>
-                                        {el.elId && <span className="text-amber-600">#{el.elId}</span>}
-                                        {el.classes && <span className="text-sky-600 truncate max-w-[120px]">.{el.classes.split(' ').join('.')}</span>}
-                                        <span className="font-bold text-purple-600">&gt;</span>
-                                        {el.textPreview && (
-                                            <span className="text-gray-400 truncate max-w-[100px] ml-1">"{el.textPreview}{el.textPreview.length >= 30 ? '...' : ''}"</span>
+                        {validationMessage && (
+                            <div className={`flex items-start gap-1.5 text-[11px] leading-snug ${messageColorClass}`}>
+                                <span className="mt-px shrink-0"><StatusIcon /></span>
+                                <span className="flex-1">{validationMessage}</span>
+                            </div>
+                        )}
+
+                        {selectorModeDescription && (
+                            <div className="text-[11px] leading-snug text-slate-600">
+                                {selectorModeDescription}
+                            </div>
+                        )}
+
+                        {selectorRoleGuidance && (
+                            <div className="rounded-md border border-slate-200 bg-white/80 px-2 py-2 text-[11px] leading-snug text-slate-700">
+                                <span className="font-medium">{selectorRoleGuidance.label}:</span> {selectorRoleGuidance.description}
+                            </div>
+                        )}
+
+                        {showSpecificityWarning && computedParentSelector && (
+                            <div className="flex items-start gap-1.5 rounded-md border border-amber-200 bg-white/80 px-2 py-2 text-[11px] leading-snug text-amber-700">
+                                <AlertTriangle className="mt-px h-3.5 w-3.5 shrink-0" />
+                                <div className="flex-1">
+                                    <span className="font-medium">Overly specific selector.</span> This may not work for all items in the loop.
+                                    <button
+                                        onClick={handleAiOptimize}
+                                        className="ml-1.5 inline-flex items-center gap-0.5 font-medium text-emerald-600 hover:text-emerald-700"
+                                    >
+                                        <Sparkles className="h-3 w-3" />
+                                        Optimize with AI
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        {testResult && testResult.count > 0 && testResult.elements.length > 0 && (
+                            <div className="overflow-hidden rounded-md border border-slate-200 bg-white/90">
+                                <button
+                                    onClick={() => setDetailsExpanded(!detailsExpanded)}
+                                    className="flex w-full items-center justify-between px-2.5 py-2 text-[11px] text-slate-600 transition-colors hover:bg-slate-50"
+                                >
+                                    <span className="font-medium">
+                                        Preview matched elements
+                                        {selectorCardinality === 'single' ? ' (first item is used)' : ''}
+                                    </span>
+                                    {detailsExpanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                                </button>
+                                {detailsExpanded && (
+                                    <div className="flex flex-col gap-1.5 border-t border-slate-200 p-2">
+                                        {testResult.elements.map((el, i) => (
+                                            <div key={i} className="flex items-center gap-1.5 overflow-hidden rounded-md border border-slate-200 bg-slate-50 px-2 py-1.5 text-[10px] font-mono leading-tight">
+                                                <span className="font-bold text-purple-600">&lt;{el.tag}</span>
+                                                {el.elId && <span className="text-amber-600">#{el.elId}</span>}
+                                                {el.classes && <span className="max-w-[120px] truncate text-sky-600">.{el.classes.split(' ').join('.')}</span>}
+                                                <span className="font-bold text-purple-600">&gt;</span>
+                                                {el.textPreview && (
+                                                    <span className="ml-1 max-w-[100px] truncate text-gray-400">"{el.textPreview}{el.textPreview.length >= 30 ? '...' : ''}"</span>
+                                                )}
+                                                {selectorCardinality === 'single' && i === 0 && (
+                                                    <span className="ml-auto rounded bg-emerald-100 px-1.5 py-px text-[9px] font-sans font-semibold text-emerald-700">
+                                                        used at runtime
+                                                    </span>
+                                                )}
+                                                {!el.isVisible && (
+                                                    <span className="rounded bg-amber-100 px-1 py-px text-[9px] font-sans text-amber-600">
+                                                        hidden
+                                                    </span>
+                                                )}
+                                            </div>
+                                        ))}
+                                        {testResult.count > testResult.elements.length && (
+                                            <span className="pl-1 text-[10px] text-gray-400">+{testResult.count - testResult.elements.length} more elements</span>
                                         )}
-                                        {!el.isVisible && <span className="ml-auto text-[9px] px-1 py-px bg-amber-100 text-amber-600 rounded font-sans">hidden</span>}
                                     </div>
-                                ))}
-                                {testResult.count > testResult.elements.length && (
-                                    <span className="text-[10px] text-gray-400 pl-1">+{testResult.count - testResult.elements.length} more elements</span>
                                 )}
                             </div>
                         )}
@@ -759,10 +849,7 @@ export const SelectorInput = observer(({
             <Dialog open={aiDialogOpen} onOpenChange={setAiDialogOpen}>
                 <DialogContent className="max-w-lg">
                     <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2">
-                            <Sparkles className="w-4 h-4 text-emerald-600" />
-                            AI Selector Optimizer
-                        </DialogTitle>
+                        <DialogTitle>AI Selector Optimizer</DialogTitle>
                         <DialogDescription>
                             Get a more generic selector suitable for looping through multiple items.
                         </DialogDescription>
@@ -844,10 +931,7 @@ export const SelectorInput = observer(({
             <Dialog open={aiExtractDialogOpen} onOpenChange={setAiExtractDialogOpen}>
                 <DialogContent className="max-w-lg">
                     <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2">
-                            <Bot className="w-4 h-4 text-emerald-600" />
-                            AI Selector Generator
-                        </DialogTitle>
+                        <DialogTitle>AI Selector Generator</DialogTitle>
                         <DialogDescription>
                             AI-generated selector based on the element you picked.
                         </DialogDescription>

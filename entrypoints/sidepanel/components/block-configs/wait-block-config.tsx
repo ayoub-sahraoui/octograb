@@ -63,6 +63,8 @@ export const WaitBlockConfig = observer(({ block }: WaitBlockConfigProps) => {
                     selector={block.config.selector}
                     onSelectorChange={(sel) => block.setSelector(sel)}
                     block={block}
+                    selectorCardinality="single"
+                    selectorRole="wait-target"
                 />
             )}
 

@@ -5,6 +5,7 @@
 
 import { SystemMessage, HumanMessage } from '@langchain/core/messages';
 import { createChatModel, type ProviderId } from './providers';
+import { parseAiJson } from './parse-ai-json';
 
 export interface RegexSuggestion {
     pattern: string;
@@ -61,12 +62,13 @@ export async function suggestRegex(
         const content = typeof response.content === 'string' ? response.content : '';
         if (!content) return { error: 'Empty response from LLM.' };
 
-        let jsonStr = content.trim();
-        if (jsonStr.startsWith('```')) {
-            jsonStr = jsonStr.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '');
-        }
-
-        const parsed = JSON.parse(jsonStr);
+        const parsed = parseAiJson<{
+            pattern?: string;
+            flags?: string;
+            explanation?: string;
+            replacement?: string;
+            extractGroup?: number;
+        }>(content, 'object');
         return {
             suggestion: {
                 pattern: String(parsed.pattern || ''),

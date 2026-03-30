@@ -10,18 +10,17 @@ import { ExtractScopeBlock } from '../entrypoints/models/extract-scope-block';
 import { ConditionBlock } from '../entrypoints/models/condition-block';
 import { AssertBlock } from '../entrypoints/models/assert-block';
 import { SetVariableBlock } from '../entrypoints/models/set-variable-block';
-import { GetVariableBlock } from '../entrypoints/models/get-variable-block';
-import { HoverBlock } from '../entrypoints/models/hover-block';
-import { SwitchFrameBlock } from '../entrypoints/models/switch-frame-block';
 import { MacroBlock } from '../entrypoints/models/macro-block';
 import { validateBlueprint } from '../entrypoints/models/blueprint-validator';
 import { SelectorType } from '../entrypoints/models/selector';
+import { macroRegistryStore } from '../entrypoints/stores/macro-registry-store';
 
 describe('BlueprintValidator', () => {
     let blueprint: Blueprint;
 
     beforeEach(() => {
         blueprint = new Blueprint('Test Blueprint', 'Test description');
+        macroRegistryStore.clearMacros();
     });
 
     describe('Basic Validation', () => {
@@ -329,39 +328,6 @@ describe('BlueprintValidator', () => {
             expect(result.errors.some(e => e.message.includes('Variable') && e.message.includes('name'))).toBe(true);
         });
 
-        it('should require variable name for get variable blocks', () => {
-            const block = new GetVariableBlock('Get Variable', {
-                name: ''
-            });
-            blueprint.addBlock(block);
-
-            const result = validateBlueprint(blueprint);
-            expect(result.valid).toBe(false);
-            expect(result.errors.some(e => e.message.includes('Variable') && e.message.includes('name'))).toBe(true);
-        });
-
-        it('should require selector for hover blocks outside loops', () => {
-            const block = new HoverBlock('Hover', {
-                selector: { value: '', type: SelectorType.CSS }
-            });
-            blueprint.addBlock(block);
-
-            const result = validateBlueprint(blueprint);
-            expect(result.valid).toBe(false);
-            expect(result.errors.some(e => e.message.includes('Hover') && e.message.includes('selector'))).toBe(true);
-        });
-
-        it('should require target for switch frame blocks', () => {
-            const block = new SwitchFrameBlock('Switch Frame', {
-                target: undefined as any
-            });
-            blueprint.addBlock(block);
-
-            const result = validateBlueprint(blueprint);
-            expect(result.valid).toBe(false);
-            expect(result.errors.some(e => e.message.includes('Switch Frame') && e.message.includes('target'))).toBe(true);
-        });
-
         it('should require macro id for macro blocks', () => {
             const block = new MacroBlock('Macro', {
                 macroId: ''
@@ -371,6 +337,32 @@ describe('BlueprintValidator', () => {
             const result = validateBlueprint(blueprint);
             expect(result.valid).toBe(false);
             expect(result.errors.some(e => e.message.includes('macroId'))).toBe(true);
+        });
+
+        it('should warn on unresolved variable references', () => {
+            const block = new NavigateBlock('Nav', { url: 'https://example.com?q={{missingVar}}' });
+            blueprint.addBlock(block);
+
+            const result = validateBlueprint(blueprint);
+            expect(result.warnings.some(w => w.message.includes('Unresolved variable reference: missingVar'))).toBe(true);
+        });
+
+        it('should validate macro parameters against registered macros', () => {
+            macroRegistryStore.setMacro('macro-products', {
+                id: 'macro-products',
+                name: 'Products macro',
+                parameters: [{ name: 'category', required: true }],
+                blocks: [],
+            });
+
+            blueprint.addBlock(new MacroBlock('Run macro', {
+                macroId: 'macro-products',
+                parameters: { extra: 'x' },
+            }));
+
+            const result = validateBlueprint(blueprint);
+            expect(result.errors.some(e => e.message.includes('required macro parameter "category"'))).toBe(true);
+            expect(result.warnings.some(w => w.message.includes('Unknown macro parameter "extra"'))).toBe(true);
         });
     });
 

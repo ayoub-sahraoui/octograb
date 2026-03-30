@@ -9,6 +9,7 @@
 
 import { SystemMessage, HumanMessage } from '@langchain/core/messages';
 import { createChatModel, type ProviderId } from './providers';
+import { parseAiJson } from './parse-ai-json';
 
 export interface SelectorOptimization {
   originalSelector: string;
@@ -100,12 +101,12 @@ export async function optimizeSelector(
     if (!content) return { error: 'Empty response from LLM.' };
 
     // Parse JSON response
-    let jsonStr = content.trim();
-    if (jsonStr.startsWith('```')) {
-      jsonStr = jsonStr.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '');
-    }
-
-    const parsed = JSON.parse(jsonStr);
+    const parsed = parseAiJson<{
+      suggestedSelector?: string;
+      suggestedXPath?: string;
+      explanation?: string;
+      confidence?: 'high' | 'medium' | 'low';
+    }>(content, 'object');
 
     let suggestedCSS = String(parsed.suggestedSelector || selector);
     const suggestedXP = String(parsed.suggestedXPath || selector);

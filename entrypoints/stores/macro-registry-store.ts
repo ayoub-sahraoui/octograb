@@ -44,6 +44,10 @@ export class MacroRegistryStore {
      * Load macros from browser storage
      */
     async loadFromStorage(): Promise<void> {
+        if (typeof browser === 'undefined') {
+            this.setLoaded(true);
+            return;
+        }
         try {
             const result = await browser.storage.local.get(STORAGE_KEY);
             const stored = result[STORAGE_KEY];

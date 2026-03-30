@@ -378,6 +378,64 @@ function findClickableElement(el: Element): Element {
     }
 }
 
+function getHoverEventPosition(target: Element): { clientX: number; clientY: number } {
+    if (!(target instanceof Element) || typeof target.getBoundingClientRect !== 'function') {
+        return { clientX: 0, clientY: 0 };
+    }
+
+    const rect = target.getBoundingClientRect();
+    return {
+        clientX: rect.left + rect.width / 2,
+        clientY: rect.top + rect.height / 2,
+    };
+}
+
+function focusHoverTarget(target: Element): void {
+    if (!(target instanceof HTMLElement)) return;
+
+    const isNaturallyFocusable = ['A', 'BUTTON', 'INPUT', 'SELECT', 'TEXTAREA', 'SUMMARY'].includes(target.tagName);
+    const hasTabIndex = target.hasAttribute('tabindex') && target.getAttribute('tabindex') !== '-1';
+    if (!isNaturallyFocusable && !hasTabIndex) return;
+
+    try {
+        target.focus({ preventScroll: true });
+    } catch {
+        target.focus();
+    }
+}
+
+export function dispatchHoverSequence(target: Element): void {
+    const { clientX, clientY } = getHoverEventPosition(target);
+    const mouseEventInit: MouseEventInit = {
+        bubbles: true,
+        cancelable: true,
+        view: window,
+        clientX,
+        clientY,
+    };
+
+    focusHoverTarget(target);
+
+    if (typeof PointerEvent !== 'undefined') {
+        const pointerEventInit: PointerEventInit = {
+            bubbles: true,
+            cancelable: true,
+            clientX,
+            clientY,
+            pointerType: 'mouse',
+            isPrimary: true,
+        };
+
+        target.dispatchEvent(new PointerEvent('pointerover', pointerEventInit));
+        target.dispatchEvent(new PointerEvent('pointerenter', pointerEventInit));
+        target.dispatchEvent(new PointerEvent('pointermove', pointerEventInit));
+    }
+
+    target.dispatchEvent(new MouseEvent('mouseover', mouseEventInit));
+    target.dispatchEvent(new MouseEvent('mouseenter', mouseEventInit));
+    target.dispatchEvent(new MouseEvent('mousemove', mouseEventInit));
+}
+
 export function initEnvHandler() {
     registerRpcHandler(async (msg: Message): Promise<MessageResponse | null> => {
         try {
@@ -457,20 +515,8 @@ export function initEnvHandler() {
                     await new Promise(r => setTimeout(r, 150));
                     throwIfAborted(); // Check after async delay
 
-                    // Dispatch mouseover/mouseenter events
-                    const mouseOverEvent = new MouseEvent('mouseover', {
-                        bubbles: true,
-                        cancelable: true,
-                        view: window
-                    });
-                    const mouseEnterEvent = new MouseEvent('mouseenter', {
-                        bubbles: true,
-                        cancelable: true,
-                        view: window
-                    });
-
-                    target.dispatchEvent(mouseOverEvent);
-                    target.dispatchEvent(mouseEnterEvent);
+                    // Modern sites often listen to pointer events or move events, not just mouseenter.
+                    dispatchHoverSequence(target);
 
                     return { success: true };
                 }

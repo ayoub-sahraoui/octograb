@@ -608,6 +608,8 @@ export const ExtractScopeBlockConfig = observer(({ block }: ExtractScopeBlockCon
                     block.setScopeSelector(sel);
                 }}
                 block={block.config.resetScope ? undefined : block}
+                selectorCardinality="single"
+                selectorRole="extract-scope"
                 required={false}
             />
 
@@ -858,6 +860,8 @@ export const ExtractScopeBlockConfig = observer(({ block }: ExtractScopeBlockCon
                                                                     onSelectorChange={(sel) => { updateField(index, 'selector', sel); }}
                                                                     parentSelector={block.config.scopeSelector?.value || null}
                                                                     block={block.config.resetScope ? undefined : (block.config.scopeSelector?.value ? undefined : block)}
+                                                                    selectorCardinality={field.multiple ? 'multiple' : 'single'}
+                                                                    selectorRole="extract-field"
                                                                 />
 
                                                                 <div className="flex flex-col gap-2">
@@ -1308,10 +1312,7 @@ export const ExtractScopeBlockConfig = observer(({ block }: ExtractScopeBlockCon
             <Dialog open={aiDialogOpen} onOpenChange={setAiDialogOpen}>
                 <DialogContent className="max-w-md max-h-[80vh] flex flex-col">
                     <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2">
-                            <Sparkles className="w-4 h-4 text-emerald-600" />
-                            AI Suggested Fields
-                        </DialogTitle>
+                        <DialogTitle>AI Suggested Fields</DialogTitle>
                         <DialogDescription>
                             Select which fields to add to this extraction block.
                         </DialogDescription>
@@ -1394,10 +1395,7 @@ export const ExtractScopeBlockConfig = observer(({ block }: ExtractScopeBlockCon
             <Dialog open={regexDialogOpen} onOpenChange={setRegexDialogOpen}>
                 <DialogContent className="max-w-md">
                     <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2">
-                            <Sparkles className="w-4 h-4 text-emerald-600" />
-                            AI Regex Helper
-                        </DialogTitle>
+                        <DialogTitle>AI Regex Helper</DialogTitle>
                         <DialogDescription>
                             Describe what you want to extract or replace, and I'll generate the regex.
                         </DialogDescription>

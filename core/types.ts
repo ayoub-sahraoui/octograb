@@ -65,6 +65,7 @@ export interface SerializedBlockNode {
 
 export interface PlanMeta {
   name: string;
+  description?: string;
   version: string;
   userAgent: string;
 }

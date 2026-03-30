@@ -4,6 +4,7 @@ import { Block } from "../models/types";
 import { sendToContentScript, onMessageFromContentScript } from "@/core/messaging";
 import { db } from "@/core/database";
 import { createBlockFromJSON } from "../models/block-factory";
+import { deserializeSavedPlanToBlueprint, serializeBlueprintToSavedPlan } from "../models/blueprint-persistence";
 import { validateBlueprint, ValidationResult } from "../models/blueprint-validator";
 import { useLicenseStore, FREE_TIER_LIMITS } from "./license-store";
 import { useNotificationStore } from "./notification-store";
@@ -106,15 +107,7 @@ export class BlueprintBuilderStore {
     async loadBlueprints() {
         try {
             const savedPlans = await db.getAllPlans();
-            const blueprints = savedPlans.map(savedPlan => {
-                const plan = savedPlan.plan;
-                const blueprint = new Blueprint(plan.meta.name, '');
-                blueprint.id = savedPlan.id;
-                if (plan.pipeline) {
-                    blueprint.blocks = plan.pipeline.map((b: any) => createBlockFromJSON(b));
-                }
-                return blueprint;
-            });
+            const blueprints = savedPlans.map((savedPlan) => deserializeSavedPlanToBlueprint(savedPlan));
             this.setBlueprints(blueprints);
         } catch (error) {
             console.error('[OctoGrab] Failed to load blueprints:', error);
@@ -203,26 +196,7 @@ export class BlueprintBuilderStore {
 
     async saveBlueprint(blueprint: Blueprint) {
         try {
-            const json = blueprint.toJSON();
-            // Construct a Plan object from Blueprint
-            const plan: any = {
-                meta: {
-                    name: blueprint.name,
-                    version: '1.0.0',
-                    userAgent: navigator.userAgent
-                },
-                variables: {
-                    baseUrl: '' // TODO: Add capabilities for variables
-                },
-                pipeline: json.blocks // Blueprint.blocks maps to Plan.pipeline
-            };
-
-            await db.savePlan({
-                id: blueprint.id,
-                name: blueprint.name,
-                plan: plan,
-                updatedAt: new Date().toISOString(),
-            });
+            await db.savePlan(serializeBlueprintToSavedPlan(blueprint));
 
             // Clear any stale resumable checkpoint when blueprint config changes
             const { useBlueprintExecutorStore } = await import('./blueprint-executor-store');

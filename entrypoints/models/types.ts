@@ -10,9 +10,6 @@ import { ScrollBlock } from "./scroll-block";
 import { WaitBlock } from "./wait-block";
 import { AssertBlock } from "./assert-block";
 import { SetVariableBlock } from "./set-variable-block";
-import { GetVariableBlock } from "./get-variable-block";
-import { HoverBlock } from "./hover-block";
-import { SwitchFrameBlock } from "./switch-frame-block";
 import { MacroBlock } from "./macro-block";
 
 export type Block =
@@ -28,7 +25,4 @@ export type Block =
   | GoBackBlock
   | AssertBlock
   | SetVariableBlock
-  | GetVariableBlock
-  | HoverBlock
-  | SwitchFrameBlock
   | MacroBlock;

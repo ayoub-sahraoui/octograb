@@ -1,76 +1,11 @@
 import { Block } from "./types";
-import { NavigateBlock } from "./navigate-block";
-import { ClickBlock } from "./click-block";
-import { InputBlock } from "./input-block";
-import { WaitBlock } from "./wait-block";
-import { ScrollBlock } from "./scroll-block";
-import { GoBackBlock } from "./go-back-block";
-import { ConditionBlock } from "./condition-block";
-import { LoopElementsBlock } from "./loop-elements-block";
-import { LoopPaginationBlock } from "./loop-pagination-block";
-import { AssertBlock } from "./assert-block";
-import { SetVariableBlock } from "./set-variable-block";
-import { GetVariableBlock } from "./get-variable-block";
-import { HoverBlock } from "./hover-block";
-import { SwitchFrameBlock } from "./switch-frame-block";
-import { MacroBlock } from "./macro-block";
-import { ExtractScopeBlock } from "./extract-scope-block";
+import { getBlockRegistryEntry } from "./block-registry";
 
 export function createBlockFromJSON(json: any): Block {
-    let block: Block;
+    const entry = getBlockRegistryEntry(json.type);
+    if (!entry) throw new Error(`Unknown block type: ${json.type}`);
 
-    switch (json.type) {
-        case 'navigate':
-            block = new NavigateBlock(json.label || 'Navigate', json.config);
-            break;
-        case 'click':
-            block = new ClickBlock(json.label || 'Click', json.config);
-            break;
-        case 'input':
-            block = new InputBlock(json.label || 'Input', json.config);
-            break;
-        case 'wait':
-            block = new WaitBlock(json.label || 'Wait', json.config);
-            break;
-        case 'scroll':
-            block = new ScrollBlock(json.label || 'Scroll', json.config);
-            break;
-        case 'go_back':
-            block = new GoBackBlock(json.label || 'Go Back', json.config);
-            break;
-        case 'condition':
-            block = new ConditionBlock(json.config);
-            break;
-        case 'loop_elements':
-            block = new LoopElementsBlock(json.label || 'Loop Elements', json.config);
-            break;
-        case 'loop_pagination':
-            block = new LoopPaginationBlock(json.label || 'Pagination', json.config);
-            break;
-        case 'extract_scope':
-            block = new ExtractScopeBlock(json.label || 'Extract Data', json.config);
-            break;
-        case 'assert':
-            block = new AssertBlock(json.label || 'Assert', json.config);
-            break;
-        case 'set_variable':
-            block = new SetVariableBlock(json.label || 'Set Variable', json.config);
-            break;
-        case 'get_variable':
-            block = new GetVariableBlock(json.label || 'Get Variable', json.config);
-            break;
-        case 'hover':
-            block = new HoverBlock(json.label || 'Hover', json.config);
-            break;
-        case 'switch_frame':
-            block = new SwitchFrameBlock(json.label || 'Switch Frame', json.config);
-            break;
-        case 'macro':
-            block = new MacroBlock(json.label || 'Macro', json.config);
-            break;
-        default:
-            throw new Error(`Unknown block type: ${json.type}`);
-    }
+    const block = entry.create(json);
 
     // Reapply serialized properties using action methods
     if (json.id) block.id = json.id;

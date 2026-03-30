@@ -90,6 +90,7 @@ export const LoopPaginationBlockConfig = observer(({ block }: LoopPaginationBloc
                     onSelectorChange={(sel) => block.setNextButtonSelector(sel)}
                     block={block}
                     expectedElement="clickable"
+                    selectorCardinality="single"
                 />
             )}
 
@@ -126,6 +127,7 @@ export const LoopPaginationBlockConfig = observer(({ block }: LoopPaginationBloc
                             selector={block.config.itemSelector || { type: SelectorType.CSS, value: '' }}
                             onSelectorChange={(sel) => block.setItemSelector(sel)}
                             block={block}
+                            selectorCardinality="multiple"
                         />
                     )}
 
@@ -159,6 +161,7 @@ export const LoopPaginationBlockConfig = observer(({ block }: LoopPaginationBloc
                             selector={block.config.scrollSelector || { type: SelectorType.CSS, value: '' }}
                             onSelectorChange={(sel) => block.setScrollSelector(sel)}
                             block={block}
+                            selectorCardinality="single"
                         />
                     )}
 

@@ -35,6 +35,7 @@ export const ConditionBlockConfig = observer(({ block }: ConditionBlockConfigPro
                 selector={block.config.selector}
                 onSelectorChange={(sel) => block.setSelector(sel)}
                 block={block}
+                selectorCardinality={block.config.check === 'count_equals' || block.config.check === 'count_greater_than' ? 'multiple' : block.config.check === 'exists' || block.config.check === 'not_exists' ? 'any' : 'single'}
             />
 
             <div className="flex flex-col gap-2">

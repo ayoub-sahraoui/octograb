@@ -25,17 +25,21 @@ export function SortableBlueprintBlock({ block }: SortableBlueprintBlockProps) {
     };
 
     return (
-        <div ref={setNodeRef} style={style} className="relative" onPointerDown={(e) => e.stopPropagation()}>
-            <div className="absolute left-0 top-0 bottom-0 flex items-center -ml-8 z-10">
-                <div
-                    {...attributes}
-                    {...listeners}
-                    className="cursor-grab active:cursor-grabbing p-1 hover:bg-gray-200 rounded"
-                >
-                    <GripVertical className="w-4 h-4 text-gray-400" />
-                </div>
-            </div>
-            <BlueprintBlock block={block} />
+        <div ref={setNodeRef} style={style} className="relative">
+            <BlueprintBlock
+                block={block}
+                leadingControl={
+                    <div
+                        {...attributes}
+                        {...listeners}
+                        className="flex h-10 w-10 shrink-0 cursor-grab items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-500 transition hover:border-slate-300 hover:bg-slate-100 active:cursor-grabbing"
+                        onClick={(e) => e.stopPropagation()}
+                        title="Drag to reorder block"
+                    >
+                        <GripVertical className="w-4 h-4" />
+                    </div>
+                }
+            />
         </div>
     );
 }

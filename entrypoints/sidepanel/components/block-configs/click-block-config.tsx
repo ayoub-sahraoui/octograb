@@ -20,6 +20,8 @@ export const ClickBlockConfig = observer(({ block }: ClickBlockConfigProps) => {
                 onSelectorChange={(sel) => block.setSelector(sel)}
                 block={block}
                 expectedElement="clickable"
+                selectorCardinality="single"
+                selectorRole="click-target"
             />
 
             <div className="flex flex-col gap-2">

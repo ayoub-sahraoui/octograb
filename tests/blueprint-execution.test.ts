@@ -11,6 +11,7 @@ import { createBlockFromJSON } from '../entrypoints/models/block-factory';
 import { SelectorType } from '../entrypoints/models/selector';
 
 describe('Blueprint Execution Logic', () => {
+
     describe('Block Factory', () => {
         it('should create navigate block from JSON', () => {
             const json = {
@@ -361,4 +362,5 @@ describe('Blueprint Execution Logic', () => {
             expect(config.maxIterations).toBeGreaterThan(0);
         });
     });
+
 });

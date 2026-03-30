@@ -21,6 +21,8 @@ export const InputBlockConfig = observer(({ block }: InputBlockConfigProps) => {
                 onSelectorChange={(sel) => block.setSelector(sel)}
                 block={block}
                 expectedElement="input"
+                selectorCardinality="single"
+                selectorRole="input-target"
             />
 
             <div className="flex flex-col gap-2">

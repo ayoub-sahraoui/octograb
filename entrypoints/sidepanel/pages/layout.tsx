@@ -278,8 +278,8 @@ export default observer(function Layout() {
 
                 {/* AI Assistant Coming Soon Dialog */}
                 <Dialog open={isAiDialogOpen} onOpenChange={setIsAiDialogOpen}>
-                    <DialogContent className='bg-gray-50'>
-                        <DialogHeader className='flex flex-col items-center justify-center'>
+                    <DialogContent>
+                        <DialogHeader>
                             <DialogTitle>
                                 AI Blueprint Assistant
                             </DialogTitle>
@@ -306,7 +306,7 @@ export default observer(function Layout() {
 
                 {/* Create Blueprint Dialog */}
                 <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-                    <DialogContent className='bg-gray-50'>
+                    <DialogContent>
                         <DialogHeader>
                             <DialogTitle>Create New Blueprint</DialogTitle>
                             <DialogDescription>

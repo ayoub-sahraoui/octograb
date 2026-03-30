@@ -9,6 +9,7 @@
 import { SystemMessage, HumanMessage } from '@langchain/core/messages';
 import { createChatModel, type ProviderId } from './providers';
 import { sendToContentScript } from '../messaging';
+import { parseAiJson } from './parse-ai-json';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -99,12 +100,7 @@ export async function suggestFields(
         }
 
         // Parse the JSON response — strip code fences if present
-        let jsonStr = content.trim();
-        if (jsonStr.startsWith('```')) {
-            jsonStr = jsonStr.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '');
-        }
-
-        const parsed = JSON.parse(jsonStr);
+        const parsed = parseAiJson<any[]>(content, 'array');
 
         if (!Array.isArray(parsed)) {
             return { fields: [], error: 'LLM returned invalid format (expected array).' };

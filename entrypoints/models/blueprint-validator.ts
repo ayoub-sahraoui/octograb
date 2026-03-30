@@ -1,5 +1,7 @@
 import { Blueprint } from './blueprint';
 import { Block } from './types';
+import { analyzeBlueprint } from './blueprint-analysis';
+import { BLOCK_TYPES, getBlockRegistryEntry } from './block-registry';
 
 export interface ValidationError {
     blockId?: string;
@@ -34,6 +36,18 @@ export class BlueprintValidator {
             this.addWarning('Blueprint has no blocks');
         }
 
+        const analysis = analyzeBlueprint(blueprint);
+        if (analysis.maxDepth > this.maxNestingDepth) {
+            this.addError(`Maximum nesting depth (${this.maxNestingDepth}) exceeded`);
+        }
+        for (const issue of analysis.issues) {
+            if (issue.severity === 'error') {
+                this.addError(issue.message, issue.blockId, issue.blockLabel, issue.path);
+            } else {
+                this.addWarning(issue.message, issue.blockId, issue.blockLabel, issue.path);
+            }
+        }
+
         for (const block of blueprint.blocks) {
             this.validateBlock(block, null, 0, []);
         }
@@ -48,16 +62,6 @@ export class BlueprintValidator {
     private validateBlock(block: Block, parent: Block | null, depth: number, path: string[]) {
         const currentPath = [...path, block.label || block.type];
         const pathStr = currentPath.join(' > ');
-
-        if (depth > this.maxNestingDepth) {
-            this.addError(
-                `Maximum nesting depth (${this.maxNestingDepth}) exceeded`,
-                block.id,
-                block.label,
-                pathStr
-            );
-            return;
-        }
 
         if (!block.id) {
             this.addError('Block missing ID', undefined, block.label, pathStr);
@@ -86,13 +90,7 @@ export class BlueprintValidator {
     }
 
     private validateBlockType(block: Block, path: string) {
-        const validTypes = [
-            'navigate', 'click', 'input', 'wait', 'scroll', 'go_back',
-            'condition', 'loop_elements', 'loop_pagination', 'extract_scope',
-            'assert', 'set_variable', 'get_variable', 'hover', 'switch_frame', 'macro'
-        ];
-
-        if (!validTypes.includes(block.type)) {
+        if (!BLOCK_TYPES.includes(block.type)) {
             this.addError(
                 `Invalid block type: ${block.type}`,
                 block.id,
@@ -107,320 +105,17 @@ export class BlueprintValidator {
             this.addError('Block missing config', block.id, block.label, path);
             return;
         }
-
-        const config = block.config as any;
-
-        switch (block.type) {
-            case 'navigate':
-                if (!config.url || config.url.trim() === '') {
-                    this.addError('Navigate block requires URL', block.id, block.label, path);
-                }
-                break;
-
-            case 'click':
-                if (!config.selector?.value && !this.isInLoopContext(block)) {
-                    this.addError(
-                        'Click block requires selector (unless inside a loop)',
-                        block.id,
-                        block.label,
-                        path
-                    );
-                }
-                if (config.openInNewTab && (!block.children || block.children.length === 0)) {
-                    this.addWarning(
-                        'Click with openInNewTab has no children - new tab will open and close immediately',
-                        block.id,
-                        block.label,
-                        path
-                    );
-                }
-                break;
-
-            case 'input':
-                if (!config.selector?.value && !this.isInLoopContext(block)) {
-                    this.addError(
-                        'Input block requires selector (unless inside a loop)',
-                        block.id,
-                        block.label,
-                        path
-                    );
-                }
-                if (config.value === undefined || config.value === null || config.value === '') {
-                    this.addWarning(
-                        'Input block has no value - will input empty string',
-                        block.id,
-                        block.label,
-                        path
-                    );
-                }
-                break;
-
-            case 'wait':
-                if (!config.type) {
-                    this.addError('Wait block requires type', block.id, block.label, path);
-                } else if (config.type === 'timeout' && (!config.timeout || config.timeout <= 0)) {
-                    this.addError('Wait timeout must be > 0', block.id, block.label, path);
-                } else if (
-                    (config.type === 'selector_visible' || config.type === 'selector_hidden') &&
-                    !config.selector?.value
-                ) {
-                    this.addError(
-                        'Wait for selector requires selector',
-                        block.id,
-                        block.label,
-                        path
-                    );
-                }
-                break;
-
-            case 'scroll':
-                if (!config.behavior) {
-                    this.addError('Scroll block requires behavior', block.id, block.label, path);
-                } else if (config.behavior === 'pixels' && !config.pixels) {
-                    this.addError(
-                        'Scroll with pixels behavior requires pixels value',
-                        block.id,
-                        block.label,
-                        path
-                    );
-                }
-                break;
-
-            case 'condition':
-                if (!config.check) {
-                    this.addError('Condition block requires check type', block.id, block.label, path);
-                }
-                if (!config.selector?.value && !this.isInLoopContext(block)) {
-                    this.addError(
-                        'Condition block requires selector (unless inside a loop)',
-                        block.id,
-                        block.label,
-                        path
-                    );
-                }
-                if (
-                    ['text_contains', 'text_equals', 'text_regex', 'count_equals', 'count_greater_than'].includes(config.check) &&
-                    (config.value === undefined || config.value === null)
-                ) {
-                    this.addError(
-                        `Condition check "${config.check}" requires a value`,
-                        block.id,
-                        block.label,
-                        path
-                    );
-                }
-                break;
-
-            case 'loop_elements':
-                if (!config.selector?.value) {
-                    this.addError(
-                        'Loop Elements block requires selector',
-                        block.id,
-                        block.label,
-                        path
-                    );
-                }
-                if (config.maxIterations !== undefined && config.maxIterations <= 0) {
-                    this.addError(
-                        'Loop maxIterations must be > 0',
-                        block.id,
-                        block.label,
-                        path
-                    );
-                }
-                if (!block.children || block.children.length === 0) {
-                    this.addWarning(
-                        'Loop Elements has no children - will iterate but do nothing',
-                        block.id,
-                        block.label,
-                        path
-                    );
-                }
-                break;
-
-            case 'loop_pagination': {
-                const pagType = config.paginationType || 'button';
-                if (pagType === 'button') {
-                    if (!config.nextButtonSelector?.value) {
-                        this.addError(
-                            'Loop Pagination (button) requires next button selector',
-                            block.id,
-                            block.label,
-                            path
-                        );
-                    }
-                } else if (pagType === 'scroll') {
-                    const strategy = config.scrollStrategy || 'fixed_amount';
-                    if (strategy === 'scroll_to_last_item' && !config.itemSelector?.value) {
-                        this.addError(
-                            'Scroll to last item strategy requires item selector',
-                            block.id,
-                            block.label,
-                            path
-                        );
-                    }
-                }
-                if (config.maxPages && config.maxPages <= 0) {
-                    this.addError(
-                        'Loop maxPages must be > 0',
-                        block.id,
-                        block.label,
-                        path
-                    );
-                }
-                if (!block.children || block.children.length === 0) {
-                    this.addWarning(
-                        'Loop Pagination has no children - will paginate but extract nothing',
-                        block.id,
-                        block.label,
-                        path
-                    );
-                }
-                break;
-            }
-
-            case 'extract_scope':
-                if (!config.fields || config.fields.length === 0) {
-                    this.addError(
-                        'Extract block requires at least one field',
-                        block.id,
-                        block.label,
-                        path
-                    );
-                } else {
-                    for (const field of config.fields) {
-                        if (!field.key || field.key.trim() === '') {
-                            this.addError(
-                                'Extract field missing key',
-                                block.id,
-                                block.label,
-                                path
-                            );
-                        }
-                        if (!field.attribute && field.mode !== 'static') {
-                            this.addError(
-                                `Extract field "${field.key}" missing attribute`,
-                                block.id,
-                                block.label,
-                                path
-                            );
-                        }
-                    }
-                }
-                break;
-
-            case 'assert':
-                if (!config.check) {
-                    this.addError('Assert block requires check type', block.id, block.label, path);
-                }
-                if (!config.selector?.value && !this.isInLoopContext(block)) {
-                    this.addError(
-                        'Assert block requires selector (unless inside a loop)',
-                        block.id,
-                        block.label,
-                        path
-                    );
-                }
-                if (
-                    ['text_contains', 'text_equals', 'text_regex'].includes(config.check) &&
-                    (config.value === undefined || config.value === null || config.value === '')
-                ) {
-                    this.addError(
-                        `Assert check "${config.check}" requires a value`,
-                        block.id,
-                        block.label,
-                        path
-                    );
-                }
-                break;
-
-            case 'set_variable':
-                if (!config.name || config.name.trim() === '') {
-                    this.addError('Set Variable block requires variable name', block.id, block.label, path);
-                }
-                break;
-
-            case 'get_variable':
-                if (!config.name || config.name.trim() === '') {
-                    this.addError('Get Variable block requires variable name', block.id, block.label, path);
-                }
-                break;
-
-            case 'hover':
-                if (!config.selector?.value && !this.isInLoopContext(block)) {
-                    this.addError(
-                        'Hover block requires selector (unless inside a loop)',
-                        block.id,
-                        block.label,
-                        path
-                    );
-                }
-                break;
-
-            case 'switch_frame':
-                if (config.target === undefined || config.target === null || config.target === '') {
-                    this.addError('Switch Frame block requires target', block.id, block.label, path);
-                }
-                break;
-
-            case 'macro':
-                if (!config.macroId || config.macroId.trim() === '') {
-                    this.addError('Macro block requires macroId', block.id, block.label, path);
-                }
-                break;
-        }
+        const entry = getBlockRegistryEntry(block.type);
+        entry?.validate?.(block, path, {
+            addError: (message, currentBlock, currentPath) => this.addError(message, currentBlock.id, currentBlock.label, currentPath),
+            addWarning: (message, currentBlock, currentPath) => this.addWarning(message, currentBlock.id, currentBlock.label, currentPath),
+            isInLoopContext: (currentBlock) => this.isInLoopContext(currentBlock),
+        });
     }
 
     private validateParentChildRelationship(block: Block, parent: Block | null, path: string) {
-        const blocksWithoutChildren = [
-            'navigate', 'input', 'go_back', 'wait', 'scroll',
-            'assert', 'set_variable', 'get_variable', 'hover', 'switch_frame', 'macro'
-        ];
-
-        if (blocksWithoutChildren.includes(block.type) && block.children && block.children.length > 0) {
-            this.addError(
-                `Block type "${block.type}" should not have children`,
-                block.id,
-                block.label,
-                path
-            );
-        }
-
-        if (parent) {
-            if (parent.type === 'loop_elements' || parent.type === 'loop_pagination') {
-                if (block.type === 'navigate') {
-                    this.addWarning(
-                        'Navigate inside a loop may cause unexpected behavior',
-                        block.id,
-                        block.label,
-                        path
-                    );
-                }
-            }
-
-            if (parent.type === 'click' && (parent.config as any).openInNewTab) {
-                if (block.type === 'go_back') {
-                    this.addWarning(
-                        'Go Back inside a new tab click will close the tab',
-                        block.id,
-                        block.label,
-                        path
-                    );
-                }
-            }
-        }
-
-        if (block.type === 'extract_scope') {
-            const hasLoopAncestor = this.hasAncestorOfType(block, ['loop_elements', 'loop_pagination']);
-            if (!hasLoopAncestor) {
-                this.addWarning(
-                    'Extract block outside a loop will only extract once',
-                    block.id,
-                    block.label,
-                    path
-                );
-            }
-        }
+        void parent;
+        void path;
     }
 
     private validateChildren(block: Block, depth: number, path: string[]) {

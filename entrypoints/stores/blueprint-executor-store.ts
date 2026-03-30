@@ -1,7 +1,11 @@
 import { makeAutoObservable } from "mobx";
 import { Blueprint } from "../models/blueprint";
-import { Block } from "../models/types";
 import { createBlockFromJSON } from "../models/block-factory";
+import { compileBlock, compileBlueprint, CompiledBlock } from "../models/blueprint-compiler";
+import { resolveCompiledConfigTemplates } from "../models/compiled-config-resolution";
+import { buildExecutionTraceDetails } from "../models/execution-observability";
+import { ExecutionVariableScopes, VariableScopeType } from "../models/execution-variable-scopes";
+import { countSerializedBlocks, guardMacroExecution } from "../models/macro-safety";
 import { ExtractionField } from "../models/extract-scope-block";
 import { toDomExtractionFields } from "@/core/extraction-contract";
 import { Scope } from "@/core/env";
@@ -40,14 +44,11 @@ export interface ExecutionTrace {
     duration?: number;
 }
 
-// Blocks that manage their own children execution internally
-const CONTAINER_BLOCKS = ['loop_elements', 'loop_pagination', 'condition', 'extract_scope'];
-
 // ─── Store ───────────────────────────────────────────────────────────────────
 
 export class BlueprintExecutorStore {
     status: ExecutionStatus = 'idle';
-    currentBlock: Block | null = null;
+    currentBlock: CompiledBlock | null = null;
     progress: { current: number; total: number } = { current: 0, total: 0 };
     logs: ExecutionLog[] = [];
     traces: ExecutionTrace[] = [];
@@ -77,7 +78,7 @@ export class BlueprintExecutorStore {
     private _pausePromise: Promise<void> | null = null;
     private _pauseResolve: (() => void) | null = null;
     private _returnUrl: string | null = null; // Store URL to return to after go_back
-    private _variables: Map<string, string> = new Map(); // Variable storage for set_variable/get_variable
+    private _variables = new ExecutionVariableScopes();
     // Tab ID tracking — locked to a specific tab during execution
     private _targetTabId: number | null = null;
     // Loop state tracking for resume - maps blockId to current iteration index
@@ -88,6 +89,8 @@ export class BlueprintExecutorStore {
     private _deduplicationHashes: Set<string> = new Set();
     // Track which blocks have already been counted for progress (prevents loop inflation)
     private _progressCounted: Set<string> = new Set();
+    private _activeMacroStack: string[] = [];
+    private _expandedMacroBlockCount = 0;
 
     constructor() {
         makeAutoObservable(this, {
@@ -101,6 +104,8 @@ export class BlueprintExecutorStore {
             _autoIncrementCounters: false,
             _deduplicationHashes: false,
             _progressCounted: false,
+            _activeMacroStack: false,
+            _expandedMacroBlockCount: false,
         } as any);
         this.loadSettings();
         this.loadResumableBlueprints();
@@ -116,7 +121,7 @@ export class BlueprintExecutorStore {
         this.error = error;
     }
 
-    setCurrentBlock(block: Block | null) {
+    setCurrentBlock(block: CompiledBlock | null) {
         this.currentBlock = block;
     }
 
@@ -273,6 +278,7 @@ export class BlueprintExecutorStore {
 
     async execute(blueprint: Blueprint, resumeFromCheckpoint: boolean = false) {
         if (this.status === 'running') return;
+        const compiledBlueprint = compileBlueprint(blueprint);
 
         // ─── Server-side license verification before execution ─────────
         if (!isDevMode()) {
@@ -332,6 +338,7 @@ export class BlueprintExecutorStore {
             this.setExecutionTimes(Date.now(), null);
         }
         this._abortController = new AbortController();
+        await this.loadBlueprintScopedVariables(blueprint.id);
 
         // Overall execution timeout (2 hours max to prevent runaway blueprints)
         const maxExecutionMs = 2 * 60 * 60 * 1000;
@@ -358,8 +365,7 @@ export class BlueprintExecutorStore {
         };
         browser.tabs.onRemoved.addListener(onTabRemoved);
 
-        const totalBlocks = this.countBlocks(blueprint.blocks);
-        this.setProgress(0, totalBlocks);
+        this.setProgress(0, compiledBlueprint.totalBlocks);
 
         // Create execution record at start so we can track it
         if (!this.currentExecutionId) {
@@ -392,7 +398,7 @@ export class BlueprintExecutorStore {
 
         try {
             // Execute top-level blocks sequentially with NO scope
-            for (const block of blueprint.blocks) {
+            for (const block of compiledBlueprint.blocks) {
                 if (this._abortController.signal.aborted) break;
                 await this.executeBlock(block);
             }
@@ -719,6 +725,37 @@ export class BlueprintExecutorStore {
         URL.revokeObjectURL(url);
     }
 
+    private getTraceDetails(block: CompiledBlock, scope?: Scope, attempt?: number, error?: Error) {
+        return buildExecutionTraceDetails({
+            block,
+            scope,
+            variables: this._variables,
+            macroStack: this._activeMacroStack,
+            attempt,
+            error,
+        });
+    }
+
+    private logExecutionContext(block: CompiledBlock, scope?: Scope) {
+        const variables = this._variables.getSnapshot();
+        const localCount = Object.keys(variables.localResolved).length;
+        const globalCount = Object.keys(variables.global).length;
+        const blueprintCount = Object.keys(variables.blueprint).length;
+        const scopeInfo = scope ? `${scope.selectorType}:${scope.selector}[${scope.index}]` : 'none';
+        const macroInfo = this._activeMacroStack.length > 0
+            ? this._activeMacroStack.join(' -> ')
+            : 'none';
+
+        this.log(
+            'info',
+            `  🔧 Compiled: executor=${block.execution.executorMethod}, parent=${block.parentId || 'root'}, branch=${block.parentBranch || 'root'}, children=${block.children.length}, elseChildren=${block.elseChildren.length}`
+        );
+        this.log(
+            'info',
+            `  🧭 Runtime: scope=${scopeInfo}, macros=${macroInfo}, vars(local=${localCount}, global=${globalCount}, blueprint=${blueprintCount})`
+        );
+    }
+
     // ─── Block Router ───────────────────────────────────────────────────────
 
     /**
@@ -727,7 +764,7 @@ export class BlueprintExecutorStore {
      * because they need special scope/iteration logic.
      * Non-container blocks (Navigate, Click, Wait, etc.) get automatic child processing.
      */
-    private async executeBlock(block: Block, scope?: Scope) {
+    private async executeBlock(block: CompiledBlock, scope?: Scope) {
         if (this._abortController?.signal.aborted) return;
         await this.checkPause();
 
@@ -736,7 +773,9 @@ export class BlueprintExecutorStore {
             return;
         }
 
-        this.setCurrentBlock(block);
+        const resolvedBlock = this.resolveBlockConfigTemplates(block);
+
+        this.setCurrentBlock(resolvedBlock);
         if (!this.isProgressCounted(block.id)) {
             this.markProgressCounted(block.id);
             this.incrementProgress();
@@ -744,53 +783,56 @@ export class BlueprintExecutorStore {
 
         // Detailed logging for debugging
         const scopeInfo = scope ? `[Scope: ${scope.selector}[${scope.index}]]` : '[No Scope]';
-        const configPreview = JSON.stringify(block.config).substring(0, 100);
-        this.log('block', `▶ Executing: ${block.label || block.type} ${scopeInfo}`, block.id, block.label);
-        this.log('info', `  📋 Config: ${configPreview}${JSON.stringify(block.config).length > 100 ? '...' : ''}`);
+        const resolvedConfigJson = JSON.stringify(resolvedBlock.config);
+        const configPreview = resolvedConfigJson.substring(0, 100);
+        this.log('block', `▶ Executing: ${resolvedBlock.label || resolvedBlock.type} ${scopeInfo}`, block.id, resolvedBlock.label);
+        this.log('info', `  📋 Config: ${configPreview}${resolvedConfigJson.length > 100 ? '...' : ''}`);
+
+        this.logExecutionContext(resolvedBlock, scope);
 
         const retries = block.maxRetries || 0;
         const retryDelay = block.retryDelay || 1000;
 
         const startTraceTime = Date.now();
         this.addTrace({
-            blockId: block.id,
-            blockType: block.type,
-            blockLabel: block.label || block.type,
+            blockId: resolvedBlock.id,
+            blockType: resolvedBlock.type,
+            blockLabel: resolvedBlock.label || resolvedBlock.type,
             status: 'start',
-            details: { config: block.config, scope }
+            details: this.getTraceDetails(resolvedBlock, scope)
         });
 
         for (let attempt = 0; attempt <= retries; attempt++) {
             try {
                 if (attempt > 0) {
-                    this.log('warn', `↻ Retry ${attempt}/${retries}: ${block.label}`);
+                    this.log('warn', `↻ Retry ${attempt}/${retries}: ${resolvedBlock.label}`);
                     this.log('info', `  ⏱ Waiting ${retryDelay}ms before retry...`);
                     await this.delay(retryDelay);
                 }
 
                 // Apply delayBefore if the block config has it
-                const delayBefore = (block.config as any)?.delayBefore;
+                const delayBefore = (resolvedBlock.config as any)?.delayBefore;
                 if (delayBefore && delayBefore > 0) {
                     this.log('info', `  ⏱ Delay before: ${delayBefore}ms`);
                     await this.delay(delayBefore);
                 }
 
                 // Block-level timeout: wrap execution with timeout
-                const blockTimeout = block.maxExecutionTime || 30000; // Default 30s
+                const blockTimeout = resolvedBlock.maxExecutionTime || 30000; // Default 30s
                 const timeoutPromise = new Promise<never>((_, reject) => {
                     setTimeout(() => reject(
-                        new Error(`Block "${block.label}" exceeded ${blockTimeout}ms timeout`)
+                        new Error(`Block "${resolvedBlock.label}" exceeded ${blockTimeout}ms timeout`)
                     ), blockTimeout);
                 });
 
                 // Race actual execution against timeout
                 await Promise.race([
-                    this.executeBlockWithType(block, scope),
+                    this.executeBlockWithType(resolvedBlock, scope),
                     timeoutPromise
                 ]);
 
                 // Apply delayAfter if the block config has it
-                const delayAfter = (block.config as any)?.delayAfter;
+                const delayAfter = (resolvedBlock.config as any)?.delayAfter;
                 if (delayAfter && delayAfter > 0) {
                     this.log('info', `  ⏱ Delay after: ${delayAfter}ms`);
                     await this.delay(delayAfter);
@@ -798,10 +840,11 @@ export class BlueprintExecutorStore {
 
                 const executionTime = Date.now() - startTraceTime;
                 this.addTrace({
-                    blockId: block.id,
-                    blockType: block.type,
-                    blockLabel: block.label || block.type,
+                    blockId: resolvedBlock.id,
+                    blockType: resolvedBlock.type,
+                    blockLabel: resolvedBlock.label || resolvedBlock.type,
                     status: 'success',
+                    details: this.getTraceDetails(resolvedBlock, scope, attempt + 1),
                     duration: executionTime
                 });
 
@@ -813,17 +856,22 @@ export class BlueprintExecutorStore {
 
                 if (attempt >= retries) {
                     this.addTrace({
-                        blockId: block.id,
-                        blockType: block.type,
-                        blockLabel: block.label || block.type,
+                        blockId: resolvedBlock.id,
+                        blockType: resolvedBlock.type,
+                        blockLabel: resolvedBlock.label || resolvedBlock.type,
                         status: 'error',
-                        details: { error: err.message, stack: err.stack },
+                        details: this.getTraceDetails(
+                            resolvedBlock,
+                            scope,
+                            attempt + 1,
+                            err instanceof Error ? err : new Error(err?.message || String(err))
+                        ),
                         duration: Date.now() - startTraceTime
                     });
 
                     // Final attempt failed
-                    if (block.onError === 'skip') {
-                        this.log('warn', `⏭ Skipping failed block: ${block.label} (${err.message})`);
+                    if (resolvedBlock.onError === 'skip') {
+                        this.log('warn', `⏭ Skipping failed block: ${resolvedBlock.label} (${err.message})`);
                         return;
                     }
                     this.log('error', `  💥 All ${retries + 1} attempts failed. Stopping execution.`);
@@ -836,31 +884,18 @@ export class BlueprintExecutorStore {
     /**
      * Execute block based on its type - extracted from executeBlock for timeout wrapping
      */
-    private async executeBlockWithType(block: Block, scope?: Scope): Promise<void> {
-        switch (block.type) {
-            case 'navigate': await this.executeNavigate(block); break;
-            case 'click': await this.executeClick(block, scope); break;
-            case 'input': await this.executeInput(block, scope); break;
-            case 'wait': await this.executeWait(block, scope); break;
-            case 'scroll': await this.executeScroll(block, scope); break;
-            case 'go_back': await this.executeGoBack(block); break;
-            case 'condition': await this.executeCondition(block, scope); break;
-            case 'assert': await this.executeAssert(block, scope); break;
-            case 'set_variable': await this.executeSetVariable(block, scope); break;
-            case 'get_variable': await this.executeGetVariable(block, scope); break;
-            case 'hover': await this.executeHover(block, scope); break;
-            case 'switch_frame': await this.executeSwitchFrame(block, scope); break;
-            case 'macro': await this.executeMacro(block, scope); break;
-            case 'loop_elements': await this.executeLoopElements(block, scope); break;
-            case 'loop_pagination': await this.executeLoopPagination(block, scope); break;
-            case 'extract_scope': await this.executeExtractScope(block, scope); break;
-            default:
-                this.log('warn', `Unknown block type: ${block.type}`);
+    private async executeBlockWithType(block: CompiledBlock, scope?: Scope): Promise<void> {
+        const handler = (this as any)[block.execution.executorMethod];
+
+        if (typeof handler !== 'function') {
+            this.log('warn', `Unknown block type: ${block.type}`);
+        } else {
+            await handler.call(this, block, scope);
         }
 
         // Generic child processing for NON-container blocks
         // Container blocks (loop, condition, extract) already handle children internally
-        if (!CONTAINER_BLOCKS.includes(block.type) && block.children?.length) {
+        if (!block.execution.managesChildrenExecution && block.children?.length) {
             this.log('info', `  👶 Processing ${block.children.length} children...`);
             for (const child of block.children) {
                 if (this._abortController?.signal.aborted) break;
@@ -871,7 +906,14 @@ export class BlueprintExecutorStore {
 
     // ─── Block Executors ────────────────────────────────────────────────────
 
-    private async executeNavigate(block: Block) {
+    private resolveBlockConfigTemplates(block: CompiledBlock): CompiledBlock {
+        return {
+            ...block,
+            config: resolveCompiledConfigTemplates(block.config, this._variables),
+        };
+    }
+
+    private async executeNavigate(block: CompiledBlock) {
         const config = block.config as any;
         const url = config.url;
         if (!url) throw new Error('Navigate block: URL is required');
@@ -926,7 +968,7 @@ export class BlueprintExecutorStore {
         this.log('success', `✓ Navigated to: ${url}`);
     }
 
-    private async executeClick(block: Block, scope?: Scope) {
+    private async executeClick(block: CompiledBlock, scope?: Scope) {
         const config = block.config as any;
         const sel = config.selector;
         if (!sel?.value && !scope) throw new Error('Click block: selector or scope is required');
@@ -1093,7 +1135,7 @@ export class BlueprintExecutorStore {
         }
     }
 
-    private async executeInput(block: Block, scope?: Scope) {
+    private async executeInput(block: CompiledBlock, scope?: Scope) {
         const config = block.config as any;
         const sel = config.selector;
         if (!sel?.value && !scope) throw new Error('Input block: selector or scope is required');
@@ -1117,7 +1159,7 @@ export class BlueprintExecutorStore {
         this.log('success', `✓ Input "${config.value}" into: ${sel?.value || 'scope element'}`);
     }
 
-    private async executeWait(block: Block, scope?: Scope) {
+    private async executeWait(block: CompiledBlock, scope?: Scope) {
         const config = block.config as any;
 
         this.log('info', `  ⏱ Wait type: ${config.type}`);
@@ -1192,7 +1234,7 @@ export class BlueprintExecutorStore {
         }
     }
 
-    private async executeScroll(block: Block, scope?: Scope) {
+    private async executeScroll(block: CompiledBlock, scope?: Scope) {
         const config = block.config as any;
 
         this.log('info', `  📜 Scroll target: ${config.target || 'window'}`);
@@ -1257,7 +1299,7 @@ export class BlueprintExecutorStore {
         });
     }
 
-    private async executeGoBack(block: Block) {
+    private async executeGoBack(block: CompiledBlock) {
         this.log('info', '↩ Going back...');
         this.log('info', `  🎯 Current tab ID: ${this._targetTabId}`);
 
@@ -1325,7 +1367,7 @@ export class BlueprintExecutorStore {
         }
     }
 
-    private async executeCondition(block: Block, scope?: Scope) {
+    private async executeCondition(block: CompiledBlock, scope?: Scope) {
         const config = block.config as any;
         const sel = config.selector;
         if (!sel?.value && !scope) throw new Error('Condition block: selector or scope is required');
@@ -1422,13 +1464,15 @@ export class BlueprintExecutorStore {
         const branchName = conditionMet ? 'THEN' : 'ELSE';
         this.log('info', `  ➡️ Executing ${branchName} branch (${branch.length} blocks)`);
 
-        for (const child of branch) {
-            if (this._abortController?.signal.aborted) break;
-            await this.executeBlock(child, scope);
-        }
+        await this.withLocalVariableScope(async () => {
+            for (const child of branch) {
+                if (this._abortController?.signal.aborted) break;
+                await this.executeBlock(child, scope);
+            }
+        });
     }
 
-    private async executeAssert(block: Block, scope?: Scope) {
+    private async executeAssert(block: CompiledBlock, scope?: Scope) {
         const config = block.config as any;
         const sel = config.selector;
         if (!sel?.value && !scope) throw new Error('Assert block: selector or scope is required');
@@ -1532,41 +1576,77 @@ export class BlueprintExecutorStore {
         throw new Error(failMessage);
     }
 
-    private async executeSetVariable(block: Block, _scope?: Scope) {
+    private async executeSetVariable(block: CompiledBlock, _scope?: Scope) {
         const config = block.config as any;
         const { name, value, scope = 'local' } = config;
 
         if (!name) throw new Error('Set Variable: name is required');
 
-        // Simple variable substitution: replace {{varName}} with variable values
-        let resolvedValue = value || '';
-        const varPattern = /\{\{(\w+)\}\}/g;
-        resolvedValue = resolvedValue.replace(varPattern, (_match: string, varName: string) => {
-            return this._variables.get(varName) || '';
-        });
+        const resolvedValue = this.resolveVariableTemplate(value || '');
+        this._variables.set(name, resolvedValue, scope as VariableScopeType);
 
-        const varKey = scope === 'global' ? `global:${name}` : name;
-        this._variables.set(varKey, resolvedValue);
+        if (scope === 'blueprint') {
+            await this.persistBlueprintScopedVariables();
+        }
 
-        this.log('info', `  📝 Set variable: ${varKey} = "${resolvedValue}"`);
+        this.log('info', `  📝 Set variable [${scope}]: ${name} = "${resolvedValue}"`);
     }
 
-    private async executeGetVariable(block: Block, _scope?: Scope) {
+    private async executeGetVariable(block: CompiledBlock, _scope?: Scope) {
         const config = block.config as any;
         const { name, defaultValue = '', scope = 'local' } = config;
 
         if (!name) throw new Error('Get Variable: name is required');
 
-        const varKey = scope === 'global' ? `global:${name}` : name;
-        const value = this._variables.get(varKey) || defaultValue;
+        const value = this._variables.get(name, scope as VariableScopeType) ?? defaultValue;
 
-        this.log('info', `  📖 Get variable: ${varKey} = "${value}"`);
+        this.log('info', `  📖 Get variable [${scope}]: ${name} = "${value}"`);
 
         // Return the value so it can be used by child blocks if needed
         return value;
     }
 
-    private async executeHover(block: Block, scope?: Scope) {
+    private resolveVariableTemplate(value: string): string {
+        return this._variables.resolveTemplate(value);
+    }
+
+    private async withLocalVariableScope<T>(operation: () => Promise<T>): Promise<T> {
+        this._variables.pushLocalScope();
+        try {
+            return await operation();
+        } finally {
+            this._variables.popLocalScope();
+        }
+    }
+
+    private async loadBlueprintScopedVariables(blueprintId: string) {
+        if (!blueprintId || typeof browser === 'undefined') return;
+        try {
+            const key = this.getBlueprintVariableStorageKey(blueprintId);
+            const stored = await browser.storage.local.get(key);
+            this._variables.setBlueprintValues((stored[key] as Record<string, string>) || {});
+        } catch (error) {
+            console.error('[Executor] Failed to load blueprint variables', error);
+            this._variables.setBlueprintValues({});
+        }
+    }
+
+    private async persistBlueprintScopedVariables() {
+        if (!this.runningBlueprintId || typeof browser === 'undefined') return;
+        try {
+            await browser.storage.local.set({
+                [this.getBlueprintVariableStorageKey(this.runningBlueprintId)]: this._variables.getBlueprintValues()
+            });
+        } catch (error) {
+            console.error('[Executor] Failed to persist blueprint variables', error);
+        }
+    }
+
+    private getBlueprintVariableStorageKey(blueprintId: string) {
+        return `octograb_blueprint_variables:${blueprintId}`;
+    }
+
+    private async executeHover(block: CompiledBlock, scope?: Scope) {
         const config = block.config as any;
         const sel = config.selector;
         if (!sel?.value && !scope) throw new Error('Hover block: selector or scope is required');
@@ -1585,7 +1665,8 @@ export class BlueprintExecutorStore {
         });
 
         if (!response.success) throw new Error(response.error || 'Hover failed');
-        this.log('success', `✓ Hovered: ${sel?.value || 'scope element'}`);
+        this.log('success', `✓ Synthetic hover dispatched: ${sel?.value || 'scope element'}`);
+        this.log('info', '  ℹ This does not move the real browser cursor and may not trigger pure CSS :hover states on every site.');
 
         // Wait for hover delay if specified (for hover menus to appear)
         const hoverDelay = config.hoverDelay || 0;
@@ -1595,7 +1676,7 @@ export class BlueprintExecutorStore {
         }
     }
 
-    private async executeSwitchFrame(block: Block, _scope?: Scope) {
+    private async executeSwitchFrame(block: CompiledBlock, _scope?: Scope) {
         const config = block.config as any;
         const { target, timeout = 5000 } = config;
 
@@ -1614,7 +1695,7 @@ export class BlueprintExecutorStore {
         this.log('success', `✓ Switched to frame: ${target}`);
     }
 
-    private async executeMacro(block: Block, scope?: Scope) {
+    private async executeMacro(block: CompiledBlock, scope?: Scope) {
         const config = block.config as any;
         const { macroId, parameters = {} } = config;
 
@@ -1623,6 +1704,14 @@ export class BlueprintExecutorStore {
         // Look up the macro definition
         const macroDef = macroRegistryStore.getMacro(macroId);
         if (!macroDef) throw new Error(`Macro not found: ${macroId}`);
+
+        guardMacroExecution({
+            macroId,
+            macroName: macroDef.name,
+            activeStack: this._activeMacroStack,
+            nextBlockCount: countSerializedBlocks(macroDef.blocks || []),
+            expandedBlockCount: this._expandedMacroBlockCount,
+        });
 
         this.log('info', `  🔧 Expanding macro: ${macroDef.name}`);
         this.log('info', `  📊 Macro blocks: ${macroDef.blocks?.length || 0}`);
@@ -1635,17 +1724,24 @@ export class BlueprintExecutorStore {
             }
         }
 
-        // Create blocks from macro definition with parameter substitution
-        const macroBlocks = macroDef.blocks.map((blockJson: any) => {
-            // Deep clone and substitute parameters
-            const substituted = this.substituteParametersInBlock(blockJson, parameters, macroDef.parameters || []);
-            return createBlockFromJSON(substituted);
-        });
+        this._activeMacroStack.push(macroId);
+        this._expandedMacroBlockCount += countSerializedBlocks(macroDef.blocks || []);
 
-        // Execute the macro blocks
-        for (const macroBlock of macroBlocks) {
-            if (this._abortController?.signal.aborted) break;
-            await this.executeBlock(macroBlock, scope);
+        try {
+            // Create blocks from macro definition with parameter substitution
+            const macroBlocks = macroDef.blocks.map((blockJson: any) => {
+                // Deep clone and substitute parameters
+                const substituted = this.substituteParametersInBlock(blockJson, parameters, macroDef.parameters || []);
+                return compileBlock(createBlockFromJSON(substituted));
+            });
+
+            // Execute the macro blocks
+            for (const macroBlock of macroBlocks) {
+                if (this._abortController?.signal.aborted) break;
+                await this.executeBlock(macroBlock, scope);
+            }
+        } finally {
+            this._activeMacroStack.pop();
         }
 
         this.log('success', `✓ Macro completed: ${macroDef.name}`);
@@ -1690,7 +1786,7 @@ export class BlueprintExecutorStore {
         return result;
     }
 
-    private async executeLoopElements(block: Block, scope?: Scope) {
+    private async executeLoopElements(block: CompiledBlock, scope?: Scope) {
         const config = block.config as any;
         const sel = config.selector;
         if (!sel?.value) throw new Error('Loop Elements: selector is required');
@@ -1815,10 +1911,12 @@ export class BlueprintExecutorStore {
 
                 let iterationFailed = false;
                 try {
-                    for (const child of (block.children || [])) {
-                        if (this._abortController?.signal.aborted) break;
-                        await this.executeBlock(child, childScope);
-                    }
+                    await this.withLocalVariableScope(async () => {
+                        for (const child of (block.children || [])) {
+                            if (this._abortController?.signal.aborted) break;
+                            await this.executeBlock(child, childScope);
+                        }
+                    });
                 } catch (iterErr: any) {
                     iterationFailed = true;
                     this.log('warn', `    ⚠ Item ${i + 1} failed: ${iterErr.message}`);
@@ -1873,7 +1971,7 @@ export class BlueprintExecutorStore {
         this.log('success', `✓ Loop completed: ${maxIter} iterations`);
     }
 
-    private clearChildLoopStates(block: Block) {
+    private clearChildLoopStates(block: CompiledBlock) {
         for (const child of (block.children || [])) {
             delete this._loopState[child.id];
             if (child.children) {
@@ -1882,7 +1980,7 @@ export class BlueprintExecutorStore {
         }
     }
 
-    private async executeLoopPagination(block: Block, scope?: Scope) {
+    private async executeLoopPagination(block: CompiledBlock, scope?: Scope) {
         const config = block.config as any;
         const paginationType = config.paginationType || 'button';
         const maxPages = config.maxPages || 100;
@@ -1901,7 +1999,7 @@ export class BlueprintExecutorStore {
         }
     }
 
-    private async executeButtonPagination(block: Block, scope: Scope | undefined, maxPages: number, delayBetween: number) {
+    private async executeButtonPagination(block: CompiledBlock, scope: Scope | undefined, maxPages: number, delayBetween: number) {
         const config = block.config as any;
         const sel = config.nextButtonSelector;
         if (!sel?.value) throw new Error('Loop Pagination (button): next button selector required');
@@ -1938,10 +2036,12 @@ export class BlueprintExecutorStore {
 
             // Execute children for this page
             this.log('info', `    👶 Executing ${block.children?.length || 0} children on this page...`);
-            for (const child of (block.children || [])) {
-                if (this._abortController?.signal.aborted) break;
-                await this.executeBlock(child, scope);
-            }
+            await this.withLocalVariableScope(async () => {
+                for (const child of (block.children || [])) {
+                    if (this._abortController?.signal.aborted) break;
+                    await this.executeBlock(child, scope);
+                }
+            });
 
             page++;
 
@@ -2039,7 +2139,7 @@ export class BlueprintExecutorStore {
             await this.waitForTab(15000);
 
             // Wait for child elements to appear on the new page (dynamic content like Amazon grids)
-            const firstChildLoop = (block.children || []).find((c: Block) => c.type === 'loop_elements');
+            const firstChildLoop = (block.children || []).find((c: CompiledBlock) => c.type === 'loop_elements');
             if (firstChildLoop) {
                 const childSel = (firstChildLoop.config as any)?.selector;
                 if (childSel?.value) {
@@ -2071,7 +2171,7 @@ export class BlueprintExecutorStore {
         this.log('success', `✓ Button pagination completed: ${page} pages processed`);
     }
 
-    private async executeScrollPagination(block: Block, scope: Scope | undefined, maxPages: number, delayBetween: number) {
+    private async executeScrollPagination(block: CompiledBlock, scope: Scope | undefined, maxPages: number, delayBetween: number) {
         const config = block.config as any;
         const scrollStrategy = config.scrollStrategy || 'fixed_amount';
 
@@ -2086,7 +2186,7 @@ export class BlueprintExecutorStore {
         }
     }
 
-    private async executeFixedAmountStrategy(block: Block, scope: Scope | undefined, maxPages: number, delayBetween: number) {
+    private async executeFixedAmountStrategy(block: CompiledBlock, scope: Scope | undefined, maxPages: number, delayBetween: number) {
         const config = block.config as any;
         const scrollTarget = config.scrollTarget || 'window';
         const scrollAmount = config.scrollAmount || 1000;
@@ -2120,10 +2220,12 @@ export class BlueprintExecutorStore {
 
             // Execute children for current visible items
             this.log('info', `    👶 Executing ${block.children?.length || 0} children...`);
-            for (const child of (block.children || [])) {
-                if (this._abortController?.signal.aborted) break;
-                await this.executeBlock(child, scope);
-            }
+            await this.withLocalVariableScope(async () => {
+                for (const child of (block.children || [])) {
+                    if (this._abortController?.signal.aborted) break;
+                    await this.executeBlock(child, scope);
+                }
+            });
 
             page++;
 
@@ -2177,7 +2279,7 @@ export class BlueprintExecutorStore {
         this.log('success', `✓ Scroll pagination completed: ${page} iterations, ${this.extractedData.length} total items`);
     }
 
-    private async executeScrollToBottomStrategy(block: Block, scope: Scope | undefined, maxPages: number, delayBetween: number) {
+    private async executeScrollToBottomStrategy(block: CompiledBlock, scope: Scope | undefined, maxPages: number, delayBetween: number) {
         const config = block.config as any;
         const scrollTarget = config.scrollTarget || 'window';
         const scrollSelector = config.scrollSelector;
@@ -2207,10 +2309,12 @@ export class BlueprintExecutorStore {
 
             // Execute children for current visible items
             this.log('info', `    👶 Executing ${block.children?.length || 0} children...`);
-            for (const child of (block.children || [])) {
-                if (this._abortController?.signal.aborted) break;
-                await this.executeBlock(child, scope);
-            }
+            await this.withLocalVariableScope(async () => {
+                for (const child of (block.children || [])) {
+                    if (this._abortController?.signal.aborted) break;
+                    await this.executeBlock(child, scope);
+                }
+            });
 
             iteration++;
 
@@ -2262,7 +2366,7 @@ export class BlueprintExecutorStore {
         this.log('success', `✓ Scroll pagination completed: ${iteration} iterations, ${this.extractedData.length} total items`);
     }
 
-    private async executeScrollToLastItemStrategy(block: Block, scope: Scope | undefined, maxPages: number, delayBetween: number) {
+    private async executeScrollToLastItemStrategy(block: CompiledBlock, scope: Scope | undefined, maxPages: number, delayBetween: number) {
         const config = block.config as any;
         const itemSelector = config.itemSelector;
 
@@ -2329,10 +2433,12 @@ export class BlueprintExecutorStore {
 
             // Execute children for current visible items
             this.log('info', `    👶 Executing ${block.children?.length || 0} children...`);
-            for (const child of (block.children || [])) {
-                if (this._abortController?.signal.aborted) break;
-                await this.executeBlock(child, scopeWithContext);
-            }
+            await this.withLocalVariableScope(async () => {
+                for (const child of (block.children || [])) {
+                    if (this._abortController?.signal.aborted) break;
+                    await this.executeBlock(child, scopeWithContext);
+                }
+            });
 
             iteration++;
 
@@ -2411,7 +2517,7 @@ export class BlueprintExecutorStore {
         this.log('success', `✓ Scroll pagination completed: ${iteration} iterations, ${this.extractedData.length} total items`);
     }
 
-    private async executeExtractScope(block: Block, scope?: Scope) {
+    private async executeExtractScope(block: CompiledBlock, scope?: Scope) {
         const config = block.config as any;
         const fields: ExtractionField[] = config.fields || [];
 
@@ -2664,10 +2770,12 @@ export class BlueprintExecutorStore {
         // Execute children if any (for nested extractions)
         if (block.children?.length) {
             this.log('info', `  👶 Executing ${block.children.length} children for nested extraction...`);
-            for (const child of (block.children || [])) {
-                if (this._abortController?.signal.aborted) break;
-                await this.executeBlock(child, childScope);
-            }
+            await this.withLocalVariableScope(async () => {
+                for (const child of (block.children || [])) {
+                    if (this._abortController?.signal.aborted) break;
+                    await this.executeBlock(child, childScope);
+                }
+            });
         }
     }
 
@@ -2928,7 +3036,7 @@ export class BlueprintExecutorStore {
         }
     }
 
-    private countBlocks(blocks: Block[]): number {
+    private countBlocks(blocks: Array<{ children?: any[]; elseChildren?: any[] }>): number {
         let count = 0;
         for (const block of blocks) {
             count++;
@@ -2962,6 +3070,8 @@ export class BlueprintExecutorStore {
         this._progressCounted = new Set();
         this._returnUrl = null;
         this._variables.clear();
+        this._activeMacroStack = [];
+        this._expandedMacroBlockCount = 0;
     }
 
     private downloadBlob(content: string, filename: string, mimeType: string) {

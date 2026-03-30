@@ -19,6 +19,8 @@ export const LoopElementsBlockConfig = observer(({ block }: LoopElementsBlockCon
                 selector={block.config.selector}
                 onSelectorChange={(sel) => block.setSelector(sel)}
                 block={block}
+                selectorCardinality="multiple"
+                selectorRole="loop-root"
             />
 
             <div className="flex flex-col gap-2">

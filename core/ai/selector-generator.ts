@@ -8,6 +8,8 @@
 import { SystemMessage, HumanMessage } from '@langchain/core/messages';
 import { createChatModel, type ProviderId } from './providers';
 import { sendToContentScript } from '../messaging';
+import { buildFallbackCssSelector, isValidCssSelector, sanitizeCssSelector } from './css-selector-sanitizer';
+import { parseAiJson } from './parse-ai-json';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -136,20 +138,26 @@ Generate a robust selector for this element as JSON:
         }
 
         // Parse the JSON response — strip code fences if present
-        let jsonStr = content.trim();
-        if (jsonStr.startsWith('```')) {
-            jsonStr = jsonStr.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '');
-        }
-
-        const parsed = JSON.parse(jsonStr);
+        const parsed = parseAiJson<GeneratedSelector>(content, 'object');
 
         if (!parsed.css || !parsed.xpath) {
             return { error: 'LLM returned invalid format (missing css or xpath).' };
         }
 
+        const safeCss = sanitizeCssSelector(
+            String(parsed.css),
+            buildFallbackCssSelector({
+                tag: elementInfo.tag,
+                id: elementInfo.id,
+                classes: elementInfo.classes,
+                attributes: elementInfo.attributes,
+            }),
+            isValidCssSelector,
+        );
+
         return {
             selector: {
-                css: String(parsed.css),
+                css: safeCss,
                 xpath: String(parsed.xpath),
                 description: String(parsed.description || ''),
                 confidence: (parsed.confidence as 'high' | 'medium' | 'low') || 'medium',
