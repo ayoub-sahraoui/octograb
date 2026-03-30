@@ -71,6 +71,7 @@ import {
 } from "@/components/ui/table"
 import { SortableBlueprintBlock } from '../components/sortable-blueprint-block';
 import { buildExecutionTraceDisplay, buildExecutionTraceSummary, filterExecutionTraces } from '../components/execution-trace-display';
+import { CreateMacroDialog } from '../components/create-macro-dialog';
 
 // ─── Extracted observer components (stable identity, never remounted on parent re-render) ───
 
@@ -991,6 +992,7 @@ export default observer(function BlueprintBuilder() {
                     />
                     <BlockConfigDrawer />
                     <AddNewChildBlock />
+                    <CreateMacroDialog />
                 </div>
                 {executionResultsDrawer}
             </div>

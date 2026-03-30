@@ -6,6 +6,7 @@ import Home from './home'
 import BlueprintBuilder from './blueprint-builder'
 import Layout from './layout'
 import AiChat from './ai-chat'
+import MacroLibrary from './macro-library'
 
 export default function Router() {
     return (
@@ -17,6 +18,7 @@ export default function Router() {
                     <Route path='/blueprints' Component={Blueprints} />
                     <Route path='/extracted-data' Component={ExtractedData} />
                     <Route path='/ai-chat' Component={AiChat} />
+                    <Route path='/macros' Component={MacroLibrary} />
                     <Route path='/settings' Component={Settings} />
                 </Route>
             </Routes>

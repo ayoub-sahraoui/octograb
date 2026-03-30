@@ -35,6 +35,7 @@ export class BlueprintBuilderStore {
     selectedBlueprint: Blueprint | null = null;
     selectedBlock: Block | null = null;
     parentBlockForChild: Block | null = null;
+    macroSourceBlock: Block | null = null;
 
     // Validation state
     validationResult: ValidationResult | null = null;
@@ -361,6 +362,10 @@ export class BlueprintBuilderStore {
 
     setParentBlockForChild(block: Block | null) {
         this.parentBlockForChild = block;
+    }
+
+    setMacroSourceBlock(block: Block | null) {
+        this.macroSourceBlock = block;
     }
 
     addChildBlockToParent(childBlock: Block): boolean {

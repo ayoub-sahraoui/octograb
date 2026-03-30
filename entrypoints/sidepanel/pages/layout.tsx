@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { CirclePlus, Database, Settings, House, Bot, Bell, Sparkles, Menu, X, Check, CircleAlert, AlertTriangle, CheckCircle2, XCircle, Info, Lightbulb, Trash2 } from 'lucide-react'
+import { CirclePlus, Database, Settings, House, Bot, Bell, Sparkles, Menu, X, Check, CircleAlert, AlertTriangle, CheckCircle2, XCircle, Info, Lightbulb, Trash2, LibraryBig } from 'lucide-react'
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -115,11 +115,15 @@ export default observer(function Layout() {
     const aiChatRoute = () => {
         navigate('/ai-chat');
     }
+    const macroLibraryRoute = () => {
+        navigate('/macros');
+    }
 
     const navItems = [
         { icon: House, label: 'Home', action: homeRoute, path: '/' },
         { icon: CirclePlus, label: 'Create blueprint', action: blueprintBuilderRoute, path: '/blueprint-builder' },
         { icon: Bot, label: 'AI assistant', action: aiChatRoute, path: '/ai-chat' },
+        { icon: LibraryBig, label: 'Macros', action: macroLibraryRoute, path: '/macros' },
         { icon: Database, label: 'Extracted data', action: extractedDataRoute, path: '/extracted-data' },
         { icon: Settings, label: 'Settings', action: settingsRoute, path: '/settings' },
     ];

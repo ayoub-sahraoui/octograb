@@ -56,21 +56,21 @@ export const MacroBlockConfig = observer(({ block }: MacroBlockConfigProps) => {
             </div>
 
             {display.macros.length === 0 && (
-                <Card>
+                <Card className="shadow-none">
                     <CardHeader className="flex-row items-start gap-3 space-y-0">
                         <div className="rounded-md border bg-muted/40 p-2">
                             <LibraryBig className="h-4 w-4 text-muted-foreground" />
                         </div>
                         <div>
                             <CardTitle className="text-base">No saved macros yet</CardTitle>
-                            <CardDescription>Create and save a macro first, then come back here to reuse it inside a blueprint.</CardDescription>
+                            <CardDescription>Create one from any block card using <strong>Save as Macro</strong>, then come back here to reuse it inside a blueprint.</CardDescription>
                         </div>
                     </CardHeader>
                 </Card>
             )}
 
             {display.missingMacroId && (
-                <Card className="border-destructive/40">
+                <Card className="border-destructive/40 shadow-none">
                     <CardHeader className="flex-row items-start gap-3 space-y-0">
                         <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
                         <div>
@@ -84,7 +84,7 @@ export const MacroBlockConfig = observer(({ block }: MacroBlockConfigProps) => {
             )}
 
             {display.selectedMacro && (
-                <Card>
+                <Card className="shadow-none">
                     <CardHeader className="flex-row items-start gap-3 space-y-0">
                         <div className="rounded-md border bg-muted/40 p-2">
                             <Puzzle className="h-4 w-4 text-primary" />
@@ -115,7 +115,7 @@ export const MacroBlockConfig = observer(({ block }: MacroBlockConfigProps) => {
                 <Separator />
 
                 {!display.selectedMacro && !display.missingMacroId && display.macros.length > 0 && (
-                    <Card>
+                    <Card className="shadow-none">
                         <CardHeader className="flex-row items-start gap-3 space-y-0">
                             <Info className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
                             <div>
@@ -130,7 +130,7 @@ export const MacroBlockConfig = observer(({ block }: MacroBlockConfigProps) => {
                     <div className="flex flex-col gap-3">
                         {display.parameterRows.length > 0 ? (
                             display.parameterRows.map((parameter) => (
-                                <Card key={parameter.name}>
+                                <Card key={parameter.name} className="shadow-none">
                                     <CardHeader className="pb-3">
                                         <div className="flex items-center gap-2">
                                             <CardTitle className="text-sm">{parameter.name}</CardTitle>
@@ -155,7 +155,7 @@ export const MacroBlockConfig = observer(({ block }: MacroBlockConfigProps) => {
                                 </Card>
                             ))
                         ) : (
-                            <Card>
+                            <Card className="shadow-none">
                                 <CardHeader>
                                     <CardTitle className="text-base">No parameters</CardTitle>
                                     <CardDescription>This macro does not declare any parameters.</CardDescription>

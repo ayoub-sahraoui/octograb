@@ -1,4 +1,4 @@
-import { ArrowDown, BookOpen, ChevronDown, ChevronUp, Database, GitBranch, Globe, GripVertical, MousePointerClick, Plus, Repeat, Settings2, Type, Undo2, Clock, Bug, Puzzle, Variable } from 'lucide-react'
+import { ArrowDown, BookOpen, ChevronDown, ChevronUp, Database, GitBranch, Globe, GripVertical, MousePointerClick, Plus, Repeat, Settings2, Type, Undo2, Clock, Bug, Puzzle, Variable, Save } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
@@ -249,6 +249,22 @@ const BlueprintBlock = observer(({ block, level = 0, leadingControl }: Blueprint
                 }} size="icon" variant="outline" className='cursor-pointer'>
                     <Settings2 />
                 </Button>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                blueprintBuilderStore.setMacroSourceBlock(block);
+                            }}
+                            size="icon"
+                            variant="outline"
+                            className='cursor-pointer'
+                        >
+                            <Save />
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Save as Macro</TooltipContent>
+                </Tooltip>
                 {!isConditionBlock && (
                     <Button onClick={(e) => {
                         e.stopPropagation();
