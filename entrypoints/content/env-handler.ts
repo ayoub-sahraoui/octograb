@@ -1,8 +1,8 @@
-import { registerRpcHandler, MessageResponse, Message } from '@/core/messaging';
-import { resolveScope, getElement, getElements } from '@/core/dom-query';
-import { createDomSnapshot, queryElementPreview, testExtraction } from '@/core/ai/dom-snapshot';
+import { registerRpcHandler, MessageResponse, Message } from '../../core/messaging';
+import { resolveScope, getElement, getElements } from '../../core/dom-query';
+import { createDomSnapshot, queryElementPreview, testExtraction } from '../../core/ai/dom-snapshot';
 import { buildSwitchFrameResult } from './switch-frame-result';
-import { DomExtractionField } from '@/core/extraction-contract';
+import { DomExtractionField } from '../../core/extraction-contract';
 
 // ─── Utility: Scope Marker Cleanup ─────────────────────────────────────────
 

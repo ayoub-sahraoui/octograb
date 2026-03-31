@@ -25,6 +25,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useConfirm } from '../components/confirm-dialog';
+import { CenteredState } from '../components/centered-state';
 
 export default observer(function Home() {
     const blueprintBuilderStore = useBlueprintBuilderStore();
@@ -215,16 +216,18 @@ export default observer(function Home() {
             />
             <div className="flex flex-col gap-2 overflow-auto flex-1 min-h-0 p-2">
                 {blueprintBuilderStore.blueprints.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center h-full gap-4">
-                        <div className="text-center">
-                            <h2 className="text-lg font-semibold text-gray-600">No Blueprints Yet</h2>
-                            <p className="text-sm text-gray-500">Create your first blueprint to get started</p>
-                        </div>
-                        <Button onClick={handleCreateNew} className="flex items-center gap-2">
-                            <Plus className="w-4 h-4" />
-                            Create Blueprint
-                        </Button>
-                    </div>
+                    <CenteredState
+                        icon={<Database className="h-8 w-8" />}
+                        title="No blueprints yet"
+                        description="Create your first blueprint to start building automations."
+                        className="h-full"
+                        action={(
+                            <Button onClick={handleCreateNew} className="flex items-center gap-2">
+                                <Plus className="w-4 h-4" />
+                                Create Blueprint
+                            </Button>
+                        )}
+                    />
                 ) : (
                     blueprintBuilderStore.blueprints.map((blueprint) => {
                         const status = getBlueprintStatus(blueprint.id);

@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { useAiAgentStore, ChatMessage } from "@/entrypoints/stores/ai-agent-store";
 import { useNavigate } from "react-router-dom";
+import { CenteredState } from "../components/centered-state";
 
 const suggestions = [
     { icon: Wand2, text: "Scrape product listings from this page" },
@@ -452,35 +453,28 @@ function ThinkingIndicator({ toolName, status }: { toolName: string | null; stat
 function EmptyState({ hasApiKey, onNavigateSettings }: { hasApiKey: boolean; onNavigateSettings: () => void }) {
     if (!hasApiKey) {
         return (
-            <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center p-6">
-                <div className="w-12 h-12 rounded-full bg-amber-50 flex items-center justify-center">
-                    <Key className="w-6 h-6 text-amber-400" />
-                </div>
-                <div>
-                    <p className="text-sm font-semibold text-gray-700">API Key Required</p>
-                    <p className="text-xs text-gray-500 mt-1 max-w-[220px]">
-                        Add your API key in Settings to start using the AI assistant.
-                    </p>
-                </div>
-                <Button size="sm" variant="outline" className="text-xs" onClick={onNavigateSettings}>
-                    <Settings className="h-3.5 w-3.5 mr-1.5" /> Open Settings
-                </Button>
-            </div>
+            <CenteredState
+                icon={<Key className="h-6 w-6" />}
+                title="API key required"
+                description="Add your API key in Settings to start using the AI assistant."
+                tone="warning"
+                className="flex-1"
+                action={(
+                    <Button size="sm" variant="outline" className="text-xs" onClick={onNavigateSettings}>
+                        <Settings className="mr-1.5 h-3.5 w-3.5" /> Open Settings
+                    </Button>
+                )}
+            />
         );
     }
 
     return (
-        <div className="flex-1 flex flex-col items-center justify-center gap-3 text-center p-6">
-            <div className="w-12 h-12 rounded-full bg-emerald-50 flex items-center justify-center">
-                <Bot className="w-6 h-6 text-emerald-500" />
-            </div>
-            <div>
-                <p className="text-sm font-semibold text-gray-700">OctoGrab AI</p>
-                <p className="text-xs text-gray-500 mt-1 max-w-[240px]">
-                    Tell me what data you want to extract and I'll analyze the page and build a blueprint.
-                </p>
-            </div>
-        </div>
+        <CenteredState
+            icon={<Bot className="h-6 w-6" />}
+            title="OctoGrab AI"
+            description="Tell me what data you want to extract and I’ll analyze the page and help build the blueprint."
+            className="flex-1"
+        />
     );
 }
 
@@ -539,9 +533,13 @@ const ConversationDrawer = observer(({ open, onClose }: { open: boolean; onClose
 
                 <div className="flex-1 overflow-y-auto py-1">
                     {sortedConversations.length === 0 ? (
-                        <div className="text-center py-8 text-xs text-gray-400">
-                            No conversations yet
-                        </div>
+                        <CenteredState
+                            icon={<MessageSquare className="h-5 w-5" />}
+                            title="No conversations yet"
+                            description="Start a new AI chat to plan or refine a blueprint."
+                            compact
+                            className="py-10"
+                        />
                     ) : (
                         sortedConversations.map(conv => {
                             const isActive = conv.id === store.activeConversationId;

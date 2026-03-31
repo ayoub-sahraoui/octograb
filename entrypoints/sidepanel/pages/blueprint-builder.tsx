@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { observer } from 'mobx-react-lite';
 import { reaction, toJS } from 'mobx';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -34,6 +35,7 @@ import {
 import BlueprintBlockSelector from '../components/blueprint-block-selector'
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { CenteredState } from '../components/centered-state';
 import {
     NavigateBlockConfig,
     ClickBlockConfig,
@@ -231,15 +233,14 @@ const BlueprintBlocks = observer(function BlueprintBlocks({ sensors, handleDragE
 
     if (blueprintBuilderStore.selectedBlueprint.blocks.length === 0) {
         return (
-            <div className="flex flex-col gap-2 items-center justify-center w-full h-full">
-                <div className="flex flex-col gap-2 items-center justify-center">
-                    <CopyPlus className="w-10 h-10" />
-                    <div className='flex flex-col justify-center items-center'>
-                        <h2 className="text-lg font-semibold">No blocks found</h2>
-                        <p className="text-center">Add blocks to your blueprint to start building your automation.</p>
-                    </div>
-                </div>
-                <AddNewBlock isOpen={isAddBlockDrawerOpen} setIsOpen={setIsAddBlockDrawerOpen} />
+            <div className="flex h-full w-full items-center justify-center">
+                <CenteredState
+                    icon={<CopyPlus className="h-8 w-8" />}
+                    title="No blocks found"
+                    description="Add blocks to your blueprint to start building your automation."
+                    className="max-w-md"
+                    action={<AddNewBlock isOpen={isAddBlockDrawerOpen} setIsOpen={setIsAddBlockDrawerOpen} />}
+                />
             </div>
         )
     }
@@ -481,7 +482,7 @@ export default observer(function BlueprintBuilder() {
                                     </span>
                                 )}
                                 {executorStore.status === 'error' && (
-                                    <span className="text-red-600">Error: {executorStore.error}</span>
+                                    <span className="text-red-600">Execution failed • {executorStore.durationFormatted}</span>
                                 )}
                                 {executorStore.status === 'stopped' && (
                                     <span className="text-gray-600">
@@ -535,6 +536,55 @@ export default observer(function BlueprintBuilder() {
                     </div>
                 </DrawerHeader>
 
+                {(executorStore.status === 'error' || executorStore.status === 'stopped') && (
+                    <div className="px-4 pb-2">
+                        <div className={`rounded-lg border p-3 ${executorStore.status === 'error'
+                            ? 'border-red-200 bg-red-50'
+                            : 'border-gray-200 bg-gray-50'
+                            }`}>
+                            <div className="flex flex-wrap items-center gap-2">
+                                <Badge variant={executorStore.status === 'error' ? 'destructive' : 'secondary'}>
+                                    {executorStore.status === 'error' ? 'Execution Error' : 'Execution Stopped'}
+                                </Badge>
+                                {executorStore.extractedData.length > 0 && (
+                                    <Badge variant="outline" className="border-emerald-300 text-emerald-700">
+                                        Partial Results: {executorStore.extractedData.length}
+                                    </Badge>
+                                )}
+                                {executorStore.canResume && (
+                                    <Badge variant="outline" className="border-emerald-300 text-emerald-700">
+                                        Resume Available
+                                    </Badge>
+                                )}
+                                {executorStore.currentBlock && (
+                                    <Badge variant="outline" className="border-slate-300 text-slate-700">
+                                        Block: {executorStore.currentBlock.label || executorStore.currentBlock.type}
+                                    </Badge>
+                                )}
+                            </div>
+                            {executorStore.error && (
+                                <p className={`mt-2 text-sm font-medium ${executorStore.status === 'error' ? 'text-red-700' : 'text-gray-700'}`}>
+                                    {executorStore.error}
+                                </p>
+                            )}
+                            {executorStore.error?.includes('exceeded') && executorStore.error?.includes('timeout') && (
+                                <p className="mt-2 text-xs text-muted-foreground">
+                                    This block ran longer than its execution limit. Long-running pagination blocks no longer use the hidden 30s default, but any block with an explicit timeout or a page wait limit can still stop here.
+                                </p>
+                            )}
+                            <p className="mt-1 text-xs text-muted-foreground">
+                                {executorStore.status === 'error'
+                                    ? (executorStore.extractedData.length > 0
+                                        ? 'Execution stopped after an error. The rows below are partial data captured before the failure.'
+                                        : 'Execution stopped immediately after the error, so no rows were captured.')
+                                    : (executorStore.extractedData.length > 0
+                                        ? 'Execution was stopped manually. The rows below are partial data from before the stop.'
+                                        : 'Execution was stopped before any rows were captured.')}
+                            </p>
+                        </div>
+                    </div>
+                )}
+
                 <Tabs defaultValue="data" className="px-4">
                     <TabsList className={`grid w-full ${executorStore.enableLogs && executorStore.enableTrace ? 'grid-cols-3' : executorStore.enableLogs || executorStore.enableTrace ? 'grid-cols-2' : 'grid-cols-1'}`}>
                         <TabsTrigger value="data" className="flex items-center gap-2">
@@ -582,9 +632,13 @@ export default observer(function BlueprintBuilder() {
                                 </Table>
                             </div>
                         ) : (
-                            <div className="text-center text-muted-foreground py-8 text-sm">
-                                {executorStore.isRunning ? 'Waiting for data...' : 'No data extracted yet.'}
-                            </div>
+                            <CenteredState
+                                icon={<Database className="h-6 w-6" />}
+                                title={executorStore.isRunning ? 'Waiting for data' : 'No data extracted yet'}
+                                description={executorStore.isRunning ? 'Rows will appear here as extraction results come in.' : 'Run a blueprint with extraction blocks to see rows here.'}
+                                compact
+                                className="py-8"
+                            />
                         )}
                     </TabsContent>
 
@@ -606,9 +660,13 @@ export default observer(function BlueprintBuilder() {
                                         </div>
                                     ))
                                 ) : (
-                                    <div className="text-center text-muted-foreground py-8">
-                                        No logs yet
-                                    </div>
+                                    <CenteredState
+                                        icon={<List className="h-5 w-5" />}
+                                        title="No logs yet"
+                                        description="Execution logs will appear here when logging is enabled."
+                                        compact
+                                        className="py-8"
+                                    />
                                 )}
                             </div>
                         </TabsContent>
@@ -802,15 +860,23 @@ export default observer(function BlueprintBuilder() {
                                                 })}
                                             </Accordion>
                                         ) : (
-                                            <div className="text-center text-muted-foreground py-8 text-sm">
-                                                No traces match the current filters.
-                                            </div>
+                                            <CenteredState
+                                                icon={<Activity className="h-5 w-5" />}
+                                                title="No traces match the current filters"
+                                                description="Try changing the search text or status filter."
+                                                compact
+                                                className="py-8"
+                                            />
                                         )}
                                     </>
                                 ) : (
-                                    <div className="text-center text-muted-foreground py-8 text-sm">
-                                        No trace data yet
-                                    </div>
+                                    <CenteredState
+                                        icon={<Activity className="h-5 w-5" />}
+                                        title="No trace data yet"
+                                        description="Enable tracing and run the blueprint to inspect execution details."
+                                        compact
+                                        className="py-8"
+                                    />
                                 )}
                             </div>
                         </TabsContent>

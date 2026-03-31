@@ -14,6 +14,12 @@ import { Blueprint } from '@/entrypoints/models/blueprint';
 import { createBlockFromJSON } from '@/entrypoints/models/block-factory';
 import { BlueprintValidator } from '@/entrypoints/models/blueprint-validator';
 import { db } from '@/core/database';
+import {
+    clearPendingBlueprintForActiveConversation,
+    getPendingBlueprintForActiveConversation,
+    setPendingBlueprintForActiveConversation,
+    setSavedBlueprintSignal,
+} from './pending-blueprint-state';
 
 const log = (tool: string, ...args: any[]) => console.log(`[AI Tool][${tool}]`, ...args);
 const logError = (tool: string, ...args: any[]) => console.error(`[AI Tool][${tool}]`, ...args);
@@ -329,7 +335,7 @@ export const createBlueprintTool = tool(
             if (fixes.length > 0) log('create_blueprint', 'Auto-fixes applied:', fixes);
 
             // Store the blueprint temporarily so save_blueprint can find it
-            (globalThis as any).__octograb_pending_blueprint = blueprint;
+            setPendingBlueprintForActiveConversation(blueprint);
 
             const resp: any = {
                 blueprintId: blueprint.id,
@@ -387,7 +393,7 @@ EXAMPLE — simple list extraction with navigate:
 export const validateBlueprintTool = tool(
     async () => {
         log('validate_blueprint', 'Validating pending blueprint');
-        const blueprint = (globalThis as any).__octograb_pending_blueprint as Blueprint | undefined;
+        const blueprint = getPendingBlueprintForActiveConversation();
         if (!blueprint) {
             log('validate_blueprint', 'No pending blueprint found');
             return 'No pending blueprint to validate. Create one first with create_blueprint.';
@@ -411,7 +417,7 @@ export const validateBlueprintTool = tool(
 export const saveBlueprintTool = tool(
     async () => {
         log('save_blueprint', 'Saving pending blueprint to database');
-        const blueprint = (globalThis as any).__octograb_pending_blueprint as Blueprint | undefined;
+        const blueprint = getPendingBlueprintForActiveConversation();
         if (!blueprint) {
             logError('save_blueprint', 'No pending blueprint found!');
             return 'Error: No pending blueprint to save. Create one first with create_blueprint.';
@@ -440,14 +446,14 @@ export const saveBlueprintTool = tool(
             log('save_blueprint', `Saved blueprint "${blueprint.name}" (${blueprint.id}) to database`);
 
             // Signal the UI store to refresh
-            (globalThis as any).__octograb_blueprint_saved = {
+            setSavedBlueprintSignal({
                 id: blueprint.id,
                 name: blueprint.name,
                 blockCount: blueprint.blocks.length,
-            };
+            });
 
             // Clean up pending
-            (globalThis as any).__octograb_pending_blueprint = undefined;
+            clearPendingBlueprintForActiveConversation();
 
             return JSON.stringify({
                 success: true,

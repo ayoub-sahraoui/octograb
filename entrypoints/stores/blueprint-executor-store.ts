@@ -1,4 +1,4 @@
-import { makeAutoObservable } from "mobx";
+import { makeAutoObservable, runInAction } from "mobx";
 import { Blueprint } from "../models/blueprint";
 import { createBlockFromJSON } from "../models/block-factory";
 import { compileBlock, compileBlueprint, CompiledBlock } from "../models/blueprint-compiler";
@@ -10,6 +10,7 @@ import { ExtractionField } from "../models/extract-scope-block";
 import { toDomExtractionFields } from "@/core/extraction-contract";
 import { Scope } from "@/core/env";
 import { sendToTab, isContentScriptReady } from "@/core/messaging";
+import { deriveExtractedColumns } from "../models/extracted-data";
 import { browser } from "wxt/browser";
 import { toJS } from "mobx";
 import { db } from "@/core/database";
@@ -20,6 +21,8 @@ import { preRunCheck, getLicenseState } from '@/core/license';
 import { isDevMode } from '@/core/dev-mode';
 import { MacroDefinition } from "../models/macro-block";
 import { macroRegistryStore } from "./macro-registry-store";
+import { getBlockExecutionTimeout, runWithTimeout } from "../models/execution-timeout";
+import { clearExecutionFrameSessionState, setExecutionFrameSessionState } from "../content/execution-frame-session";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -166,13 +169,22 @@ export class BlueprintExecutorStore {
         this.extractedColumns = columns;
     }
 
-    addExtractedRow(row: Record<string, any>, columns: string[]) {
-        this.extractedData.push(row);
-        for (const key of columns) {
+    setExtractedRows(rows: Record<string, any>[]) {
+        this.extractedData = [...rows];
+        this.extractedColumns = deriveExtractedColumns(rows);
+    }
+
+    addExtractedColumns(keys: string[]) {
+        for (const key of keys) {
             if (!this.extractedColumns.includes(key)) {
                 this.extractedColumns.push(key);
             }
         }
+    }
+
+    addExtractedRow(row: Record<string, any>, columns: string[]) {
+        this.extractedData.push(row);
+        this.addExtractedColumns(columns);
     }
 
     setResumeState(canResume: boolean, lastCheckpoint: any) {
@@ -249,12 +261,20 @@ export class BlueprintExecutorStore {
      */
     private async send(message: any, timeout: number = 30000) {
         if (!this._targetTabId) throw new Error('No target tab set');
+        if (this._abortController?.signal.aborted) {
+            throw new Error('Execution aborted');
+        }
         const result = await Promise.race([
-            sendToTab(this._targetTabId, message),
+            sendToTab(this._targetTabId, message, {
+                signal: this._abortController?.signal,
+            }),
             new Promise<never>((_, reject) =>
                 setTimeout(() => reject(new Error(`Message timeout (${timeout}ms) for ${message.type}`)), timeout)
             )
         ]);
+        if (this._abortController?.signal.aborted) {
+            throw new Error('Execution aborted');
+        }
         return result;
     }
 
@@ -265,13 +285,75 @@ export class BlueprintExecutorStore {
         if (!this._targetTabId) throw new Error('No target tab set');
         const startMs = Date.now();
         while (Date.now() - startMs < timeout) {
+            if (this._abortController?.signal.aborted) {
+                throw new Error('Execution aborted');
+            }
             try {
-                const resp = await sendToTab(this._targetTabId, { type: 'PING' } as any);
-                if (resp.success) return;
+                const resp = await sendToTab(this._targetTabId, { type: 'PING' } as any, {
+                    maxRetries: 1,
+                    retryDelay: 0,
+                    signal: this._abortController?.signal,
+                    suppressConnectionLogs: true,
+                });
+                if (resp.success) {
+                    if (this.status === 'running') {
+                        await this.showExecutionPageFrame();
+                    }
+                    return;
+                }
+                if (resp.error === 'Aborted') {
+                    throw new Error('Execution aborted');
+                }
             } catch { /* not ready yet */ }
             await this.delay(500);
         }
         throw new Error('Content script not ready after navigation');
+    }
+
+    private async showExecutionPageFrame(): Promise<void> {
+        if (!this._targetTabId) return;
+        try {
+            await setExecutionFrameSessionState(this._targetTabId);
+            await sendToTab(this._targetTabId, { type: 'SHOW_EXECUTION_FRAME' } as any, {
+                maxRetries: 1,
+                retryDelay: 0,
+                signal: this._abortController?.signal,
+                suppressConnectionLogs: true,
+            });
+        } catch {
+            /* non-critical visual hint */
+        }
+    }
+
+    private async abortExecutionDueToBlockTimeout(block: CompiledBlock, timeoutMs: number): Promise<void> {
+        this.log('error', `  ⏱ Block timeout reached for ${block.label || block.type} after ${timeoutMs}ms — aborting execution`);
+        this._abortController?.abort();
+        await this.hideExecutionPageFrame();
+        if (this._targetTabId) {
+            try {
+                await sendToTab(this._targetTabId, { type: 'ENV_ABORT' } as any, {
+                    maxRetries: 1,
+                    retryDelay: 0,
+                    suppressConnectionLogs: true,
+                });
+            } catch {
+                /* best-effort cancellation */
+            }
+        }
+    }
+
+    private async hideExecutionPageFrame(): Promise<void> {
+        await clearExecutionFrameSessionState();
+        if (!this._targetTabId) return;
+        try {
+            await sendToTab(this._targetTabId, { type: 'HIDE_EXECUTION_FRAME' } as any, {
+                maxRetries: 1,
+                retryDelay: 0,
+                suppressConnectionLogs: true,
+            });
+        } catch {
+            /* non-critical visual hint */
+        }
     }
 
     // ─── Execution Control ──────────────────────────────────────────────────
@@ -355,6 +437,7 @@ export class BlueprintExecutorStore {
             return;
         }
         this.setTargetTabId(tabs[0].id ?? null);
+        await this.showExecutionPageFrame();
 
         // Monitor tab closure
         const onTabRemoved = (tabId: number) => {
@@ -444,6 +527,9 @@ export class BlueprintExecutorStore {
                 }
             }
         } catch (err: any) {
+            if (this.status === 'stopped' && (err?.message === 'Execution aborted' || this._abortController?.signal.aborted)) {
+                return;
+            }
             this.setStatus('error');
             this.setError(err.message);
             this.setExecutionTimes(this.startTime, Date.now());
@@ -471,6 +557,7 @@ export class BlueprintExecutorStore {
                 console.error('Failed to save execution history', e);
             }
         } finally {
+            await this.hideExecutionPageFrame();
             clearTimeout(executionTimer);
             if (this._targetTabId) {
                 browser.tabs.onRemoved.removeListener(onTabRemoved);
@@ -484,6 +571,7 @@ export class BlueprintExecutorStore {
         this._paused = true;
         this.setStatus('paused');
         this.log('warn', '⏸ Execution paused');
+        void this.hideExecutionPageFrame();
     }
 
     resume() {
@@ -491,6 +579,7 @@ export class BlueprintExecutorStore {
         this._paused = false;
         this.setStatus('running');
         this.log('info', '▶ Execution resumed');
+        void this.showExecutionPageFrame();
         if (this._pauseResolve) {
             this._pauseResolve();
             this._pauseResolve = null;
@@ -506,9 +595,16 @@ export class BlueprintExecutorStore {
         }
         // Signal content script to cancel any long-running operations
         if (this._targetTabId) {
-            try { await sendToTab(this._targetTabId, { type: 'ENV_ABORT' } as any); } catch { /* ignore */ }
+            try {
+                await sendToTab(this._targetTabId, { type: 'ENV_ABORT' } as any, {
+                    maxRetries: 1,
+                    retryDelay: 0,
+                    suppressConnectionLogs: true,
+                });
+            } catch { /* ignore */ }
         }
         this.setStatus('stopped');
+        await this.hideExecutionPageFrame();
         this.setExecutionTimes(this.startTime, Date.now());
         this.log('warn', '⏹ Execution stopped by user');
 
@@ -544,11 +640,13 @@ export class BlueprintExecutorStore {
                     });
                     // Add to resumable blueprints map (persists across restart)
                     if (this.runningBlueprintId) {
-                        this.resumableBlueprints[this.runningBlueprintId] = {
-                            executionId: this.currentExecutionId!,
-                            itemsScraped: this.extractedData.length,
-                            stoppedAt: new Date().toISOString()
-                        };
+                        runInAction(() => {
+                            this.resumableBlueprints[this.runningBlueprintId!] = {
+                                executionId: this.currentExecutionId!,
+                                itemsScraped: this.extractedData.length,
+                                stoppedAt: new Date().toISOString()
+                            };
+                        });
                     }
                     this.log('info', '💾 Checkpoint saved for resume');
                     this.log('info', `  📊 Loop state: ${JSON.stringify(this._loopState)}`);
@@ -659,16 +757,10 @@ export class BlueprintExecutorStore {
                 }
                 // Restore previously extracted data
                 if (execution?.results && execution.results.length > 0) {
-                    this.extractedData = execution.results as Record<string, any>[];
-                    this.extractedColumns = [];
-                    for (const row of this.extractedData) {
-                        for (const key of Object.keys(row)) {
-                            if (!this.extractedColumns.includes(key)) {
-                                this.extractedColumns.push(key);
-                            }
-                        }
-                    }
-                    this.startTime = execution.startedAt ? new Date(execution.startedAt).getTime() : null;
+                    runInAction(() => {
+                        this.setExtractedRows(execution.results as Record<string, any>[]);
+                        this.startTime = execution.startedAt ? new Date(execution.startedAt).getTime() : null;
+                    });
                 }
                 return checkpoint;
             }
@@ -682,21 +774,15 @@ export class BlueprintExecutorStore {
         try {
             const execution = await db.getExecution(executionId);
             if (execution) {
-                this.extractedData = (execution.results || []) as Record<string, any>[];
-                this.extractedColumns = [];
-                for (const row of this.extractedData) {
-                    for (const key of Object.keys(row)) {
-                        if (!this.extractedColumns.includes(key)) {
-                            this.extractedColumns.push(key);
-                        }
-                    }
-                }
-                this.currentExecutionId = execution.id || null;
-                this.runningBlueprintId = execution.planId;
-                this.runningBlueprintName = execution.planName;
-                this.startTime = execution.startedAt ? new Date(execution.startedAt).getTime() : null;
-                this.endTime = execution.completedAt ? new Date(execution.completedAt).getTime() : null;
-                this.status = (execution.status === 'running' ? 'stopped' : execution.status) as ExecutionStatus;
+                runInAction(() => {
+                    this.setExtractedRows((execution.results || []) as Record<string, any>[]);
+                    this.currentExecutionId = execution.id || null;
+                    this.runningBlueprintId = execution.planId;
+                    this.runningBlueprintName = execution.planName;
+                    this.startTime = execution.startedAt ? new Date(execution.startedAt).getTime() : null;
+                    this.endTime = execution.completedAt ? new Date(execution.completedAt).getTime() : null;
+                    this.status = (execution.status === 'running' ? 'stopped' : execution.status) as ExecutionStatus;
+                });
                 return execution;
             }
         } catch (e) {
@@ -817,19 +903,18 @@ export class BlueprintExecutorStore {
                     await this.delay(delayBefore);
                 }
 
-                // Block-level timeout: wrap execution with timeout
-                const blockTimeout = resolvedBlock.maxExecutionTime || 30000; // Default 30s
-                const timeoutPromise = new Promise<never>((_, reject) => {
-                    setTimeout(() => reject(
-                        new Error(`Block "${resolvedBlock.label}" exceeded ${blockTimeout}ms timeout`)
-                    ), blockTimeout);
-                });
-
-                // Race actual execution against timeout
-                await Promise.race([
-                    this.executeBlockWithType(resolvedBlock, scope),
-                    timeoutPromise
-                ]);
+                // Block-level timeout with real abort cleanup
+                const blockTimeout = getBlockExecutionTimeout(resolvedBlock);
+                if (blockTimeout !== null) {
+                    await runWithTimeout(
+                        () => this.executeBlockWithType(resolvedBlock, scope),
+                        blockTimeout,
+                        resolvedBlock.label || resolvedBlock.type,
+                        () => this.abortExecutionDueToBlockTimeout(resolvedBlock, blockTimeout),
+                    );
+                } else {
+                    await this.executeBlockWithType(resolvedBlock, scope);
+                }
 
                 // Apply delayAfter if the block config has it
                 const delayAfter = (resolvedBlock.config as any)?.delayAfter;
@@ -1282,19 +1367,37 @@ export class BlueprintExecutorStore {
      */
     private waitForNavigation(tabId: number, timeout: number = 30000): Promise<void> {
         return new Promise((resolve, reject) => {
+            if (this._abortController?.signal.aborted) {
+                reject(new Error('Execution aborted'));
+                return;
+            }
+
             const timer = setTimeout(() => {
+                cleanup();
                 browser.tabs.onUpdated.removeListener(listener);
                 reject(new Error(`Navigation timeout after ${timeout}ms`));
             }, timeout);
 
+            const onAbort = () => {
+                cleanup();
+                browser.tabs.onUpdated.removeListener(listener);
+                reject(new Error('Execution aborted'));
+            };
+
+            const cleanup = () => {
+                clearTimeout(timer);
+                this._abortController?.signal.removeEventListener('abort', onAbort);
+            };
+
             const listener = (updatedTabId: number, changeInfo: any) => {
                 if (updatedTabId === tabId && changeInfo.status === 'complete') {
-                    clearTimeout(timer);
+                    cleanup();
                     browser.tabs.onUpdated.removeListener(listener);
                     resolve();
                 }
             };
 
+            this._abortController?.signal.addEventListener('abort', onAbort, { once: true });
             browser.tabs.onUpdated.addListener(listener);
         });
     }
@@ -2148,6 +2251,9 @@ export class BlueprintExecutorStore {
                     const elemWaitMax = 10000;
                     let elemFound = false;
                     while (Date.now() - elemWaitStart < elemWaitMax) {
+                        if (this._abortController?.signal.aborted) {
+                            throw new Error('Execution aborted');
+                        }
                         try {
                             const checkResp = await this.send({
                                 type: 'ENV_COUNT',
@@ -2758,11 +2864,7 @@ export class BlueprintExecutorStore {
         // Update extracted data
         this.addExtractedRow(record, fields.map(f => f.key).filter(Boolean) as string[]);
         // Also add any extra keys from record not in fields (safety fallback)
-        for (const key of Object.keys(record)) {
-            if (!this.extractedColumns.includes(key)) {
-                this.extractedColumns.push(key);
-            }
-        }
+        this.addExtractedColumns(Object.keys(record));
 
         this.log('success', `  ✓ Extracted row #${this.extractedData.length}`);
         this.log('info', `  📊 Total rows collected: ${this.extractedData.length}`);
@@ -3011,7 +3113,23 @@ export class BlueprintExecutorStore {
     }
 
     private async delay(ms: number): Promise<void> {
-        return new Promise(resolve => setTimeout(resolve, ms));
+        if (this._abortController?.signal.aborted) {
+            throw new Error('Execution aborted');
+        }
+
+        return new Promise((resolve, reject) => {
+            const timeoutId = setTimeout(() => {
+                this._abortController?.signal.removeEventListener('abort', onAbort);
+                resolve(undefined);
+            }, ms);
+
+            const onAbort = () => {
+                clearTimeout(timeoutId);
+                reject(new Error('Execution aborted'));
+            };
+
+            this._abortController?.signal.addEventListener('abort', onAbort, { once: true });
+        });
     }
 
     /**

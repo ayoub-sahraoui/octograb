@@ -13,6 +13,7 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table"
+import { CenteredState } from '../components/centered-state'
 
 export default observer(function ExtractedData() {
     const executorStore = useBlueprintExecutorStore();
@@ -177,13 +178,12 @@ export default observer(function ExtractedData() {
                         ))}
                     </div>
                 ) : (
-                    <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground gap-3">
-                        <Database className="w-12 h-12 text-gray-300" />
-                        <div className="text-center">
-                            <h2 className="text-lg font-medium text-gray-500">No Data Yet</h2>
-                            <p className="text-sm">Run a blueprint with extraction blocks to see data here.</p>
-                        </div>
-                    </div>
+                    <CenteredState
+                        icon={<Database className="h-8 w-8" />}
+                        title="No data yet"
+                        description="Run a blueprint with extraction blocks to see collected rows here."
+                        className="flex-1"
+                    />
                 )}
             </div>
         </div>

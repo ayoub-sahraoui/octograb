@@ -8,6 +8,9 @@ import { browser } from 'wxt/browser';
 export type MessageType =
   | 'START_PICKING'
   | 'STOP_PICKING'
+  | 'SHOW_EXECUTION_FRAME'
+  | 'HIDE_EXECUTION_FRAME'
+  | 'GET_EXECUTION_FRAME_STATE'
   | 'ELEMENT_SELECTED'
   | 'PICKING_DONE'
   | 'EXECUTE_PLAN'
@@ -52,6 +55,36 @@ export interface MessageResponse {
   data?: any;
 }
 
+export interface SendToTabOptions {
+  maxRetries?: number;
+  retryDelay?: number;
+  signal?: AbortSignal;
+  suppressConnectionLogs?: boolean;
+}
+
+async function waitWithAbort(ms: number, signal?: AbortSignal): Promise<boolean> {
+  if (signal?.aborted) return false;
+
+  return await new Promise<boolean>((resolve) => {
+    const timeoutId = setTimeout(() => {
+      cleanup();
+      resolve(true);
+    }, ms);
+
+    const onAbort = () => {
+      cleanup();
+      resolve(false);
+    };
+
+    const cleanup = () => {
+      clearTimeout(timeoutId);
+      signal?.removeEventListener('abort', onAbort);
+    };
+
+    signal?.addEventListener('abort', onAbort, { once: true });
+  });
+}
+
 /**
  * Send a message to the active tab's content script
  */
@@ -77,11 +110,24 @@ export async function sendToContentScript(message: Message): Promise<MessageResp
  * This is the preferred method during blueprint execution to avoid
  * targeting the wrong tab if the user switches tabs.
  */
-export async function sendToTab(tabId: number, message: Message): Promise<MessageResponse> {
-  const maxRetries = 8;
-  const retryDelay = 750;
+export async function sendToTab(
+  tabId: number,
+  message: Message,
+  options: SendToTabOptions = {},
+): Promise<MessageResponse> {
+  const maxRetries = options.maxRetries ?? 8;
+  const retryDelay = options.retryDelay ?? 750;
+  const signal = options.signal;
+
+  if (signal?.aborted) {
+    return { success: false, error: 'Aborted' };
+  }
 
   for (let attempt = 0; attempt < maxRetries; attempt++) {
+    if (signal?.aborted) {
+      return { success: false, error: 'Aborted' };
+    }
+
     try {
       const response = await browser.tabs.sendMessage(tabId, message);
       return response as MessageResponse;
@@ -91,12 +137,19 @@ export async function sendToTab(tabId: number, message: Message): Promise<Messag
         errorMessage.includes('Could not establish connection');
 
       if (isConnectionError && attempt < maxRetries - 1) {
-        console.log(`[OctoGrab] Connection to tab ${tabId} failed (attempt ${attempt + 1}/${maxRetries}), retrying...`);
-        await new Promise(resolve => setTimeout(resolve, retryDelay));
+        if (!options.suppressConnectionLogs) {
+          console.log(`[OctoGrab] Connection to tab ${tabId} failed (attempt ${attempt + 1}/${maxRetries}), retrying...`);
+        }
+        const shouldContinue = await waitWithAbort(retryDelay, signal);
+        if (!shouldContinue) {
+          return { success: false, error: 'Aborted' };
+        }
         continue;
       }
 
-      console.error('[OctoGrab] Error sending message to tab:', error);
+      if (!options.suppressConnectionLogs) {
+        console.error('[OctoGrab] Error sending message to tab:', error);
+      }
 
       if (isConnectionError) {
         return {

@@ -2,12 +2,25 @@ import { SelectorEngine } from '../core/selector-engine';
 // PlanExecutor is now running in Sidepanel, communicating via EnvHandler
 import { initEnvHandler } from './content/env-handler';
 import { NetworkMonitor } from '../core/network-monitor';
+import { hideExecutionPageFrame, showExecutionPageFrame } from './content/execution-page-frame';
 
 export default defineContentScript({
   matches: ['<all_urls>'],
+  runAt: 'document_start',
 
-  main() {
+  async main() {
     console.log('[OctoGrab] Content script loaded');
+
+    try {
+      const frameState = await browser.runtime.sendMessage({
+        type: 'GET_EXECUTION_FRAME_STATE',
+      });
+      if (frameState?.success && frameState.data?.active) {
+        showExecutionPageFrame();
+      }
+    } catch {
+      /* non-critical startup restore */
+    }
 
     // Initialize Network Monitor
     new NetworkMonitor();
@@ -47,10 +60,25 @@ export default defineContentScript({
           selectorEngine.stop();
           sendResponse({ success: true });
           break;
+
+        case 'SHOW_EXECUTION_FRAME':
+          showExecutionPageFrame();
+          sendResponse({ success: true });
+          break;
+
+        case 'HIDE_EXECUTION_FRAME':
+          hideExecutionPageFrame();
+          sendResponse({ success: true });
+          break;
       }
 
       // Ideally, we explicitly handle or not.
-      if (message.type === 'START_PICKING' || message.type === 'STOP_PICKING') {
+      if (
+        message.type === 'START_PICKING' ||
+        message.type === 'STOP_PICKING' ||
+        message.type === 'SHOW_EXECUTION_FRAME' ||
+        message.type === 'HIDE_EXECUTION_FRAME'
+      ) {
         return; // synchronous response already sent
       }
 

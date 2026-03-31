@@ -23,6 +23,7 @@ import { MacroDefinition } from '@/entrypoints/models/macro-block';
 import { MacroParameterRowInput } from '@/entrypoints/models/macro-creation';
 import { buildMacroLibraryDisplay, buildUpdatedMacroDefinition } from './macro-library-display';
 import { useConfirm } from '../components/confirm-dialog';
+import { CenteredState } from '../components/centered-state';
 
 function formatMacroDate(value?: string): string | null {
     if (!value) return null;
@@ -131,15 +132,12 @@ export default observer(function MacroLibrary() {
 
             <div className="flex-1 bg-gray-100 p-4 border border-gray-300 rounded-lg flex flex-col gap-3 overflow-y-auto">
                 {display.cards.length === 0 ? (
-                    <div className="flex h-full flex-col items-center justify-center gap-4 text-center">
-                        <div className="rounded-full bg-white p-4 border">
-                            <LibraryBig className="h-8 w-8 text-muted-foreground" />
-                        </div>
-                        <div>
-                            <h2 className="text-lg font-semibold text-gray-700">No macros saved yet</h2>
-                            <p className="text-sm text-muted-foreground">Create one from any block card using Save as Macro.</p>
-                        </div>
-                    </div>
+                    <CenteredState
+                        icon={<LibraryBig className="h-8 w-8" />}
+                        title="No macros saved yet"
+                        description="Create one from any block card using Save as Macro."
+                        className="h-full"
+                    />
                 ) : (
                     display.cards.map((card) => (
                         <Card key={card.id}>
@@ -302,4 +300,3 @@ export default observer(function MacroLibrary() {
         </div>
     );
 });
-

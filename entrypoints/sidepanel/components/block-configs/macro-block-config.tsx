@@ -9,6 +9,7 @@ import { Separator } from '@/components/ui/separator';
 import { AlertCircle, Braces, Info, LibraryBig, Puzzle } from 'lucide-react';
 import { macroRegistryStore } from '@/entrypoints/stores/macro-registry-store';
 import { buildMacroConfigDisplay } from './macro-config-display';
+import { CenteredState } from '../centered-state';
 
 interface MacroBlockConfigProps {
     block: MacroBlock;
@@ -56,31 +57,24 @@ export const MacroBlockConfig = observer(({ block }: MacroBlockConfigProps) => {
             </div>
 
             {display.macros.length === 0 && (
-                <Card className="shadow-none">
-                    <CardHeader className="flex-row items-start gap-3 space-y-0">
-                        <div className="rounded-md border bg-muted/40 p-2">
-                            <LibraryBig className="h-4 w-4 text-muted-foreground" />
-                        </div>
-                        <div>
-                            <CardTitle className="text-base">No saved macros yet</CardTitle>
-                            <CardDescription>Create one from any block card using <strong>Save as Macro</strong>, then come back here to reuse it inside a blueprint.</CardDescription>
-                        </div>
-                    </CardHeader>
-                </Card>
+                <CenteredState
+                    icon={<LibraryBig className="h-6 w-6" />}
+                    title="No saved macros yet"
+                    description="Create one from any block card using Save as Macro, then come back here to reuse it."
+                    compact
+                    className="rounded-lg border bg-white"
+                />
             )}
 
             {display.missingMacroId && (
-                <Card className="border-destructive/40 shadow-none">
-                    <CardHeader className="flex-row items-start gap-3 space-y-0">
-                        <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
-                        <div>
-                            <CardTitle className="text-base">Saved macro not found</CardTitle>
-                            <CardDescription>
-                                This block still points to <code>{display.missingMacroId}</code>, but that macro is no longer in your saved library.
-                            </CardDescription>
-                        </div>
-                    </CardHeader>
-                </Card>
+                <CenteredState
+                    icon={<AlertCircle className="h-6 w-6" />}
+                    title="Saved macro not found"
+                    description={`This block still points to ${display.missingMacroId}, but that macro is no longer in your saved library.`}
+                    tone="error"
+                    compact
+                    className="rounded-lg border bg-white"
+                />
             )}
 
             {display.selectedMacro && (
@@ -115,15 +109,13 @@ export const MacroBlockConfig = observer(({ block }: MacroBlockConfigProps) => {
                 <Separator />
 
                 {!display.selectedMacro && !display.missingMacroId && display.macros.length > 0 && (
-                    <Card className="shadow-none">
-                        <CardHeader className="flex-row items-start gap-3 space-y-0">
-                            <Info className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-                            <div>
-                                <CardTitle className="text-base">Select a macro to continue</CardTitle>
-                                <CardDescription>Once you choose a macro, its expected parameters will appear here.</CardDescription>
-                            </div>
-                        </CardHeader>
-                    </Card>
+                    <CenteredState
+                        icon={<Info className="h-6 w-6" />}
+                        title="Select a macro to continue"
+                        description="Once you choose a macro, its expected parameters will appear here."
+                        compact
+                        className="rounded-lg border bg-white"
+                    />
                 )}
 
                 {display.selectedMacro && (
@@ -155,12 +147,13 @@ export const MacroBlockConfig = observer(({ block }: MacroBlockConfigProps) => {
                                 </Card>
                             ))
                         ) : (
-                            <Card className="shadow-none">
-                                <CardHeader>
-                                    <CardTitle className="text-base">No parameters</CardTitle>
-                                    <CardDescription>This macro does not declare any parameters.</CardDescription>
-                                </CardHeader>
-                            </Card>
+                            <CenteredState
+                                icon={<Braces className="h-6 w-6" />}
+                                title="No parameters"
+                                description="This macro does not declare any parameters."
+                                compact
+                                className="rounded-lg border bg-white"
+                            />
                         )}
                     </div>
                 )}

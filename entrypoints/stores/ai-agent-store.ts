@@ -2,6 +2,12 @@ import { makeAutoObservable } from 'mobx';
 import { HumanMessage } from '@langchain/core/messages';
 import type { BaseMessage } from '@langchain/core/messages';
 import { runAgentStream, type AgentStreamEvent } from '@/core/ai/agent';
+import {
+    clearPendingBlueprint,
+    consumeSavedBlueprintSignal,
+    getPendingBlueprint,
+    setActiveAiConversation,
+} from '@/core/ai/pending-blueprint-state';
 import { PROVIDERS, PROVIDER_IDS, type ProviderId } from '@/core/ai/providers';
 import { Blueprint } from '../models/blueprint';
 import { browser } from 'wxt/browser';
@@ -84,14 +90,17 @@ class AiAgentStore {
     private _lcMessages: BaseMessage[] = [];
     /** Debounce timer for conversation persistence */
     private _saveTimer: ReturnType<typeof setTimeout> | null = null;
+    /** Promise for the initial settings hydration to avoid late overwrites */
+    private _settingsLoadPromise: Promise<void> | null = null;
 
     constructor() {
         makeAutoObservable(this, {
             _abortController: false,
             _lcMessages: false,
             _saveTimer: false,
+            _settingsLoadPromise: false,
         } as any);
-        this.loadSettings();
+        this._settingsLoadPromise = this.loadSettings();
         this.loadConversations();
     }
 
@@ -110,8 +119,14 @@ class AiAgentStore {
         this.apiKeys[provider] = key;
     }
 
-    setModel(model: string) {
+    async setModel(model: string) {
+        await this.waitForSettingsLoad();
         this.model = model;
+        try {
+            await browser.storage.local.set({ [STORAGE_KEY_MODEL]: model });
+        } catch (e) {
+            console.error('[OctoGrab AI] Failed to save model:', e);
+        }
     }
 
     setStatus(status: AgentStatus) {
@@ -131,12 +146,16 @@ class AiAgentStore {
         this.conversationsLoaded = true;
         if (activeId && conversations.find(c => c.id === activeId)) {
             this.activeConversationId = activeId;
+            setActiveAiConversation(activeId);
             const conv = conversations.find(c => c.id === activeId)!;
             this.messages = conv.messages;
         } else if (conversations.length > 0) {
             const sorted = [...conversations].sort((a, b) => b.updatedAt - a.updatedAt);
             this.activeConversationId = sorted[0].id;
+            setActiveAiConversation(sorted[0].id);
             this.messages = sorted[0].messages;
+        } else {
+            setActiveAiConversation(null);
         }
     }
 
@@ -147,6 +166,7 @@ class AiAgentStore {
     addConversation(conv: Conversation) {
         this.conversations.unshift(conv);
         this.activeConversationId = conv.id;
+        setActiveAiConversation(conv.id);
         this.messages = [];
         this._lcMessages = [];
         this.status = 'idle';
@@ -156,6 +176,7 @@ class AiAgentStore {
 
     switchToConversation(id: string, messages: ChatMessage[]) {
         this.activeConversationId = id;
+        setActiveAiConversation(id);
         this.messages = [...messages];
         this._lcMessages = [];
         this.status = 'idle';
@@ -165,13 +186,16 @@ class AiAgentStore {
 
     deleteConversationById(id: string) {
         this.conversations = this.conversations.filter(c => c.id !== id);
+        clearPendingBlueprint(id);
         if (this.activeConversationId === id) {
             if (this.conversations.length > 0) {
                 const next = this.conversations[0];
                 this.activeConversationId = next.id;
+                setActiveAiConversation(next.id);
                 this.messages = [...next.messages];
             } else {
                 this.activeConversationId = null;
+                setActiveAiConversation(null);
                 this.messages = [];
             }
             this._lcMessages = [];
@@ -243,6 +267,7 @@ class AiAgentStore {
     }
 
     async setProvider(provider: ProviderId) {
+        await this.waitForSettingsLoad();
         const model = PROVIDERS[provider].defaultModel;
         this.setProviderAndModel(provider, model);
         try {
@@ -256,6 +281,7 @@ class AiAgentStore {
     }
 
     async setApiKey(provider: ProviderId, key: string) {
+        await this.waitForSettingsLoad();
         this.setApiKeyForProvider(provider, key);
         try {
             await browser.storage.local.set({ [STORAGE_KEY_PREFIX + provider]: key });
@@ -265,12 +291,7 @@ class AiAgentStore {
     }
 
     async saveModel(model: string) {
-        this.setModel(model);
-        try {
-            await browser.storage.local.set({ [STORAGE_KEY_MODEL]: model });
-        } catch (e) {
-            console.error('[OctoGrab AI] Failed to save model:', e);
-        }
+        await this.setModel(model);
     }
 
     /** Current provider's API key */
@@ -332,7 +353,7 @@ class AiAgentStore {
 
     clearChat() {
         this.clearMessages();
-        (globalThis as any).__octograb_pending_blueprint = undefined;
+        clearPendingBlueprint(this.activeConversationId);
         // Update conversation in storage
         if (this.activeConversationId) {
             this.persistActiveConversation();
@@ -371,7 +392,6 @@ class AiAgentStore {
 
         this.addConversation(conv);
 
-        (globalThis as any).__octograb_pending_blueprint = undefined;
         this.persistConversations();
         log(`Created new conversation: ${id}`);
     }
@@ -387,7 +407,6 @@ class AiAgentStore {
 
         this.switchToConversation(id, conv.messages);
 
-        (globalThis as any).__octograb_pending_blueprint = undefined;
         browser.storage.local.set({ [STORAGE_KEY_ACTIVE_CONV]: id }).catch(() => { });
         log(`Switched to conversation: ${id}`);
     }
@@ -452,7 +471,15 @@ class AiAgentStore {
         return this.messages[this.messages.length - 1];
     }
 
+    private async waitForSettingsLoad() {
+        const promise = this._settingsLoadPromise;
+        if (promise) {
+            await promise;
+        }
+    }
+
     private async runAgent() {
+        setActiveAiConversation(this.activeConversationId);
         this._abortController = new AbortController();
         this.setStatus('thinking');
         this.setError(null);
@@ -558,10 +585,9 @@ class AiAgentStore {
             }
 
             // Check if a blueprint was saved — refresh the blueprint list
-            const savedSignal = (globalThis as any).__octograb_blueprint_saved;
+            const savedSignal = consumeSavedBlueprintSignal();
             if (savedSignal) {
                 log('Blueprint saved signal detected:', savedSignal);
-                (globalThis as any).__octograb_blueprint_saved = undefined;
                 try {
                     // Dynamically refresh the builder store's blueprint list
                     const { useBlueprintBuilderStore } = await import('./blueprint-builder-store');
@@ -607,9 +633,9 @@ class AiAgentStore {
     // ─── Blueprint Save Handler ──────────────────────────────────────────
 
     savePendingBlueprint(): Blueprint | null {
-        const blueprint = (globalThis as any).__octograb_pending_blueprint as Blueprint | undefined;
+        const blueprint = getPendingBlueprint(this.activeConversationId);
         if (!blueprint) return null;
-        (globalThis as any).__octograb_pending_blueprint = undefined;
+        clearPendingBlueprint(this.activeConversationId);
         return blueprint;
     }
 }

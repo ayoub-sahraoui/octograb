@@ -236,6 +236,10 @@ export const LoopPaginationBlockConfig = observer(({ block }: LoopPaginationBloc
                     Time to wait between pagination iterations
                 </p>
             </div>
+
+            <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-800">
+                Pagination can run across many pages. It is controlled by Max Pages, Delay Between Pages, and the overall blueprint run. It no longer uses a hidden 30s block timeout unless an explicit block limit is added later.
+            </div>
         </div>
     );
 });

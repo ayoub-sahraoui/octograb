@@ -1,6 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Bell, CheckCheck, CircleAlert, Sparkles } from "lucide-react";
+import { CenteredState } from "../components/centered-state";
 
 const notifications = [
     {
@@ -47,33 +48,42 @@ export default function Notifications() {
                 </div>
 
                 <div className="flex-1 min-h-0 overflow-y-auto rounded-lg border bg-white p-4">
-                    <div className="flex flex-col gap-3">
-                        {notifications.map((notification) => (
-                            <div key={notification.id} className="rounded-lg border border-gray-200 p-4 shadow-sm">
-                                <div className="flex items-start justify-between gap-3">
-                                    <div className="flex items-start gap-3">
-                                        <div className={`mt-0.5 rounded-full p-2 ${notification.type === "success" ? "bg-green-100 text-green-700" : notification.type === "warning" ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700"}`}>
-                                            {notification.type === "warning" ? (
-                                                <CircleAlert className="h-4 w-4" />
-                                            ) : (
-                                                <Sparkles className="h-4 w-4" />
-                                            )}
-                                        </div>
-                                        <div>
-                                            <div className="flex items-center gap-2">
-                                                <h2 className="text-sm font-semibold text-gray-900">{notification.title}</h2>
-                                                <Badge variant="secondary" className="text-[10px] uppercase tracking-wide">
-                                                    {notification.type}
-                                                </Badge>
+                    {notifications.length === 0 ? (
+                        <CenteredState
+                            icon={<Bell className="h-8 w-8" />}
+                            title="No notifications yet"
+                            description="Execution updates, warnings, and tips will appear here."
+                            className="h-full"
+                        />
+                    ) : (
+                        <div className="flex flex-col gap-3">
+                            {notifications.map((notification) => (
+                                <div key={notification.id} className="rounded-lg border border-gray-200 p-4">
+                                    <div className="flex items-start justify-between gap-3">
+                                        <div className="flex items-start gap-3">
+                                            <div className={`mt-0.5 rounded-full p-2 ${notification.type === "success" ? "bg-green-100 text-green-700" : notification.type === "warning" ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700"}`}>
+                                                {notification.type === "warning" ? (
+                                                    <CircleAlert className="h-4 w-4" />
+                                                ) : (
+                                                    <Sparkles className="h-4 w-4" />
+                                                )}
                                             </div>
-                                            <p className="mt-1 text-sm text-gray-500">{notification.description}</p>
+                                            <div>
+                                                <div className="flex items-center gap-2">
+                                                    <h2 className="text-sm font-semibold text-gray-900">{notification.title}</h2>
+                                                    <Badge variant="secondary" className="text-[10px] uppercase tracking-wide">
+                                                        {notification.type}
+                                                    </Badge>
+                                                </div>
+                                                <p className="mt-1 text-sm text-gray-500">{notification.description}</p>
+                                            </div>
                                         </div>
+                                        <span className="shrink-0 text-xs text-gray-400">{notification.time}</span>
                                     </div>
-                                    <span className="shrink-0 text-xs text-gray-400">{notification.time}</span>
                                 </div>
-                            </div>
-                        ))}
-                    </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
             </div>
         </div>
