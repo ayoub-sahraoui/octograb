@@ -1,0 +1,199 @@
+{
+  "id": "66f27807-afc7-40a6-8f39-a9d3b54b62d2",
+  "name": "Books to Scrape - Full Product List with Details",
+  "description": "",
+  "blocks": [
+    {
+      "id": "0ec19af7-0593-45ec-9abd-137391f6e6e0",
+      "type": "navigate",
+      "config": {
+        "url": "https://books.toscrape.com/",
+        "behavior": "same_tab",
+        "timeout": 30000
+      },
+      "label": "Go to Books to Scrape homepage",
+      "enabled": true,
+      "description": "",
+      "onError": "stop",
+      "maxRetries": 0,
+      "retryDelay": 0,
+      "index": 0
+    },
+    {
+      "id": "494f92c2-53df-47b6-9087-9429169677c5",
+      "type": "loop_pagination",
+      "config": {
+        "paginationType": "button",
+        "nextButtonSelector": {
+          "type": "css",
+          "value": "li.next > a"
+        },
+        "maxPages": 50,
+        "delayBetweenPages": 2000,
+        "onNoNextButton": "stop"
+      },
+      "label": "Paginate through all product pages",
+      "enabled": true,
+      "description": "",
+      "onError": "stop",
+      "maxRetries": 0,
+      "retryDelay": 0,
+      "children": [
+        {
+          "parentBranch": "children",
+          "id": "6705e3cd-190e-4f6b-89db-623b759bf884",
+          "type": "loop_elements",
+          "config": {
+            "selector": {
+              "type": "css",
+              "value": "ol.row > li article.product_pod"
+            },
+            "maxIterations": 100
+          },
+          "label": "Extract each book from the listing page",
+          "enabled": true,
+          "description": "",
+          "onError": "stop",
+          "maxRetries": 0,
+          "retryDelay": 0,
+          "children": [
+            {
+              "parentBranch": "children",
+              "id": "88d048d6-1afb-4dd7-a26e-ef4518656c1c",
+              "type": "extract_scope",
+              "label": "Extract listing data",
+              "enabled": true,
+              "description": "",
+              "onError": "stop",
+              "maxRetries": 0,
+              "retryDelay": 0,
+              "config": {
+                "fields": [
+                  {
+                    "key": "title",
+                    "selector": {
+                      "type": "css",
+                      "value": "h3 > a"
+                    },
+                    "attribute": "text",
+                    "label": "Book Title"
+                  },
+                  {
+                    "key": "price",
+                    "selector": {
+                      "type": "css",
+                      "value": ".price_color"
+                    },
+                    "attribute": "text",
+                    "label": "Price"
+                  },
+                  {
+                    "key": "availability",
+                    "selector": {
+                      "type": "css",
+                      "value": ".instock.availability"
+                    },
+                    "attribute": "text",
+                    "label": "Availability",
+                    "transformers": [
+                      {
+                        "type": "trim"
+                      }
+                    ]
+                  },
+                  {
+                    "key": "rating",
+                    "selector": {
+                      "type": "css",
+                      "value": ".star-rating"
+                    },
+                    "attribute": "class",
+                    "label": "Rating"
+                  },
+                  {
+                    "key": "product_url",
+                    "selector": {
+                      "type": "css",
+                      "value": "h3 > a"
+                    },
+                    "attribute": "href",
+                    "label": "Product URL"
+                  }
+                ]
+              },
+              "index": 0
+            },
+            {
+              "parentBranch": "children",
+              "id": "8720f1c6-9bca-4fd2-aa59-68aa3f519673",
+              "type": "click",
+              "config": {
+                "selector": {
+                  "type": "css",
+                  "value": "h3 > a"
+                },
+                "openInNewTab": true,
+                "delayAfter": 1000
+              },
+              "label": "Open product detail page",
+              "enabled": true,
+              "description": "",
+              "onError": "stop",
+              "maxRetries": 0,
+              "retryDelay": 0,
+              "children": [
+                {
+                  "parentBranch": "children",
+                  "id": "cedd8e84-85e2-4663-908d-1f73af2f481b",
+                  "type": "extract_scope",
+                  "label": "Extract detail data",
+                  "enabled": true,
+                  "description": "",
+                  "onError": "stop",
+                  "maxRetries": 0,
+                  "retryDelay": 0,
+                  "config": {
+                    "fields": [
+                      {
+                        "key": "upc",
+                        "selector": {
+                          "type": "css",
+                          "value": "tr:nth-child(1) > td"
+                        },
+                        "attribute": "text",
+                        "label": "UPC"
+                      },
+                      {
+                        "key": "product_type",
+                        "selector": {
+                          "type": "css",
+                          "value": "tr:nth-child(2) > td"
+                        },
+                        "attribute": "text",
+                        "label": "Product Type"
+                      },
+                      {
+                        "key": "description",
+                        "selector": {
+                          "type": "css",
+                          "value": "#product_description + p"
+                        },
+                        "attribute": "text",
+                        "label": "Description"
+                      }
+                    ]
+                  },
+                  "index": 0
+                }
+              ],
+              "index": 1
+            }
+          ],
+          "index": 0
+        }
+      ],
+      "index": 1
+    }
+  ],
+  "version": 1
+}

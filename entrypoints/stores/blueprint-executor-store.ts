@@ -1115,7 +1115,7 @@ export class BlueprintExecutorStore {
                             this.log('info', `  👶 Executing ${block.children.length} children in new tab...`);
                             for (const child of block.children) {
                                 if (this._abortController?.signal.aborted) break;
-                                await this.executeBlock(child, scope);
+                                await this.executeBlock(child, undefined);
                             }
                         }
                     } catch (e: any) {
