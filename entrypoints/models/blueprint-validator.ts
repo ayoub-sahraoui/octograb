@@ -2,6 +2,7 @@ import { Blueprint } from './blueprint';
 import { Block } from './types';
 import { analyzeBlueprint } from './blueprint-analysis';
 import { BLOCK_TYPES, getBlockRegistryEntry } from './block-registry';
+import { validateBlueprintSelectorContracts } from './selector-contract-validator';
 
 export interface ValidationError {
     blockId?: string;
@@ -52,6 +53,15 @@ export class BlueprintValidator {
             this.validateBlock(block, null, 0, []);
         }
 
+        const selectorIssues = validateBlueprintSelectorContracts(blueprint);
+        for (const issue of selectorIssues) {
+            if (issue.severity === 'error') {
+                this.addError(issue.message, issue.block.id, issue.block.label, issue.path);
+            } else {
+                this.addWarning(issue.message, issue.block.id, issue.block.label, issue.path);
+            }
+        }
+
         return {
             valid: this.errors.length === 0,
             errors: this.errors,
@@ -62,6 +72,10 @@ export class BlueprintValidator {
     private validateBlock(block: Block, parent: Block | null, depth: number, path: string[]) {
         const currentPath = [...path, block.label || block.type];
         const pathStr = currentPath.join(' > ');
+
+        if (block.enabled === false) {
+            return;
+        }
 
         if (!block.id) {
             this.addError('Block missing ID', undefined, block.label, pathStr);
@@ -114,13 +128,67 @@ export class BlueprintValidator {
     }
 
     private validateParentChildRelationship(block: Block, parent: Block | null, path: string) {
-        void parent;
-        void path;
+        const entry = getBlockRegistryEntry(block.type);
+
+        if (parent === null && block.parent) {
+            this.addWarning(
+                'Root block should not have a parent reference',
+                block.id,
+                block.label,
+                path,
+            );
+        }
+
+        if (entry && !entry.allowsChildren && block.children && block.children.length > 0) {
+            this.addError(
+                `${block.label || block.type} should not have children`,
+                block.id,
+                block.label,
+                path,
+            );
+        }
+
+        if (block.type !== 'condition' && (block as any).elseChildren && (block as any).elseChildren.length > 0) {
+            this.addError(
+                `${block.label || block.type} should not have else children`,
+                block.id,
+                block.label,
+                path,
+            );
+        }
+
+        if (!parent) {
+            return;
+        }
+
+        const parentElseChildren = parent.type === 'condition' ? ((parent as any).elseChildren || []) as Block[] : [];
+        const isActuallyElseChild = parentElseChildren.includes(block);
+
+        if (isActuallyElseChild && block.parentBranch !== 'elseChildren') {
+            this.addWarning(
+                'Else child block parent branch does not match actual parent branch',
+                block.id,
+                block.label,
+                path,
+            );
+        }
+
+        if (!isActuallyElseChild && block.parentBranch === 'elseChildren') {
+            this.addWarning(
+                'Child block parent branch does not match actual parent branch',
+                block.id,
+                block.label,
+                path,
+            );
+        }
     }
 
     private validateChildren(block: Block, depth: number, path: string[]) {
         if (block.children) {
             for (const child of block.children) {
+                if (child.enabled === false) {
+                    continue;
+                }
                 if (child.parent !== block) {
                     this.addWarning(
                         'Child block parent reference does not match actual parent',
@@ -135,6 +203,9 @@ export class BlueprintValidator {
 
         if (block.type === 'condition' && (block as any).elseChildren) {
             for (const child of (block as any).elseChildren) {
+                if (child.enabled === false) {
+                    continue;
+                }
                 if (child.parent !== block) {
                     this.addWarning(
                         'Else child block parent reference does not match actual parent',

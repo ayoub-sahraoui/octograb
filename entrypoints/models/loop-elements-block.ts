@@ -94,7 +94,7 @@ export class LoopElementsBlock extends BlockBase {
     }
 
     static fromJson(json: any): LoopElementsBlock {
-        const block = new LoopElementsBlock(json.label || 'Loop Elements', json.config || { selector: { type: 'css', value: '' } });
+        const block = new LoopElementsBlock(json.label || 'Loop Elements', json.config || { selector: { type: 'auto', value: '' } });
         if (json.id) block.id = json.id;
         if (json.enabled !== undefined) block.setEnabled(json.enabled);
         if (json.description !== undefined) block.setDescription(json.description);

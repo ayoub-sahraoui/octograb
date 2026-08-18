@@ -124,7 +124,7 @@ export const LoopPaginationBlockConfig = observer(({ block }: LoopPaginationBloc
                             id="item-selector"
                             placeholder=".product-item"
                             helpText="Selector for the items to scroll through"
-                            selector={block.config.itemSelector || { type: SelectorType.CSS, value: '' }}
+                            selector={block.config.itemSelector || { type: SelectorType.Auto, value: '' }}
                             onSelectorChange={(sel) => block.setItemSelector(sel)}
                             block={block}
                             selectorCardinality="multiple"
@@ -158,7 +158,7 @@ export const LoopPaginationBlockConfig = observer(({ block }: LoopPaginationBloc
                             id="scroll-selector"
                             placeholder=".scrollable-container"
                             helpText="Selector for the scrollable element"
-                            selector={block.config.scrollSelector || { type: SelectorType.CSS, value: '' }}
+                            selector={block.config.scrollSelector || { type: SelectorType.Auto, value: '' }}
                             onSelectorChange={(sel) => block.setScrollSelector(sel)}
                             block={block}
                             selectorCardinality="single"

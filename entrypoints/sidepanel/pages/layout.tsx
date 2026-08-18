@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { CirclePlus, Database, Settings, House, Bot, Bell, Sparkles, Menu, X, Check, CircleAlert, AlertTriangle, CheckCircle2, XCircle, Info, Lightbulb, Trash2, LibraryBig } from 'lucide-react'
+import { CirclePlus, Database, Settings, House, Bell, Menu, X, AlertTriangle, CheckCircle2, XCircle, Info, Lightbulb, Trash2, LibraryBig } from 'lucide-react'
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -71,7 +71,6 @@ export default observer(function Layout() {
     const navigate = useNavigate();
     const location = useLocation();
     const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-    const [isAiDialogOpen, setIsAiDialogOpen] = useState(false);
     const [newBlueprintName, setNewBlueprintName] = useState('');
     const [newBlueprintDescription, setNewBlueprintDescription] = useState('');
     const { alert: showAlert } = useConfirm();
@@ -112,9 +111,6 @@ export default observer(function Layout() {
     const homeRoute = () => {
         navigate("/");
     }
-    const aiChatRoute = () => {
-        navigate('/ai-chat');
-    }
     const macroLibraryRoute = () => {
         navigate('/macros');
     }
@@ -122,7 +118,6 @@ export default observer(function Layout() {
     const navItems = [
         { icon: House, label: 'Home', action: homeRoute, path: '/' },
         { icon: CirclePlus, label: 'Create blueprint', action: blueprintBuilderRoute, path: '/blueprint-builder' },
-        { icon: Bot, label: 'AI assistant', action: aiChatRoute, path: '/ai-chat' },
         { icon: LibraryBig, label: 'Macros', action: macroLibraryRoute, path: '/macros' },
         { icon: Database, label: 'Extracted data', action: extractedDataRoute, path: '/extracted-data' },
         { icon: Settings, label: 'Settings', action: settingsRoute, path: '/settings' },
@@ -280,33 +275,7 @@ export default observer(function Layout() {
                 </div>
                 <Outlet />
 
-                {/* AI Assistant Coming Soon Dialog */}
-                <Dialog open={isAiDialogOpen} onOpenChange={setIsAiDialogOpen}>
-                    <DialogContent>
-                        <DialogHeader>
-                            <DialogTitle>
-                                AI Blueprint Assistant
-                            </DialogTitle>
-                            <DialogDescription>
-                                Our AI assistant will help you create blueprints automatically by describing what you want to scrape in plain English.
-                            </DialogDescription>
-                        </DialogHeader>
-                        <div className="flex flex-col items-center gap-4 py-6">
-                            <div className="w-16 h-16 rounded-full bg-yellow-50 flex items-center justify-center">
-                                <Bot className="w-8 h-8 text-yellow-400" />
-                            </div>
-                            <div className="text-center">
-                                <p className="text-lg font-semibold text-gray-700">Coming Soon</p>
-                                <p className="text-sm text-gray-500 mt-1">We're building something amazing. Stay tuned!</p>
-                            </div>
-                        </div>
-                        <DialogFooter>
-                            <Button variant="default" onClick={() => { setIsAiDialogOpen(false); aiChatRoute(); }}>
-                                Got It
-                            </Button>
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
+
 
                 {/* Create Blueprint Dialog */}
                 <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>

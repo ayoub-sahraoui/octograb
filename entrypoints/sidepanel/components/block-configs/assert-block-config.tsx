@@ -10,6 +10,7 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { SelectorInput } from '../selector-input';
+import { getBlockSelectorDescriptor } from '@/entrypoints/models/block-registry';
 
 interface AssertBlockConfigProps {
     block: AssertBlock;
@@ -29,6 +30,7 @@ export const AssertBlockConfig = observer(({ block }: AssertBlockConfigProps) =>
     const needsValue = block.config.check === 'text_equals' ||
         block.config.check === 'text_contains' ||
         block.config.check === 'text_regex';
+    const selectorDescriptor = getBlockSelectorDescriptor(block.type, 'selector', block);
 
     return (
         <div className="flex flex-col gap-4">
@@ -40,7 +42,8 @@ export const AssertBlockConfig = observer(({ block }: AssertBlockConfigProps) =>
                 selector={block.config.selector}
                 onSelectorChange={(sel) => block.setSelector(sel)}
                 block={block}
-                selectorCardinality={block.config.check === 'exists' || block.config.check === 'not_exists' ? 'any' : 'single'}
+                selectorCardinality={selectorDescriptor?.selectorCardinality}
+                selectorRole={selectorDescriptor?.selectorRole}
             />
 
             <div className="flex flex-col gap-2">

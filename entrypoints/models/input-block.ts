@@ -92,7 +92,7 @@ export class InputBlock extends BlockBase {
     }
 
     static fromJson(json: any): InputBlock {
-        const block = new InputBlock(json.label || 'Input', json.config || { selector: { type: 'css', value: '' }, value: '' });
+        const block = new InputBlock(json.label || 'Input', json.config || { selector: { type: 'auto', value: '' }, value: '' });
         if (json.id) block.id = json.id;
         if (json.enabled !== undefined) block.setEnabled(json.enabled);
         if (json.description !== undefined) block.setDescription(json.description);

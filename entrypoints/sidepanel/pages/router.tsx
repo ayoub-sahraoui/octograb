@@ -5,8 +5,8 @@ import ExtractedData from './extracted-data'
 import Home from './home'
 import BlueprintBuilder from './blueprint-builder'
 import Layout from './layout'
-import AiChat from './ai-chat'
 import MacroLibrary from './macro-library'
+import BlueprintWizard from './blueprint-wizard'
 
 export default function Router() {
     return (
@@ -15,9 +15,10 @@ export default function Router() {
                 <Route path='/' Component={Layout}>
                     <Route index Component={Home} />
                     <Route path='/blueprint-builder' Component={BlueprintBuilder} />
+                    <Route path='/blueprint-builder/:id' Component={BlueprintBuilder} />
                     <Route path='/blueprints' Component={Blueprints} />
                     <Route path='/extracted-data' Component={ExtractedData} />
-                    <Route path='/ai-chat' Component={AiChat} />
+                    <Route path='/wizard' Component={BlueprintWizard} />
                     <Route path='/macros' Component={MacroLibrary} />
                     <Route path='/settings' Component={Settings} />
                 </Route>

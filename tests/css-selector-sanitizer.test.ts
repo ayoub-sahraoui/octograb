@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildFallbackCssSelector, sanitizeCssSelector } from '../core/ai/css-selector-sanitizer';
+import { buildFallbackCssSelector, sanitizeCssSelector } from '../core/css-selector-sanitizer';
 
 describe('css selector sanitizer', () => {
     it('falls back when xpath-like syntax is returned as css', () => {

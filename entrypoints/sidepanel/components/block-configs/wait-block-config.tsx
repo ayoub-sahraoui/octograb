@@ -10,6 +10,7 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { SelectorInput } from '../selector-input';
+import { getBlockSelectorDescriptor } from '@/entrypoints/models/block-registry';
 
 interface WaitBlockConfigProps {
     block: WaitBlock;
@@ -19,6 +20,7 @@ export const WaitBlockConfig = observer(({ block }: WaitBlockConfigProps) => {
     const showTimeout = block.config.type === 'timeout';
     const showSelector = block.config.type === 'selector_visible' || block.config.type === 'selector_hidden';
     const showIdleTime = block.config.type === 'network_idle';
+    const selectorDescriptor = getBlockSelectorDescriptor(block.type, 'selector', block);
 
     return (
         <div className="flex flex-col gap-4">
@@ -63,8 +65,8 @@ export const WaitBlockConfig = observer(({ block }: WaitBlockConfigProps) => {
                     selector={block.config.selector}
                     onSelectorChange={(sel) => block.setSelector(sel)}
                     block={block}
-                    selectorCardinality="single"
-                    selectorRole="wait-target"
+                    selectorCardinality={selectorDescriptor?.selectorCardinality}
+                    selectorRole={selectorDescriptor?.selectorRole}
                 />
             )}
 

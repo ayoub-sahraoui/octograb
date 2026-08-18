@@ -10,6 +10,7 @@ import { useLicenseStore, FREE_TIER_LIMITS } from "./license-store";
 import { useNotificationStore } from "./notification-store";
 import { isDevMode } from '@/core/dev-mode';
 
+
 function countBlocksRecursive(blocks: Block[]): number {
     let count = 0;
     for (const block of blocks) {
@@ -249,7 +250,8 @@ export class BlueprintBuilderStore {
     async startPicking(
         onSelect: (css: string, xpath: string, elementInfo?: { tag: string; id?: string; classes?: string; text?: string; attributes: Record<string, string> }) => void,
         parentSelector: string | null = null,
-        onDone?: (success: boolean) => void
+        onDone?: (success: boolean) => void,
+        mode: 'single' | 'multiple' | 'list' = 'single'
     ) {
         this.isPicking = true;
         this.pickingCallback = onSelect;
@@ -259,7 +261,10 @@ export class BlueprintBuilderStore {
 
         const response = await sendToContentScript({
             type: 'START_PICKING',
-            parentSelector,
+            data: {
+                mode,
+                parentSelector,
+            }
         });
 
         if (!response.success) {
@@ -271,8 +276,12 @@ export class BlueprintBuilderStore {
     }
 
     async stopPicking() {
-        await sendToContentScript({ type: 'STOP_PICKING' });
-        this.clearPickingState();
+        if (!this.isPicking) return;
+
+        const response = await sendToContentScript({ type: 'STOP_PICKING' });
+        if (!response.success) {
+            this.clearPickingState();
+        }
     }
 
     get isFreeTier(): boolean {
@@ -322,6 +331,26 @@ export class BlueprintBuilderStore {
     getBlueprintById(id: string) {
         return this.blueprints.find(b => b.id === id);
     }
+
+    async openSavedBlueprintById(id: string): Promise<Blueprint | null> {
+        await this.loadBlueprints();
+        const blueprint = this.getBlueprintById(id) || null;
+        if (blueprint) {
+            this.selectBlueprint(blueprint);
+        }
+        return blueprint;
+    }
+
+    openDraftBlueprint(blueprint: Blueprint): Blueprint {
+        const existing = this.getBlueprintById(blueprint.id);
+        if (!existing) {
+            this.addBlueprintToList(blueprint);
+        }
+        const target = existing || blueprint;
+        this.selectBlueprint(target);
+        return target;
+    }
+
 
     selectBlueprint(blueprint: Blueprint) {
         this.selectedBlueprint = blueprint;
@@ -382,6 +411,9 @@ export class BlueprintBuilderStore {
             this.selectedBlock = childBlock;
             this.parentBlockForChild = null; // Close the drawer
             this.validateCurrentBlueprint();
+            if (this.selectedBlueprint) {
+                void this.saveBlueprint(this.selectedBlueprint);
+            }
             return true;
         }
         return false;
@@ -389,8 +421,21 @@ export class BlueprintBuilderStore {
 
     removeBlockFromBlueprint(block: Block) {
         if (block.parent) {
-            if (block.parent.children) {
-                block.parent.children = block.parent.children.filter(b => b.id !== block.id);
+            const parent = block.parent;
+            const container = block.parentBranch === 'elseChildren'
+                ? ((parent as any).elseChildren as Block[] | undefined)
+                : parent.children;
+
+            if (container) {
+                const filtered = container.filter(b => b.id !== block.id);
+                if (block.parentBranch === 'elseChildren') {
+                    (parent as any).elseChildren = filtered;
+                } else {
+                    parent.children = filtered;
+                }
+                filtered.forEach((child, index) => {
+                    child.index = index;
+                });
             }
             // Clear parent reference
             block.parent = null;
@@ -401,15 +446,22 @@ export class BlueprintBuilderStore {
 
         // Clear selection if the removed block was selected
         if (this.selectedBlock === block) {
+            if (this.isPicking) {
+                void this.stopPicking();
+            }
             this.selectedBlock = null;
         }
 
         if (this.selectedBlueprint) {
+            this.validateCurrentBlueprint();
             this.saveBlueprint(this.selectedBlueprint);
         }
     }
 
     clearBlockSelection() {
+        if (this.isPicking) {
+            void this.stopPicking();
+        }
         this.selectedBlock = null;
     }
 
@@ -463,7 +515,15 @@ export class BlueprintBuilderStore {
                 console.warn('[OctoGrab] Imported blueprint has warnings:', validation.warnings);
             }
 
-            // Save and select (allow import even with warnings; block only on critical structural errors)
+            if (validation.errors.length > 0) {
+                return {
+                    success: false,
+                    warnings: validation.warnings.map(w => w.message),
+                    errors: validation.errors.map(e => e.message),
+                };
+            }
+
+            // Save and select (warnings are allowed; errors are blocked above)
             this.addBlueprintToList(blueprint);
             this.selectedBlueprint = blueprint;
 

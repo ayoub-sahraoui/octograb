@@ -103,7 +103,7 @@ export class AssertBlock extends BlockBase {
     }
 
     static fromJson(json: any): AssertBlock {
-        const block = new AssertBlock(json.label || 'Assert', json.config || { selector: { type: 'css', value: '' }, check: 'exists' });
+        const block = new AssertBlock(json.label || 'Assert', json.config || { selector: { type: 'auto', value: '' }, check: 'exists' });
         if (json.id) block.id = json.id;
         if (json.enabled !== undefined) block.setEnabled(json.enabled);
         if (json.description !== undefined) block.setDescription(json.description);

@@ -117,7 +117,7 @@ export class ConditionBlock extends BlockBase {
     }
 
     static fromJson(json: any): ConditionBlock {
-        const block = new ConditionBlock(json.config || { selector: { type: 'css', value: '' }, check: 'exists' });
+        const block = new ConditionBlock(json.config || { selector: { type: 'auto', value: '' }, check: 'exists' });
         if (json.id) block.id = json.id;
         if (json.label !== undefined) block.setLabel(json.label);
         if (json.enabled !== undefined) block.setEnabled(json.enabled);

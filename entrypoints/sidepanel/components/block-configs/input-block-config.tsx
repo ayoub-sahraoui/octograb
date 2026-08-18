@@ -4,12 +4,15 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { SelectorInput } from '../selector-input';
+import { getBlockSelectorDescriptor } from '@/entrypoints/models/block-registry';
 
 interface InputBlockConfigProps {
     block: InputBlock;
 }
 
 export const InputBlockConfig = observer(({ block }: InputBlockConfigProps) => {
+    const selectorDescriptor = getBlockSelectorDescriptor(block.type, 'selector', block);
+
     return (
         <div className="flex flex-col gap-4">
             <SelectorInput
@@ -20,9 +23,9 @@ export const InputBlockConfig = observer(({ block }: InputBlockConfigProps) => {
                 selector={block.config.selector}
                 onSelectorChange={(sel) => block.setSelector(sel)}
                 block={block}
-                expectedElement="input"
-                selectorCardinality="single"
-                selectorRole="input-target"
+                expectedElement={selectorDescriptor?.expectedElement}
+                selectorCardinality={selectorDescriptor?.selectorCardinality}
+                selectorRole={selectorDescriptor?.selectorRole}
             />
 
             <div className="flex flex-col gap-2">

@@ -1,7 +1,30 @@
-import { describe, it, expect } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { buildSwitchFrameResult } from '../entrypoints/content/switch-frame-result';
 
+const envHandlerMocks = vi.hoisted(() => ({
+    handler: null as any,
+    cleanup: vi.fn(),
+}));
+
+vi.mock('../core/messaging', () => ({
+    registerRpcHandler: vi.fn((handler: any) => {
+        envHandlerMocks.handler = handler;
+        return envHandlerMocks.cleanup;
+    }),
+}));
+
+vi.mock('../core/dom-query', () => ({
+    resolveScope: vi.fn(() => ({ tagName: 'DIV' })),
+    getElement: vi.fn(() => null),
+    getElements: vi.fn(() => []),
+}));
+
 describe('env-handler switch frame downgrade', () => {
+    beforeEach(() => {
+        envHandlerMocks.handler = null;
+        envHandlerMocks.cleanup.mockClear();
+    });
+
     it('should report frame existence without claiming execution context switched', () => {
         const result = buildSwitchFrameResult('sidebar-frame');
 
@@ -13,6 +36,48 @@ describe('env-handler switch frame downgrade', () => {
             switched: false,
             warning: 'Frame exists, but Chrome extension execution context did not switch. Use frame-aware selectors or a future frame routing implementation.'
         });
+    });
+
+    it('should clear the aborted state before a later execution reuses the same content script', async () => {
+        vi.resetModules();
+
+        const originalWindow = globalThis.window;
+        const originalDocument = globalThis.document;
+
+        Object.assign(globalThis, {
+            window: { frames: [] },
+            document: {},
+        });
+
+        try {
+            const { initEnvHandler } = await import('../entrypoints/content/env-handler');
+            initEnvHandler();
+
+            expect(envHandlerMocks.handler).toBeTypeOf('function');
+
+            await envHandlerMocks.handler({ type: 'ENV_ABORT' });
+
+            const blocked = await envHandlerMocks.handler({
+                type: 'ENV_SWITCH_FRAME',
+                data: { target: 0, timeout: 10 },
+            });
+            expect(blocked.success).toBe(false);
+            expect(blocked.error).toContain('aborted');
+
+            const reset = await envHandlerMocks.handler({ type: 'ENV_RESET_ABORT' });
+            expect(reset).toEqual({ success: true });
+
+            const resumed = await envHandlerMocks.handler({
+                type: 'ENV_SWITCH_FRAME',
+                data: { target: 0, timeout: 10 },
+            });
+            expect(resumed.success).toBe(true);
+        } finally {
+            Object.assign(globalThis, {
+                window: originalWindow,
+                document: originalDocument,
+            });
+        }
     });
 });
 

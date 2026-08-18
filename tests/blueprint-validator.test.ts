@@ -11,6 +11,7 @@ import { ConditionBlock } from '../entrypoints/models/condition-block';
 import { AssertBlock } from '../entrypoints/models/assert-block';
 import { SetVariableBlock } from '../entrypoints/models/set-variable-block';
 import { MacroBlock } from '../entrypoints/models/macro-block';
+import { GoBackBlock } from '../entrypoints/models/go-back-block';
 import { validateBlueprint } from '../entrypoints/models/blueprint-validator';
 import { SelectorType } from '../entrypoints/models/selector';
 import { macroRegistryStore } from '../entrypoints/stores/macro-registry-store';
@@ -106,6 +107,17 @@ describe('BlueprintValidator', () => {
             const result = validateBlueprint(blueprint);
             expect(result.warnings.some(w => w.message.includes('new tab'))).toBe(true);
         });
+
+        it('should reject invalid CSS selector syntax for click selectors', () => {
+            const block = new ClickBlock('Click', {
+                selector: { value: "a:contains('Buy')", type: SelectorType.CSS },
+            });
+            blueprint.addBlock(block);
+
+            const result = validateBlueprint(blueprint);
+            expect(result.valid).toBe(false);
+            expect(result.errors.some(e => e.message.includes('unsupported CSS'))).toBe(true);
+        });
     });
 
     describe('Input Block Validation', () => {
@@ -187,6 +199,16 @@ describe('BlueprintValidator', () => {
             const result = validateBlueprint(blueprint);
             expect(result.valid).toBe(false);
         });
+
+        it('should warn about overly specific loop selectors', () => {
+            const block = new LoopElementsBlock('Loop', {
+                selector: { value: '.product-card:nth-child(3)', type: SelectorType.CSS }
+            });
+            blueprint.addBlock(block);
+
+            const result = validateBlueprint(blueprint);
+            expect(result.warnings.some(w => w.message.includes('too specific for a repeating selector'))).toBe(true);
+        });
     });
 
     describe('Loop Pagination Validation', () => {
@@ -264,6 +286,68 @@ describe('BlueprintValidator', () => {
 
             const result = validateBlueprint(blueprint);
             expect(result.warnings.some(w => w.message.includes('outside a loop'))).toBe(true);
+        });
+
+        it('should warn when formula fields reference missing extracted fields', () => {
+            const block = new ExtractScopeBlock('Extract', {
+                fields: [
+                    {
+                        key: 'PRIX',
+                        selector: { value: '', type: SelectorType.CSS },
+                        attribute: 'text',
+                        mode: 'static',
+                        staticType: 'constant',
+                        staticValue: '',
+                        formula: '{{Pages}}*0.50',
+                    },
+                ],
+            });
+            blueprint.addBlock(block);
+
+            const result = validateBlueprint(blueprint);
+
+            expect(result.warnings.some(w => w.message.includes('Formula for "PRIX" references missing field "Pages"'))).toBe(true);
+        });
+
+        it('should warn about suspicious GTN output keys that likely mean GTIN', () => {
+            const block = new ExtractScopeBlock('Extract', {
+                fields: [
+                    {
+                        key: 'GTN',
+                        selector: { value: '', type: SelectorType.CSS },
+                        attribute: 'text',
+                        mode: 'static',
+                        staticType: 'constant',
+                        staticValue: '9781268762',
+                    },
+                ],
+            });
+            blueprint.addBlock(block);
+
+            const result = validateBlueprint(blueprint);
+
+            expect(result.warnings.some(w => w.message.includes('GTN') && w.message.includes('GTIN'))).toBe(true);
+        });
+
+        it('should warn when required extract selectors are highly positional', () => {
+            const block = new ExtractScopeBlock('Extract', {
+                fields: [
+                    {
+                        key: 'image',
+                        selector: {
+                            value: 'main.main > div:nth-of-type(2) > div > div.flex-wrap > img',
+                            type: SelectorType.CSS,
+                        },
+                        attribute: 'src',
+                        required: true,
+                    },
+                ],
+            });
+            blueprint.addBlock(block);
+
+            const result = validateBlueprint(blueprint);
+
+            expect(result.warnings.some(w => w.message.includes('required') && w.message.includes('positional'))).toBe(true);
         });
     });
 
@@ -413,6 +497,96 @@ describe('BlueprintValidator', () => {
 
             const result = validateBlueprint(blueprint);
             expect(result.warnings.some(w => w.message.includes('parent reference'))).toBe(true);
+        });
+
+        it('should warn when a condition else child has the wrong parent branch metadata', () => {
+            const condition = new ConditionBlock({
+                selector: { value: '.element', type: SelectorType.CSS },
+                check: 'exists',
+            });
+            const elseWait = new WaitBlock('Else wait', { type: 'timeout', timeout: 250 });
+
+            condition.addElseChild(elseWait);
+            elseWait.parentBranch = 'children';
+            blueprint.addBlock(condition);
+
+            const result = validateBlueprint(blueprint);
+
+            expect(result.warnings.some(w => w.message.includes('parent branch'))).toBe(true);
+        });
+
+        it('should ignore disabled blocks and their children during validation', () => {
+            const click = new ClickBlock('Disabled click', {
+                selector: { value: '', type: SelectorType.CSS },
+            });
+            click.enabled = false;
+            const extract = new ExtractScopeBlock('Disabled child extract', {
+                fields: [{
+                    key: 'title',
+                    selector: { value: 'a:contains("broken")', type: SelectorType.CSS },
+                    attribute: 'text',
+                }],
+            });
+            extract.parent = click;
+            click.children = [extract];
+            blueprint.addBlock(click);
+
+            const result = validateBlueprint(blueprint);
+
+            expect(result.errors.some(e => e.blockLabel === 'Disabled click')).toBe(false);
+            expect(result.errors.some(e => e.blockLabel === 'Disabled child extract')).toBe(false);
+            expect(result.warnings.some(w => w.blockLabel === 'Disabled child extract')).toBe(false);
+        });
+
+        it('should warn when a same-tab detail extraction flow cannot return to the list page', () => {
+            const loop = new LoopElementsBlock('Loop', { selector: { value: '.item', type: SelectorType.CSS } });
+            const click = new ClickBlock('Open detail', {
+                selector: { value: '.title', type: SelectorType.CSS },
+                openInNewTab: false,
+            });
+            const extract = new ExtractScopeBlock('Extract detail', {
+                resetScope: true,
+                fields: [{
+                    key: 'image',
+                    selector: { value: '.detail-image', type: SelectorType.CSS },
+                    attribute: 'src',
+                }],
+            });
+            click.parent = loop;
+            extract.parent = loop;
+            loop.children = [click, extract];
+            blueprint.addBlock(loop);
+
+            const result = validateBlueprint(blueprint);
+
+            expect(result.warnings.some(w => w.message.includes('return to the listing page'))).toBe(true);
+        });
+
+        it('should warn when same-tab detail flow go back block is disabled', () => {
+            const loop = new LoopElementsBlock('Loop', { selector: { value: '.item', type: SelectorType.CSS } });
+            const click = new ClickBlock('Open detail', {
+                selector: { value: '.title', type: SelectorType.CSS },
+                openInNewTab: false,
+            });
+            const extract = new ExtractScopeBlock('Extract detail', {
+                resetScope: true,
+                fields: [{
+                    key: 'image',
+                    selector: { value: '.detail-image', type: SelectorType.CSS },
+                    attribute: 'src',
+                }],
+            });
+            const goBack = new GoBackBlock('Go Back', {});
+            goBack.enabled = false;
+            click.parent = loop;
+            extract.parent = loop;
+            goBack.parent = loop;
+            loop.children = [click, extract, goBack];
+            blueprint.addBlock(loop);
+
+            const result = validateBlueprint(blueprint);
+
+            expect(result.warnings.some(w => w.message.includes('Go Back block is disabled'))).toBe(true);
         });
     });
 

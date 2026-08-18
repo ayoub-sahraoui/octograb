@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Play, Pause, Square, Plus, Trash2, Upload, Database, RotateCcw, Copy, Lock, MoreVertical, SquarePen } from "lucide-react";
+import { Play, Pause, Square, Plus, Trash2, Upload, Database, RotateCcw, Copy, Lock, MoreVertical, Sparkles, SquarePen } from "lucide-react";
 import { useBlueprintBuilderStore } from '@/entrypoints/stores/blueprint-builder-store';
 import { useBlueprintExecutorStore } from '@/entrypoints/stores/blueprint-executor-store';
 import { useLicenseStore, FREE_TIER_LIMITS } from '@/entrypoints/stores/license-store';
@@ -26,6 +26,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useConfirm } from '../components/confirm-dialog';
 import { CenteredState } from '../components/centered-state';
+import { sendToContentScript } from '@/core/messaging';
 
 export default observer(function Home() {
     const blueprintBuilderStore = useBlueprintBuilderStore();
@@ -197,6 +198,10 @@ export default observer(function Home() {
             <div className="flex justify-between items-center shrink-0">
                 <h1 className="text-lg font-semibold ml-1">Blueprints</h1>
                 <div className="flex gap-1">
+                    <Button size="sm" onClick={() => navigate('/wizard')} variant="outline" className="flex items-center gap-1 h-8 px-2 text-xs">
+                        <Sparkles className="w-3.5 h-3.5" />
+                        Wizard
+                    </Button>
                     <Button size="sm" onClick={handleImportClick} variant="outline" className="flex items-center gap-1 h-8 px-2 text-xs">
                         <Upload className="w-3.5 h-3.5" />
                         Import

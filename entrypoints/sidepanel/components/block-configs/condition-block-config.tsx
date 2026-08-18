@@ -11,6 +11,7 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { SelectorInput } from '../selector-input';
+import { getBlockSelectorDescriptor } from '@/entrypoints/models/block-registry';
 
 interface ConditionBlockConfigProps {
     block: ConditionBlock;
@@ -24,6 +25,7 @@ export const ConditionBlockConfig = observer(({ block }: ConditionBlockConfigPro
         'count_equals',
         'count_greater_than'
     ].includes(block.config.check);
+    const selectorDescriptor = getBlockSelectorDescriptor(block.type, 'selector', block);
 
     return (
         <div className="flex flex-col gap-4">
@@ -35,7 +37,8 @@ export const ConditionBlockConfig = observer(({ block }: ConditionBlockConfigPro
                 selector={block.config.selector}
                 onSelectorChange={(sel) => block.setSelector(sel)}
                 block={block}
-                selectorCardinality={block.config.check === 'count_equals' || block.config.check === 'count_greater_than' ? 'multiple' : block.config.check === 'exists' || block.config.check === 'not_exists' ? 'any' : 'single'}
+                selectorCardinality={selectorDescriptor?.selectorCardinality}
+                selectorRole={selectorDescriptor?.selectorRole}
             />
 
             <div className="flex flex-col gap-2">

@@ -3,12 +3,15 @@ import { LoopElementsBlock } from '@/entrypoints/models/loop-elements-block';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { SelectorInput } from '../selector-input';
+import { getBlockSelectorDescriptor } from '@/entrypoints/models/block-registry';
 
 interface LoopElementsBlockConfigProps {
     block: LoopElementsBlock;
 }
 
 export const LoopElementsBlockConfig = observer(({ block }: LoopElementsBlockConfigProps) => {
+    const selectorDescriptor = getBlockSelectorDescriptor(block.type, 'selector', block);
+
     return (
         <div className="flex flex-col gap-4">
             <SelectorInput
@@ -19,8 +22,8 @@ export const LoopElementsBlockConfig = observer(({ block }: LoopElementsBlockCon
                 selector={block.config.selector}
                 onSelectorChange={(sel) => block.setSelector(sel)}
                 block={block}
-                selectorCardinality="multiple"
-                selectorRole="loop-root"
+                selectorCardinality={selectorDescriptor?.selectorCardinality}
+                selectorRole={selectorDescriptor?.selectorRole}
             />
 
             <div className="flex flex-col gap-2">

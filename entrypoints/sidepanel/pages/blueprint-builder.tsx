@@ -34,7 +34,7 @@ import {
 } from "@/components/ui/dialog"
 import BlueprintBlockSelector from '../components/blueprint-block-selector'
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { CenteredState } from '../components/centered-state';
 import {
     NavigateBlockConfig,
@@ -267,6 +267,7 @@ export default observer(function BlueprintBuilder() {
     const blueprintBuilderStore = useBlueprintBuilderStore();
     const executorStore = useBlueprintExecutorStore();
     const navigate = useNavigate();
+    const { id } = useParams();
     const [isAddBlockDrawerOpen, setIsAddBlockDrawerOpen] = useState(false);
     const [isResultsDrawerOpen, setIsResultsDrawerOpen] = useState(false);
     const [isEditingName, setIsEditingName] = useState(false);
@@ -297,6 +298,36 @@ export default observer(function BlueprintBuilder() {
         if (value < 60000) return `${(value / 1000).toFixed(1)}s`;
         return `${Math.floor(value / 60000)}m ${Math.round((value % 60000) / 1000)}s`;
     };
+
+    // Load blueprint from URL parameter
+    useEffect(() => {
+        if (id) {
+            const loadAndSelectBlueprint = async () => {
+                console.log('Loading blueprint with ID:', id);
+                await blueprintBuilderStore.loadBlueprints();
+                console.log('Available blueprints:', blueprintBuilderStore.blueprints.map(bp => ({ id: bp.id, name: bp.name })));
+                const blueprint = blueprintBuilderStore.blueprints.find(bp => bp.id === id);
+                if (blueprint) {
+                    console.log('Found blueprint, selecting:', blueprint.name);
+                    blueprintBuilderStore.selectBlueprint(blueprint);
+                } else {
+                    console.log('Blueprint not found, retrying in 1 second...');
+                    // Retry once after a delay in case the blueprint was just created
+                    setTimeout(async () => {
+                        await blueprintBuilderStore.loadBlueprints();
+                        const retryBlueprint = blueprintBuilderStore.blueprints.find(bp => bp.id === id);
+                        if (retryBlueprint) {
+                            console.log('Found blueprint on retry, selecting:', retryBlueprint.name);
+                            blueprintBuilderStore.selectBlueprint(retryBlueprint);
+                        } else {
+                            console.log('Blueprint still not found after retry');
+                        }
+                    }, 1000);
+                }
+            };
+            loadAndSelectBlueprint();
+        }
+    }, [id]);
 
     // Reset executor state when component unmounts
     useEffect(() => {

@@ -1,10 +1,15 @@
 import { Scope } from './env';
+import { SelectorType } from './types';
+
+// Safe XPath constants for environments without global XPathResult (e.g. Node/Vitest tests)
+const ORDERED_NODE_SNAPSHOT_TYPE = typeof XPathResult !== 'undefined' ? XPathResult.ORDERED_NODE_SNAPSHOT_TYPE : 7;
+const FIRST_ORDERED_NODE_TYPE = typeof XPathResult !== 'undefined' ? XPathResult.FIRST_ORDERED_NODE_TYPE : 9;
 
 /**
  * Resolve a Scope object to a specific DOM Element.
  * This is used to re-locate elements inside the content script based on the scope chain.
  */
-export function resolveScope(scope?: Scope, doc: Document = document): Element {
+export function resolveScope(scope?: Scope, doc: Document = typeof document !== 'undefined' ? document : (null as any)): Element {
   if (!scope) return doc.documentElement;
 
   // 1. Resolve parent first (recursive)
@@ -43,6 +48,10 @@ export function resolveScope(scope?: Scope, doc: Document = document): Element {
   }
 
   if (!el) {
+    if (selector.startsWith('[data-octo-scope="')) {
+      console.warn(`[OctoGrab] Scope marker ${selector} not found. DOM may have been reconstructed or navigated.`);
+      throw new Error(`Detached scope marker not found: ${selector}`);
+    }
     console.warn(`[OctoGrab] Element not found at index ${scope.index} for ${selector} in scope`, parentEl);
     throw new Error(`Element not found: ${selector} [${scope.index}]`);
   }
@@ -50,74 +59,164 @@ export function resolveScope(scope?: Scope, doc: Document = document): Element {
   return el;
 }
 
-function findElement(parent: Element, selector: string, type: 'css' | 'xpath' = 'css', index: number = 0): Element | null {
-  if (type === 'xpath') {
-    // Handle XPath
-    // IMPORTANT: To query relative to parentEl, XPath must be relative (start with ./)
-    let xpath = selector;
-    if (xpath.startsWith('/')) {
-      if (xpath.startsWith('//')) {
-        xpath = '.' + xpath;
-      } else {
-        xpath = '.' + xpath;
-      }
-    }
+function findElement(parent: Element, selector: string, type: SelectorType = 'css', index: number = 0): Element | null {
+  const elements = getElements(selector, type, parent);
+  if (index >= elements.length) return null;
+  return elements[index];
+}
 
-    const result = document.evaluate(
-      xpath,
-      parent,
+/**
+ * Get elements matching a text string inside a scope.
+ * Matches leaf nodes containing the text.
+ */
+function getElementsByText(scope: Element | Document, text: string): Element[] {
+  const elements: Element[] = [];
+  const cleanText = text.trim();
+  if (!cleanText) return [];
+
+  // Handle quote escaping for XPath expression construction
+  let xpathTextExpr: string;
+  if (!cleanText.includes('"')) {
+    xpathTextExpr = `"${cleanText}"`;
+  } else if (!cleanText.includes("'")) {
+    xpathTextExpr = `'${cleanText}'`;
+  } else {
+    const parts = cleanText.split('"');
+    xpathTextExpr = 'concat(' + parts.map(p => `"${p}"`).join(', \'"\', ') + ')';
+  }
+
+  const isDocument = scope.nodeType === 9;
+
+  const xpathExact = !isDocument
+    ? `.//*[normalize-space() = ${xpathTextExpr}]`
+    : `//*[normalize-space() = ${xpathTextExpr}]`;
+
+  const xpathContains = !isDocument
+    ? `.//*[contains(normalize-space(), ${xpathTextExpr})]`
+    : `//*[contains(normalize-space(), ${xpathTextExpr})]`;
+
+  // Try exact match first
+  try {
+    const doc = scope.nodeType === 9 ? (scope as Document) : (scope.ownerDocument || (typeof document !== 'undefined' ? document : null as any));
+    const result = doc.evaluate(
+      xpathExact,
+      scope,
       null,
-      XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
+      ORDERED_NODE_SNAPSHOT_TYPE,
       null
     );
+    for (let i = 0; i < result.snapshotLength; i++) {
+      const item = result.snapshotItem(i);
+      if (item) elements.push(item as Element);
+    }
+  } catch (e) {}
 
-    if (index >= result.snapshotLength) return null;
-    return result.snapshotItem(index) as Element;
-  } else {
-    const elements = parent.querySelectorAll(selector);
-    if (index >= elements.length) return null;
-    return elements[index];
+  // Try contains match if exact yields nothing
+  if (elements.length === 0) {
+    try {
+      const doc = scope.nodeType === 9 ? (scope as Document) : (scope.ownerDocument || (typeof document !== 'undefined' ? document : null as any));
+      const result = doc.evaluate(
+        xpathContains,
+        scope,
+        null,
+        ORDERED_NODE_SNAPSHOT_TYPE,
+        null
+      );
+      for (let i = 0; i < result.snapshotLength; i++) {
+        const item = result.snapshotItem(i);
+        if (item) elements.push(item as Element);
+      }
+    } catch (e) {}
   }
+
+  // Filter to return only most specific elements (leaf elements)
+  return elements.filter(el => {
+    return !elements.some(otherEl => otherEl !== el && el.contains(otherEl));
+  });
 }
 
 /**
  * Get element using specific type (helper for non-scoped queries or simple queries)
  */
-export function getElement(selector: string, type: 'css' | 'xpath', scope: Element | Document = document): Element | null {
-  if (type === 'xpath') {
-    // Fix absolute XPath to be relative when scoped to an element
-    let xpath = selector;
-    if (scope !== document && xpath.startsWith('/')) {
-      xpath = '.' + (xpath.startsWith('//') ? xpath : xpath);
-    }
-    const result = document.evaluate(
-      xpath,
-      scope,
-      null,
-      XPathResult.FIRST_ORDERED_NODE_TYPE,
-      null
-    );
-    return result.singleNodeValue as Element;
-  } else {
-    return scope.querySelector(selector);
-  }
+export function getElement(selector: string, type: SelectorType, scope: Element | Document = typeof document !== 'undefined' ? document : (null as any)): Element | null {
+  const elements = getElements(selector, type, scope);
+  return elements.length > 0 ? elements[0] : null;
 }
 
 /**
  * Get all elements using specific type
  */
-export function getElements(selector: string, type: 'css' | 'xpath', scope: Element | Document = document): Element[] {
-  if (type === 'xpath') {
+export function getElements(selector: string, type: SelectorType, scope: Element | Document = typeof document !== 'undefined' ? document : (null as any)): Element[] {
+  let resolvedType: 'css' | 'xpath' | 'text' = 'css';
+
+  if (type === 'auto') {
+    const trimmed = selector.trim();
+    if (trimmed.startsWith('/') || trimmed.startsWith('./') || trimmed.startsWith('(')) {
+      resolvedType = 'xpath';
+    } else {
+      try {
+        // Parse check using document fragment
+        const doc = scope.nodeType === 9 ? (scope as Document) : (scope.ownerDocument || (typeof document !== 'undefined' ? document : null as any));
+        doc.createDocumentFragment().querySelectorAll(trimmed);
+
+        // Valid CSS syntax, run query
+        let css = trimmed;
+        if (css.startsWith('>') || css.startsWith('+') || css.startsWith('~')) {
+          css = ':scope ' + css;
+        }
+
+        const elements: Element[] = [];
+        if (scope && (scope as any).nodeType === 1) {
+          const scopeEl = scope as Element;
+          if (css === ':scope') {
+            elements.push(scopeEl);
+          } else {
+            try {
+              if (scopeEl.matches && scopeEl.matches(css)) {
+                elements.push(scopeEl);
+              }
+            } catch (e) {}
+            elements.push(...Array.from(scopeEl.querySelectorAll(css)));
+          }
+        } else {
+          elements.push(...Array.from(scope.querySelectorAll(css)));
+        }
+
+        if (elements.length > 0) {
+          return elements;
+        }
+
+        // 0 CSS matches - fall back to text content match
+        const textElements = getElementsByText(scope, selector);
+        if (textElements.length > 0) {
+          return textElements;
+        }
+
+        return [];
+      } catch (e) {
+        // Invalid CSS syntax -> treat as Text selector
+        resolvedType = 'text';
+      }
+    }
+  } else if (type === 'text') {
+    resolvedType = 'text';
+  } else if (type === 'xpath') {
+    resolvedType = 'xpath';
+  }
+
+  if (resolvedType === 'xpath') {
     // Fix absolute XPath to be relative when scoped to an element
     let xpath = selector;
-    if (scope !== document && xpath.startsWith('/')) {
+    const isDocument = scope.nodeType === 9;
+    if (!isDocument && xpath.startsWith('/')) {
       xpath = '.' + (xpath.startsWith('//') ? xpath : xpath);
     }
-    const result = document.evaluate(
+    const doc = isDocument ? (scope as Document) : (scope.ownerDocument || (typeof document !== 'undefined' ? document : null as any));
+    const result = doc.evaluate(
       xpath,
       scope,
       null,
-      XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
+      ORDERED_NODE_SNAPSHOT_TYPE,
       null
     );
     const elements: Element[] = [];
@@ -126,7 +225,29 @@ export function getElements(selector: string, type: 'css' | 'xpath', scope: Elem
       if (item) elements.push(item as Element);
     }
     return elements;
+  } else if (resolvedType === 'text') {
+    return getElementsByText(scope, selector);
   } else {
-    return Array.from(scope.querySelectorAll(selector));
+    // CSS
+    let css = selector;
+    if (css.trim().startsWith('>') || css.trim().startsWith('+') || css.trim().startsWith('~')) {
+      css = ':scope ' + css.trim();
+    }
+    const elements: Element[] = [];
+    if (scope && (scope as any).nodeType === 1) {
+      const scopeEl = scope as Element;
+      if (css === ':scope') {
+        return [scopeEl];
+      }
+      try {
+        if (scopeEl.matches && scopeEl.matches(css)) {
+          elements.push(scopeEl);
+        }
+      } catch (e) {}
+    }
+    try {
+      elements.push(...Array.from(scope.querySelectorAll(css)));
+    } catch (e) {}
+    return elements;
   }
 }

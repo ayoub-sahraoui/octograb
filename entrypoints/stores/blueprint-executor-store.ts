@@ -1183,12 +1183,29 @@ export class BlueprintExecutorStore {
                 this.log('info', `  ⏳ Waiting for page to settle...`);
                 await this.waitForTab(config.timeout || 15000);
             } else {
-                // Auto-detect navigation: give the browser a moment to start navigating
-                await this.delay(300);
+                // Auto-detect navigation: poll for up to 1000ms
+                let timeWaited = 0;
+                let urlChanged = false;
+                
+                while (timeWaited < 1000) {
+                    await this.delay(50);
+                    timeWaited += 50;
+                    
+                    if (navigationDetected) break;
+                    
+                    try {
+                        const tabNow = await browser.tabs.get(this._targetTabId!);
+                        if (urlBeforeClick && tabNow.url !== urlBeforeClick) {
+                            urlChanged = true;
+                            break;
+                        }
+                    } catch { /* ignore */ }
+                }
+
                 browser.tabs.onUpdated.removeListener(onNavListener);
 
-                if (navigationDetected) {
-                    this.log('info', `  🔀 Navigation detected after click, waiting for page load...`);
+                if (navigationDetected || urlChanged) {
+                    this.log('info', `  🔀 Navigation or URL change detected after click, waiting for page load...`);
                     // Check if page already finished loading
                     let alreadyComplete = false;
                     try {
@@ -1205,16 +1222,6 @@ export class BlueprintExecutorStore {
                     }
                     await this.waitForTab(30000);
                     this.log('info', `  ✓ Page loaded after click-triggered navigation`);
-                } else {
-                    // Double-check by comparing URLs (handles fast navigations)
-                    try {
-                        const tabAfter = await browser.tabs.get(this._targetTabId!);
-                        if (urlBeforeClick && tabAfter.url !== urlBeforeClick) {
-                            this.log('info', `  🔀 URL changed after click, waiting for content script...`);
-                            await this.waitForTab(30000);
-                            this.log('info', `  ✓ Content script ready after navigation`);
-                        }
-                    } catch { /* ignore */ }
                 }
             }
         }

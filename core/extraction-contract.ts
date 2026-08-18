@@ -1,9 +1,10 @@
 import type { ExtractionField as ModelExtractionField } from '../entrypoints/models/extract-scope-block';
+import { SelectorType } from './types';
 
 export interface DomExtractionField {
   key: string;
   selector: string;
-  selectorType?: 'css' | 'xpath';
+  selectorType?: SelectorType;
   attribute: string;
   transformers?: any[];
   required?: boolean;
@@ -11,7 +12,7 @@ export interface DomExtractionField {
 }
 
 export function toDomExtractionField(field: ModelExtractionField): DomExtractionField {
-  const selectorType = field.selector?.type === 'xpath' ? 'xpath' : 'css';
+  const selectorType = (field.selector?.type || 'css') as SelectorType;
 
   return {
     key: field.key,

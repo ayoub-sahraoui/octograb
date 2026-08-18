@@ -42,6 +42,10 @@ interface CompileTimeWalkResult {
     rootVariables: Set<string>;
 }
 
+function isCompiledBlockEnabled(block: CompiledBlock): boolean {
+    return block.enabled !== false;
+}
+
 function collectStringValues(value: unknown, collector: string[]) {
     if (typeof value === 'string') {
         collector.push(value);
@@ -89,6 +93,10 @@ function analyzeCompileTimeSequence(
     const currentRoot = new Set(rootVariables);
 
     for (const block of blocks) {
+        if (!isCompiledBlockEnabled(block)) {
+            continue;
+        }
+
         const variableReferences = extractVariableReferences(block);
         for (const variableName of variableReferences) {
             if (!currentLocal.has(variableName) && !currentRoot.has(variableName)) {
@@ -188,6 +196,18 @@ function analyzeCompiledBlock(
     loopDepth: number,
     parent?: CompiledBlock,
 ): Omit<BlueprintAnalysis, 'blockTypes'> {
+    if (!isCompiledBlockEnabled(block)) {
+        return {
+            blockCount: 0,
+            maxDepth: depth,
+            blockTypeCounts: {},
+            variableReferences: [],
+            macroIds: [],
+            containerBlockCount: 0,
+            issues: [],
+        };
+    }
+
     const currentPath = [...path, block.label || block.type];
     const pathStr = currentPath.join(' > ');
     const issues: AnalysisIssue[] = [];
@@ -241,7 +261,10 @@ function analyzeCompiledBlock(
     let containerBlockCount = block.execution.managesChildrenExecution ? 1 : 0;
     const nextLoopDepth = loopDepth + ((block.type === 'loop_elements' || block.type === 'loop_pagination') ? 1 : 0);
 
-    for (const child of block.children) {
+    const enabledChildren = block.children.filter(isCompiledBlockEnabled);
+    const enabledElseChildren = block.elseChildren.filter(isCompiledBlockEnabled);
+
+    for (const child of enabledChildren) {
         const childAnalysis = analyzeCompiledBlock(child, currentPath, depth + 1, nextLoopDepth, block);
         maxDepth = Math.max(maxDepth, childAnalysis.maxDepth);
         containerBlockCount += childAnalysis.containerBlockCount;
@@ -253,7 +276,7 @@ function analyzeCompiledBlock(
         }
     }
 
-    for (const child of block.elseChildren) {
+    for (const child of enabledElseChildren) {
         const childAnalysis = analyzeCompiledBlock(child, [...currentPath, 'else'], depth + 1, nextLoopDepth, block);
         maxDepth = Math.max(maxDepth, childAnalysis.maxDepth);
         containerBlockCount += childAnalysis.containerBlockCount;
@@ -266,7 +289,7 @@ function analyzeCompiledBlock(
     }
 
     return {
-        blockCount: 1 + block.children.length + block.elseChildren.length,
+        blockCount: 1 + enabledChildren.length + enabledElseChildren.length,
         maxDepth,
         blockTypeCounts,
         variableReferences: Array.from(new Set(variableReferences)),

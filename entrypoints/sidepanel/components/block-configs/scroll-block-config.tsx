@@ -11,6 +11,7 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { SelectorInput } from '../selector-input';
+import { getBlockSelectorDescriptor } from '@/entrypoints/models/block-registry';
 
 interface ScrollBlockConfigProps {
     block: ScrollBlock;
@@ -19,6 +20,7 @@ interface ScrollBlockConfigProps {
 export const ScrollBlockConfig = observer(({ block }: ScrollBlockConfigProps) => {
     const showPixels = block.config.behavior === 'pixels';
     const showSelector = block.config.behavior === 'element_into_view' || block.config.target === 'element';
+    const selectorDescriptor = getBlockSelectorDescriptor(block.type, 'selector', block);
 
     return (
         <div className="flex flex-col gap-4">
@@ -81,6 +83,8 @@ export const ScrollBlockConfig = observer(({ block }: ScrollBlockConfigProps) =>
                     selector={block.config.selector}
                     onSelectorChange={(sel) => block.setSelector(sel)}
                     block={block}
+                    selectorCardinality={selectorDescriptor?.selectorCardinality}
+                    selectorRole={selectorDescriptor?.selectorRole}
                 />
             )}
 

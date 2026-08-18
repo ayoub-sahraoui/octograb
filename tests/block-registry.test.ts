@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { BLOCK_REGISTRY, getBlockRegistryEntry, BLOCK_TYPES } from '../entrypoints/models/block-registry';
+import {
+    BLOCK_REGISTRY,
+    getBlockRegistryEntry,
+    getBlockSelectorDescriptor,
+    BLOCK_TYPES,
+} from '../entrypoints/models/block-registry';
 
 describe('block registry', () => {
     it('should expose all supported block types', () => {
@@ -50,5 +55,32 @@ describe('block registry', () => {
             const block = entry.create(minimalJsonByType[type]);
             expect(block.type).toBe(type);
         }
+    });
+
+    it('should expose selector descriptors for selector-based blocks', () => {
+        expect(getBlockSelectorDescriptor('click', 'selector')).toMatchObject({
+            selectorRole: 'click-target',
+            selectorCardinality: 'single',
+            expectedElement: 'clickable',
+        });
+
+        expect(getBlockSelectorDescriptor('loop_pagination', 'nextButtonSelector')).toMatchObject({
+            selectorRole: 'pagination-next',
+            selectorCardinality: 'single',
+            expectedElement: 'clickable',
+        });
+
+        expect(getBlockSelectorDescriptor('scroll', 'selector')).toMatchObject({
+            selectorRole: 'scroll-target',
+            selectorCardinality: 'single',
+        });
+    });
+
+    it('should expose dynamic selector descriptors for condition and assert blocks', () => {
+        const conditionDescriptor = getBlockSelectorDescriptor('condition', 'selector');
+        const assertDescriptor = getBlockSelectorDescriptor('assert', 'selector');
+
+        expect(conditionDescriptor?.selectorRole).toBe('condition-target');
+        expect(assertDescriptor?.selectorRole).toBe('assert-target');
     });
 });

@@ -1,0 +1,226 @@
+{
+  "id": "ea4341fa-cd42-4e1d-9e36-46cfaae93309",
+  "name": "jumia",
+  "description": "",
+  "blocks": [
+    {
+      "id": "6c201fe9-c1d7-4ab0-b94b-39afc2a6ae8a",
+      "type": "navigate",
+      "config": {
+        "url": "https://www.jumia.ma/catalog/?q=books",
+        "waitUntil": "domcontentloaded"
+      },
+      "label": "Navigate",
+      "enabled": true,
+      "description": "",
+      "onError": "stop",
+      "maxRetries": 0,
+      "retryDelay": 0,
+      "index": 0
+    },
+    {
+      "id": "51ab94dd-23b7-4575-8f87-ef9cd18373e4",
+      "type": "wait",
+      "config": {
+        "type": "timeout",
+        "timeout": 3000
+      },
+      "label": "Wait",
+      "enabled": true,
+      "description": "",
+      "onError": "stop",
+      "maxRetries": 0,
+      "retryDelay": 0,
+      "index": 1
+    },
+    {
+      "id": "dfecc609-4ad6-4402-8c74-ec8c1f48376b",
+      "type": "loop_pagination",
+      "config": {
+        "nextButtonSelector": {
+          "type": "xpath",
+          "value": "//a[@aria-label=\"Page suivante\"]",
+          "detected": {
+            "css": "a[aria-label=\"Page\\ suivante\"]",
+            "xpath": "//a[@aria-label=\"Page suivante\"]"
+          }
+        },
+        "delayBetweenPages": 2000,
+        "maxPages": 10
+      },
+      "label": "Loop Pagination",
+      "enabled": true,
+      "description": "",
+      "onError": "stop",
+      "maxRetries": 0,
+      "retryDelay": 0,
+      "children": [
+        {
+          "parentBranch": "children",
+          "id": "72ff7224-3fde-4552-837b-93176c100964",
+          "type": "loop_elements",
+          "config": {
+            "selector": {
+              "type": "css",
+              "value": "a.core",
+              "detected": {
+                "css": "a.core",
+                "xpath": ".//a[contains(concat(\" \", @class, \" \"), \" core \")]"
+              }
+            }
+          },
+          "label": "Loop Elements",
+          "enabled": true,
+          "description": "",
+          "onError": "stop",
+          "maxRetries": 0,
+          "retryDelay": 0,
+          "children": [
+            {
+              "parentBranch": "children",
+              "id": "2f77e8d6-11e1-4d8c-a983-74ff4a9c4306",
+              "type": "wait",
+              "config": {
+                "type": "timeout",
+                "timeout": 1500
+              },
+              "label": "Wait",
+              "enabled": true,
+              "description": "",
+              "onError": "stop",
+              "maxRetries": 0,
+              "retryDelay": 0,
+              "index": 0
+            },
+            {
+              "parentBranch": "children",
+              "id": "208021b6-0c71-40c0-877d-882ffa7673a0",
+              "type": "click",
+              "config": {
+                "selector": {
+                  "type": "css",
+                  "value": ":scope",
+                  "detected": {
+                    "css": ":scope",
+                    "xpath": ".//self::*"
+                  }
+                },
+                "delayBefore": 1000,
+                "delayAfter": 1000
+              },
+              "label": "Click",
+              "enabled": true,
+              "description": "",
+              "onError": "stop",
+              "maxRetries": 0,
+              "retryDelay": 0,
+              "children": [
+                {
+                  "parentBranch": "children",
+                  "id": "c5a65cd5-510a-4c43-89b0-0c4cc056812f",
+                  "type": "extract_scope",
+                  "label": "Extract Scope",
+                  "enabled": true,
+                  "description": "",
+                  "onError": "stop",
+                  "maxRetries": 0,
+                  "retryDelay": 0,
+                  "config": {
+                    "fields": [
+                      {
+                        "id": "6a22eea4-5690-46b1-b2bb-bafed3da94f5",
+                        "key": "title",
+                        "selector": {
+                          "type": "auto",
+                          "value": "h1:first-of-type",
+                          "detected": {
+                            "css": "h1",
+                            "xpath": "//*[@id=\"jm\"]/main[1]/div[1]/section[1]/div[1]/div[2]/div[1]/div[1]/h1[1]"
+                          }
+                        },
+                        "attribute": "text",
+                        "required": false,
+                        "multiple": false,
+                        "transformers": [],
+                        "mode": "extracted"
+                      },
+                      {
+                        "id": "b15b1fb3-eb0f-431f-ab0b-8f8e7e0e2524",
+                        "key": "price",
+                        "selector": {
+                          "type": "auto",
+                          "value": "span.-fs24:first-of-type",
+                          "detected": {
+                            "css": "span.-fs24",
+                            "xpath": "//span[normalize-space()='69.00 Dhs']"
+                          }
+                        },
+                        "attribute": "text",
+                        "required": false,
+                        "multiple": false,
+                        "transformers": [],
+                        "mode": "extracted"
+                      },
+                      {
+                        "id": "eb2f18b5-5d0e-473e-90ce-552470779198",
+                        "key": "cover",
+                        "selector": {
+                          "type": "auto",
+                          "value": "(//*[@id=\"imgs\"]/a[1]/img[1])[1]",
+                          "detected": {
+                            "css": "#imgs > a.itm > img.-fw",
+                            "xpath": "//*[@id=\"imgs\"]/a[1]/img[1]"
+                          }
+                        },
+                        "attribute": "src",
+                        "required": false,
+                        "multiple": false,
+                        "transformers": [],
+                        "mode": "extracted"
+                      }
+                    ],
+                    "resetScope": true
+                  },
+                  "index": 0
+                }
+              ],
+              "index": 1
+            },
+            {
+              "parentBranch": "children",
+              "id": "8a672444-896d-44f9-a111-f0c99d64c1b7",
+              "type": "wait",
+              "config": {
+                "type": "timeout",
+                "timeout": 2000
+              },
+              "label": "Wait",
+              "enabled": true,
+              "description": "",
+              "onError": "stop",
+              "maxRetries": 0,
+              "retryDelay": 0,
+              "index": 2
+            },
+            {
+              "parentBranch": "children",
+              "id": "905c05f2-5765-488d-85ca-4ea38a00ff8b",
+              "type": "go_back",
+              "config": {},
+              "label": "Go Back",
+              "enabled": true,
+              "description": "",
+              "onError": "stop",
+              "maxRetries": 0,
+              "retryDelay": 0,
+              "index": 3
+            }
+          ],
+          "index": 0
+        }
+      ],
+      "index": 2
+    }
+  ],
+  "version": 1
+}

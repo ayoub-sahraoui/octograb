@@ -1,11 +1,4 @@
-export type SelectorRole =
-    | 'click-target'
-    | 'hover-target'
-    | 'input-target'
-    | 'loop-root'
-    | 'wait-target'
-    | 'extract-scope'
-    | 'extract-field';
+import type { SelectorRole } from '@/entrypoints/models/selector-semantics';
 
 export interface SelectorRoleGuidance {
     label: string;
@@ -33,6 +26,26 @@ export function getSelectorRoleGuidance(role?: SelectorRole): SelectorRoleGuidan
             return {
                 label: 'Best fit',
                 description: 'Target the repeated parent item, like the product card or row, not a child title or link inside it.',
+            };
+        case 'pagination-next':
+            return {
+                label: 'Best fit',
+                description: 'Target the exact next-page button or link. Avoid broad pagination wrappers or disabled controls.',
+            };
+        case 'scroll-target':
+            return {
+                label: 'Best fit',
+                description: 'Target the scrollable container itself, not the content inside it.',
+            };
+        case 'condition-target':
+            return {
+                label: 'Best fit',
+                description: 'Target the exact element, or the set of elements, that this condition should evaluate.',
+            };
+        case 'assert-target':
+            return {
+                label: 'Best fit',
+                description: 'Target one stable element to assert against so the result is predictable.',
             };
         case 'wait-target':
             return {

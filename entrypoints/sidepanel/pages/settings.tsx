@@ -1,29 +1,23 @@
 import { Button } from "@/components/ui/button";
-import { Download, Upload, Trash2, Database, Info, AlertCircle, Activity, ArrowLeft, KeyRound, LogOut, Zap, Bot, Eye, EyeOff } from "lucide-react";
+import { Download, Upload, Trash2, Database, Info, AlertCircle, Activity, ArrowLeft, KeyRound, LogOut, Zap } from "lucide-react";
 import { db } from "@/core/database";
 import { useState, useEffect } from "react";
 import { useBlueprintBuilderStore } from '@/entrypoints/stores/blueprint-builder-store';
 import { useBlueprintExecutorStore } from '@/entrypoints/stores/blueprint-executor-store';
 import { useLicenseStore, FREE_TIER_LIMITS } from '@/entrypoints/stores/license-store';
-import { useAiAgentStore } from '@/entrypoints/stores/ai-agent-store';
-import { PROVIDERS } from '@/core/ai/providers';
 import { observer } from 'mobx-react-lite';
 import { useNavigate } from 'react-router-dom';
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useConfirm } from '../components/confirm-dialog';
 
 export default observer(function Settings() {
     const blueprintBuilderStore = useBlueprintBuilderStore();
     const executorStore = useBlueprintExecutorStore();
     const licenseStore = useLicenseStore();
-    const aiStore = useAiAgentStore();
     const navigate = useNavigate();
     const [stats, setStats] = useState<any>(null);
-    const [showApiKey, setShowApiKey] = useState(false);
     const { confirm: showConfirm, alert: showAlert } = useConfirm();
 
     const loadStats = async () => {
@@ -186,92 +180,7 @@ export default observer(function Settings() {
                     </div>
                 </div>
 
-                <Separator />
 
-                {/* AI Assistant */}
-                <div className="bg-white p-4 rounded-lg border">
-                    <div className="flex items-center gap-2 mb-3">
-                        <Bot className="w-5 h-5 text-emerald-600" />
-                        <h2 className="text-lg font-semibold">AI Assistant</h2>
-                    </div>
-                    <div className="space-y-4">
-                        {/* Provider selector */}
-                        <div>
-                            <Label className="text-sm font-medium">Provider</Label>
-                            <p className="text-xs text-gray-500 mb-2">Choose your LLM provider</p>
-                            <Select value={aiStore.provider} onValueChange={(v) => aiStore.setProvider(v as any)}>
-                                <SelectTrigger className="w-full">
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {Object.values(PROVIDERS).map((p) => (
-                                        <SelectItem key={p.id} value={p.id}>
-                                            <div className="flex items-center gap-2">
-                                                <span className="font-medium">{p.label}</span>
-                                                <span className="text-xs text-gray-400">{p.description}</span>
-                                            </div>
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-
-                        {/* API Key for selected provider */}
-                        <div>
-                            <Label className="text-sm font-medium">{aiStore.providerConfig.label} API Key</Label>
-                            <p className="text-xs text-gray-500 mb-2">
-                                Your key is stored locally and never sent to our servers.{' '}
-                                <a
-                                    href={aiStore.providerConfig.apiKeyLink}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-emerald-600 underline"
-                                >
-                                    Get a key
-                                </a>
-                            </p>
-                            <div className="relative">
-                                <Input
-                                    type={showApiKey ? 'text' : 'password'}
-                                    placeholder={aiStore.providerConfig.apiKeyPlaceholder}
-                                    value={aiStore.apiKey}
-                                    onChange={(e) => aiStore.setApiKey(aiStore.provider, e.target.value)}
-                                    className="pr-10 font-mono text-xs"
-                                />
-                                <button
-                                    type="button"
-                                    onClick={() => setShowApiKey(!showApiKey)}
-                                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                                >
-                                    {showApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                                </button>
-                            </div>
-                            {aiStore.hasApiKey && (
-                                <p className="text-xs text-emerald-600 mt-1">✓ API key configured</p>
-                            )}
-                        </div>
-
-                        {/* Model selector */}
-                        <div>
-                            <Label className="text-sm font-medium">Model</Label>
-                            <p className="text-xs text-gray-500 mb-2">Select which model to use from {aiStore.providerConfig.label}</p>
-                            <Select value={aiStore.model} onValueChange={(v) => aiStore.setModel(v)}>
-                                <SelectTrigger className="w-full">
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {aiStore.providerConfig.models.map((m) => (
-                                        <SelectItem key={m.id} value={m.id}>
-                                            {m.label}{m.recommended ? ' (recommended)' : ''}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                    </div>
-                </div>
-
-                <Separator />
 
                 {/* Database Management */}
                 <div className="bg-white p-4 rounded-lg border">

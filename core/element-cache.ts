@@ -2,9 +2,11 @@
  * Element Cache - Reduce redundant DOM queries
  */
 
+import { SelectorType } from './types';
+
 export interface CacheEntry {
     selector: string;
-    selectorType: 'css' | 'xpath';
+    selectorType: SelectorType;
     scopeHash: string;
     elements: Element[];
     timestamp: number;
@@ -24,7 +26,7 @@ export class ElementCache {
         return `${scope.selector}:${scope.selectorType}:${scope.index}`;
     }
 
-    get(selector: string, selectorType: 'css' | 'xpath', scope?: any): Element[] | null {
+    get(selector: string, selectorType: SelectorType, scope?: any): Element[] | null {
         const scopeHash = this.getScopeHash(scope);
         const key = this.getCacheKey(selector, selectorType, scopeHash);
         const entry = this.cache.get(key);
@@ -48,7 +50,7 @@ export class ElementCache {
         return validElements;
     }
 
-    set(selector: string, selectorType: 'css' | 'xpath', scope: any, elements: Element[]) {
+    set(selector: string, selectorType: SelectorType, scope: any, elements: Element[]) {
         // Enforce max size
         if (this.cache.size >= this.MAX_ENTRIES) {
             // Remove oldest entry

@@ -1,4 +1,4 @@
-import { ArrowDown, BookOpen, ChevronDown, ChevronUp, Database, GitBranch, Globe, GripVertical, MousePointerClick, Plus, Repeat, Settings2, Type, Undo2, Clock, Bug, Puzzle, Variable, Save } from 'lucide-react'
+import { ArrowDown, BookOpen, ChevronDown, ChevronUp, Database, GitBranch, Globe, GripVertical, MousePointerClick, Plus, Repeat, Settings2, Type, Undo2, Clock, Bug, Puzzle, Variable, Save, Power, PowerOff } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
@@ -40,25 +40,25 @@ const blockTypes = [
         type: 'click',
         icon: MousePointerClick,
         name: 'Click',
-        createBlock: () => new ClickBlock("Click", { selector: { type: SelectorType.CSS, value: '' } }),
+        createBlock: () => new ClickBlock("Click", { selector: { type: SelectorType.Auto, value: '' } }),
     },
     {
         type: 'input',
         icon: Type,
         name: 'Input',
-        createBlock: () => new InputBlock("Input", { selector: { type: SelectorType.CSS, value: '' }, value: '' }),
+        createBlock: () => new InputBlock("Input", { selector: { type: SelectorType.Auto, value: '' }, value: '' }),
     },
     {
         type: 'loop_elements',
         icon: Repeat,
         name: 'Loop Elements',
-        createBlock: () => new LoopElementsBlock("Loop Elements", { selector: { type: SelectorType.CSS, value: '' } }),
+        createBlock: () => new LoopElementsBlock("Loop Elements", { selector: { type: SelectorType.Auto, value: '' } }),
     },
     {
         type: 'loop_pagination',
         icon: BookOpen,
         name: 'Loop Pagination',
-        createBlock: () => new LoopPaginationBlock("Loop Pagination", { nextButtonSelector: { type: SelectorType.CSS, value: '' } }),
+        createBlock: () => new LoopPaginationBlock("Loop Pagination", { nextButtonSelector: { type: SelectorType.Auto, value: '' } }),
     },
     {
         type: 'extract_scope',
@@ -88,13 +88,13 @@ const blockTypes = [
         type: 'assert',
         icon: Bug,
         name: 'Assert',
-        createBlock: () => new AssertBlock("Assert", { selector: { type: SelectorType.CSS, value: '' }, check: 'exists' }),
+        createBlock: () => new AssertBlock("Assert", { selector: { type: SelectorType.Auto, value: '' }, check: 'exists' }),
     },
     {
         type: 'condition',
         icon: GitBranch,
         name: 'Condition',
-        createBlock: () => new ConditionBlock({ selector: { type: SelectorType.CSS, value: '' }, check: 'exists' }),
+        createBlock: () => new ConditionBlock({ selector: { type: SelectorType.Auto, value: '' }, check: 'exists' }),
     },
     {
         type: 'macro',
@@ -161,6 +161,7 @@ const BlueprintBlock = observer(({ block, level = 0, leadingControl }: Blueprint
     const [openBranchAdder, setOpenBranchAdder] = useState<BranchName | null>(null);
     const isConditionBlock = block instanceof ConditionBlock;
     const elseChildren = isConditionBlock ? (block.elseChildren || []) : [];
+    const isDisabled = block.enabled === false;
 
     const sensors = useSensors(
         useSensor(PointerSensor),
@@ -231,7 +232,7 @@ const BlueprintBlock = observer(({ block, level = 0, leadingControl }: Blueprint
                 className={`bg-white flex w-full gap-2 items-center justify-between border rounded-lg p-2 cursor-pointer transition-all ${isSelected
                     ? 'border-emerald-500 ring-2 ring-emerald-200 bg-emerald-50'
                     : 'border-gray-300 hover:ring-2 hover:ring-gray-300'
-                    }`}
+                    } ${isDisabled ? 'opacity-60 border-dashed bg-slate-50' : ''}`}
             >
                 <div className='w-10 h-10 bg-gray-200 rounded-lg flex items-center justify-center'>
                     <span className='text-xl font-semibold'>
@@ -240,9 +241,32 @@ const BlueprintBlock = observer(({ block, level = 0, leadingControl }: Blueprint
                 </div>
                 {leadingControl}
                 <div className="flex-1">
-                    <h1 className="text-lg">{block.label}</h1>
+                    <div className="flex flex-wrap items-center gap-2">
+                        <h1 className="text-lg">{block.label}</h1>
+                        {isDisabled ? (
+                            <span className="rounded border border-slate-300 bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600">
+                                Disabled
+                            </span>
+                        ) : null}
+                    </div>
                     <p className='text-xs text-gray-500'>{block.type}</p>
                 </div>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                block.toggleEnabled();
+                            }}
+                            size="icon"
+                            variant="outline"
+                            className='cursor-pointer'
+                        >
+                            {isDisabled ? <Power className="w-4 h-4" /> : <PowerOff className="w-4 h-4" />}
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>{isDisabled ? 'Enable block' : 'Disable block'}</TooltipContent>
+                </Tooltip>
                 <Button onClick={(e) => {
                     e.stopPropagation();
                     handleConfigClick();

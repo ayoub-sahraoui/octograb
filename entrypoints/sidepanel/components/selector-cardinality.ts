@@ -1,24 +1,24 @@
-export type SelectorCardinality = 'single' | 'multiple' | 'any';
+import type { SelectorCardinality } from '@/entrypoints/models/selector-semantics';
 
 export function getSelectorCardinalityLabel(cardinality: SelectorCardinality): string {
     switch (cardinality) {
         case 'single':
-            return 'Single target';
+            return 'Choose one item';
         case 'multiple':
-            return 'Multiple targets';
+            return 'Choose repeating items';
         default:
-            return 'Any match count';
+            return 'Flexible match';
     }
 }
 
 export function getSelectorCardinalityDescription(cardinality: SelectorCardinality): string {
     switch (cardinality) {
         case 'single':
-            return 'This block acts on one element. If multiple match, runtime uses the first match.';
+            return 'This step works best when you target one exact element.';
         case 'multiple':
-            return 'This block is meant to work over a collection of matching elements.';
+            return 'This step should match the repeated items you want to loop over.';
         default:
-            return 'This block can work with either a single match or multiple matches.';
+            return 'This step can work with either one match or several matches.';
     }
 }
 
@@ -27,11 +27,11 @@ export function getSelectorCardinalityWarning(
     count: number,
 ): string | null {
     if (cardinality === 'single' && count > 1) {
-        return `Matched ${count} elements, but this block is single-target and will use only the first match.`;
+        return `Choose one exact item. This selector matches ${count} elements.`;
     }
 
     if (cardinality === 'multiple' && count === 1) {
-        return 'Only 1 element matched. This selector is configured as a multi-target selector.';
+        return 'This looks too narrow right now. A repeating-item selector should usually match more than one item.';
     }
 
     return null;

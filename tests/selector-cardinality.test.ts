@@ -7,24 +7,24 @@ import {
 
 describe('selector cardinality helpers', () => {
     it('labels selector expectations clearly', () => {
-        expect(getSelectorCardinalityLabel('single')).toBe('Single target');
-        expect(getSelectorCardinalityLabel('multiple')).toBe('Multiple targets');
-        expect(getSelectorCardinalityLabel('any')).toBe('Any match count');
+        expect(getSelectorCardinalityLabel('single')).toBe('Choose one item');
+        expect(getSelectorCardinalityLabel('multiple')).toBe('Choose repeating items');
+        expect(getSelectorCardinalityLabel('any')).toBe('Flexible match');
     });
 
     it('warns when a single-target selector matches multiple elements', () => {
         expect(getSelectorCardinalityWarning('single', 16)).toBe(
-            'Matched 16 elements, but this block is single-target and will use only the first match.',
+            'Choose one exact item. This selector matches 16 elements.',
         );
     });
 
     it('warns when a multi-target selector only matches one element', () => {
         expect(getSelectorCardinalityWarning('multiple', 1)).toBe(
-            'Only 1 element matched. This selector is configured as a multi-target selector.',
+            'This looks too narrow right now. A repeating-item selector should usually match more than one item.',
         );
     });
 
     it('describes the single-target runtime behavior', () => {
-        expect(getSelectorCardinalityDescription('single')).toContain('uses the first match');
+        expect(getSelectorCardinalityDescription('single')).toContain('target one exact element');
     });
 });

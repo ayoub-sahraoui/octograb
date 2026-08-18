@@ -34,11 +34,12 @@ export type MessageType =
   | 'ENV_HOVER'
   | 'ENV_SWITCH_FRAME'
   | 'ENV_ABORT'
+  | 'ENV_RESET_ABORT'
+  | 'ENV_GET_CLICK_TARGET_INFO'
   | 'TEST_SELECTOR'
-  // AI Agent Actions
-  | 'ENV_DOM_SNAPSHOT'
-  | 'ENV_QUERY_PREVIEW'
-  | 'ENV_TEST_EXTRACTION';
+  // Visual Wizard Actions
+  | 'ANALYZE_PAGE_STRUCTURE'
+  | 'EXTRACT_PREVIEW';
 
 export interface Message {
   type: MessageType;

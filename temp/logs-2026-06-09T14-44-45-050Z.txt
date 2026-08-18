@@ -1,0 +1,288 @@
+[2026-06-09T14:44:09.095Z] [INFO] ▶ Starting blueprint: jumia (tab 841303634)
+[2026-06-09T14:44:09.132Z] [BLOCK] ▶ Executing: Navigate [No Scope]
+[2026-06-09T14:44:09.132Z] [INFO]   📋 Config: {"url":"https://www.jumia.ma/catalog/?q=books","waitUntil":"domcontentloaded"}
+[2026-06-09T14:44:09.132Z] [INFO]   🔧 Compiled: executor=executeNavigate, parent=root, branch=root, children=0, elseChildren=0
+[2026-06-09T14:44:09.132Z] [INFO]   🧭 Runtime: scope=none, macros=none, vars(local=0, global=0, blueprint=0)
+[2026-06-09T14:44:09.132Z] [INFO] 🌐 Navigating to: https://www.jumia.ma/catalog/?q=books
+[2026-06-09T14:44:09.132Z] [INFO]   📍 Behavior: same_tab
+[2026-06-09T14:44:09.132Z] [INFO]   ⏱ Timeout: 30000ms
+[2026-06-09T14:44:09.132Z] [INFO]   🎯 Current tab ID: 841303634
+[2026-06-09T14:44:09.132Z] [INFO]   🔄 Navigating in current tab 841303634...
+[2026-06-09T14:44:09.870Z] [INFO]   ⏳ Waiting for content script to be ready...
+[2026-06-09T14:44:09.935Z] [SUCCESS] ✓ Navigated to: https://www.jumia.ma/catalog/?q=books
+[2026-06-09T14:44:09.960Z] [INFO]   ⏱ Execution time: 828ms
+[2026-06-09T14:44:09.978Z] [BLOCK] ▶ Executing: Wait [No Scope]
+[2026-06-09T14:44:09.978Z] [INFO]   📋 Config: {"type":"timeout","timeout":3000}
+[2026-06-09T14:44:09.978Z] [INFO]   🔧 Compiled: executor=executeWait, parent=root, branch=root, children=0, elseChildren=0
+[2026-06-09T14:44:09.978Z] [INFO]   🧭 Runtime: scope=none, macros=none, vars(local=0, global=0, blueprint=0)
+[2026-06-09T14:44:09.978Z] [INFO]   ⏱ Wait type: timeout
+[2026-06-09T14:44:09.978Z] [INFO]   ⏳ Waiting 3000ms...
+[2026-06-09T14:44:13.010Z] [INFO]   ⏱ Execution time: 3032ms
+[2026-06-09T14:44:14.309Z] [BLOCK] ▶ Executing: Loop Pagination [No Scope]
+[2026-06-09T14:44:14.309Z] [INFO]   📋 Config: {"nextButtonSelector":{"type":"xpath","value":"//a[@aria-label=\"Page suivante\"]","detected":{"css"...
+[2026-06-09T14:44:14.309Z] [INFO]   🔧 Compiled: executor=executeLoopPagination, parent=root, branch=root, children=1, elseChildren=0
+[2026-06-09T14:44:14.309Z] [INFO]   🧭 Runtime: scope=none, macros=none, vars(local=0, global=0, blueprint=0)
+[2026-06-09T14:44:14.309Z] [INFO]   📄 Loop Pagination
+[2026-06-09T14:44:14.309Z] [INFO]   🔄 Pagination type: button
+[2026-06-09T14:44:14.309Z] [INFO]   � Max pages: 10
+[2026-06-09T14:44:14.309Z] [INFO]   ⏱ Delay between pages: 2000ms
+[2026-06-09T14:44:14.309Z] [INFO]   👶 Children per page: 1
+[2026-06-09T14:44:14.310Z] [INFO]   🎯 Next button selector: //a[@aria-label="Page suivante"]
+[2026-06-09T14:44:14.310Z] [INFO]   📌 Selector type: xpath
+[2026-06-09T14:44:14.310Z] [INFO]   ⚠ On no next button: stop
+[2026-06-09T14:44:14.341Z] [INFO]   ━━━ Page 1 ━━━
+[2026-06-09T14:44:14.342Z] [INFO]     👶 Executing 1 children on this page...
+[2026-06-09T14:44:14.375Z] [BLOCK] ▶ Executing: Loop Elements [Scope: [0]]
+[2026-06-09T14:44:14.375Z] [INFO]   📋 Config: {"selector":{"type":"css","value":"a.core","detected":{"css":"a.core","xpath":".//a[contains(concat(...
+[2026-06-09T14:44:14.375Z] [INFO]   🔧 Compiled: executor=executeLoopElements, parent=dfecc609-4ad6-4402-8c74-ec8c1f48376b, branch=children, children=4, elseChildren=0
+[2026-06-09T14:44:14.375Z] [INFO]   🧭 Runtime: scope=css:[0], macros=none, vars(local=0, global=0, blueprint=0)
+[2026-06-09T14:44:14.375Z] [INFO]   🔁 Loop Elements
+[2026-06-09T14:44:14.375Z] [INFO]   🎯 Selector: a.core
+[2026-06-09T14:44:14.375Z] [INFO]   📌 Selector type: css
+[2026-06-09T14:44:14.375Z] [INFO]   🔍 Has parent scope: Yes
+[2026-06-09T14:44:14.410Z] [INFO]   📍 Loop start URL: https://www.jumia.ma/catalog/?q=books
+[2026-06-09T14:44:14.446Z] [INFO]   📊 Found 40 elements
+[2026-06-09T14:44:14.446Z] [INFO]   🔄 Max iterations: unlimited
+[2026-06-09T14:44:14.446Z] [INFO]   ▶️ Will iterate: 40 times
+[2026-06-09T14:44:14.446Z] [INFO]   👶 Children per iteration: 4
+[2026-06-09T14:44:14.473Z] [INFO]   ━━━ Item 1/40 ━━━
+[2026-06-09T14:44:14.473Z] [INFO]     🔍 Checking if element at index 0 exists...
+[2026-06-09T14:44:14.500Z] [INFO]     ✓ Element exists (40 total elements, check attempt 1)
+[2026-06-09T14:44:14.527Z] [BLOCK] ▶ Executing: Wait [Scope: a.core[0]]
+[2026-06-09T14:44:14.527Z] [INFO]   📋 Config: {"type":"timeout","timeout":1500}
+[2026-06-09T14:44:14.527Z] [INFO]   🔧 Compiled: executor=executeWait, parent=72ff7224-3fde-4552-837b-93176c100964, branch=children, children=0, elseChildren=0
+[2026-06-09T14:44:14.527Z] [INFO]   🧭 Runtime: scope=css:a.core[0], macros=none, vars(local=0, global=0, blueprint=0)
+[2026-06-09T14:44:14.527Z] [INFO]   ⏱ Wait type: timeout
+[2026-06-09T14:44:14.527Z] [INFO]   ⏳ Waiting 1500ms...
+[2026-06-09T14:44:16.048Z] [INFO]   ⏱ Execution time: 1521ms
+[2026-06-09T14:44:16.074Z] [BLOCK] ▶ Executing: Click [Scope: a.core[0]]
+[2026-06-09T14:44:16.074Z] [INFO]   📋 Config: {"selector":{"type":"css","value":":scope","detected":{"css":":scope","xpath":".//self::*"}},"delayB...
+[2026-06-09T14:44:16.074Z] [INFO]   🔧 Compiled: executor=executeClick, parent=72ff7224-3fde-4552-837b-93176c100964, branch=children, children=1, elseChildren=0
+[2026-06-09T14:44:16.074Z] [INFO]   🧭 Runtime: scope=css:a.core[0], macros=none, vars(local=0, global=0, blueprint=0)
+[2026-06-09T14:44:16.074Z] [INFO]   ⏱ Delay before: 1000ms
+[2026-06-09T14:44:17.075Z] [INFO]   🖱 Normal click
+[2026-06-09T14:44:17.075Z] [INFO]   🎯 Selector: :scope
+[2026-06-09T14:44:17.075Z] [INFO]   📌 Selector type: css
+[2026-06-09T14:44:17.075Z] [INFO]   🔍 Has scope: Yes
+[2026-06-09T14:44:17.273Z] [SUCCESS] ✓ Clicked: :scope
+[2026-06-09T14:44:17.576Z] [INFO]   👶 Processing 1 children...
+[2026-06-09T14:44:17.598Z] [BLOCK] ▶ Executing: Extract Scope [Scope: a.core[0]]
+[2026-06-09T14:44:17.598Z] [INFO]   📋 Config: {"fields":[{"id":"6a22eea4-5690-46b1-b2bb-bafed3da94f5","key":"title","selector":{"type":"auto","val...
+[2026-06-09T14:44:17.598Z] [INFO]   🔧 Compiled: executor=executeExtractScope, parent=208021b6-0c71-40c0-877d-882ffa7673a0, branch=children, children=0, elseChildren=0
+[2026-06-09T14:44:17.599Z] [INFO]   🧭 Runtime: scope=css:a.core[0], macros=none, vars(local=0, global=0, blueprint=0)
+[2026-06-09T14:44:17.599Z] [INFO]   📦 Extract Scope
+[2026-06-09T14:44:17.599Z] [INFO]   📊 Fields to extract: 3
+[2026-06-09T14:44:17.599Z] [INFO]   🔄 Reset scope: Yes
+[2026-06-09T14:44:17.599Z] [INFO]   🔍 Has parent scope: Yes
+[2026-06-09T14:44:17.599Z] [INFO]     1. title: selector="h1:first-of-type" attr="text"
+[2026-06-09T14:44:17.599Z] [INFO]     2. price: selector="span.-fs24:first-of-type" attr="text"
+[2026-06-09T14:44:17.599Z] [INFO]     3. cover: selector="(//*[@id="imgs"]/a[1]/img[1])[1]" attr="src"
+[2026-06-09T14:44:17.599Z] [INFO]   📤 Extraction fields being sent: title, price, cover
+[2026-06-09T14:44:17.599Z] [INFO]   🔄 Resetting scope to document root
+[2026-06-09T14:44:17.599Z] [INFO]   📤 Sending extraction request...
+[2026-06-09T14:44:17.628Z] [INFO]   📝 Extracted values:
+[2026-06-09T14:44:17.628Z] [INFO]     title: ""
+[2026-06-09T14:44:17.628Z] [INFO]     price: ""
+[2026-06-09T14:44:17.628Z] [INFO]     cover: ""
+[2026-06-09T14:44:17.628Z] [SUCCESS]   ✓ Extracted row #1
+[2026-06-09T14:44:17.628Z] [INFO]   📊 Total rows collected: 1
+[2026-06-09T14:44:17.679Z] [INFO]   ⏱ Execution time: 80ms
+[2026-06-09T14:44:17.717Z] [INFO]   ⏱ Delay after: 1000ms
+[2026-06-09T14:44:18.718Z] [INFO]   ⏱ Execution time: 2644ms
+[2026-06-09T14:44:18.744Z] [BLOCK] ▶ Executing: Wait [Scope: a.core[0]]
+[2026-06-09T14:44:18.744Z] [INFO]   📋 Config: {"type":"timeout","timeout":2000}
+[2026-06-09T14:44:18.744Z] [INFO]   🔧 Compiled: executor=executeWait, parent=72ff7224-3fde-4552-837b-93176c100964, branch=children, children=0, elseChildren=0
+[2026-06-09T14:44:18.744Z] [INFO]   🧭 Runtime: scope=css:a.core[0], macros=none, vars(local=1, global=0, blueprint=0)
+[2026-06-09T14:44:18.744Z] [INFO]   ⏱ Wait type: timeout
+[2026-06-09T14:44:18.744Z] [INFO]   ⏳ Waiting 2000ms...
+[2026-06-09T14:44:20.782Z] [INFO]   ⏱ Execution time: 2038ms
+[2026-06-09T14:44:20.808Z] [BLOCK] ▶ Executing: Go Back [Scope: a.core[0]]
+[2026-06-09T14:44:20.808Z] [INFO]   📋 Config: {}
+[2026-06-09T14:44:20.808Z] [INFO]   🔧 Compiled: executor=executeGoBack, parent=72ff7224-3fde-4552-837b-93176c100964, branch=children, children=0, elseChildren=0
+[2026-06-09T14:44:20.808Z] [INFO]   🧭 Runtime: scope=css:a.core[0], macros=none, vars(local=1, global=0, blueprint=0)
+[2026-06-09T14:44:20.808Z] [INFO] ↩ Going back...
+[2026-06-09T14:44:20.808Z] [INFO]   🎯 Current tab ID: 841303634
+[2026-06-09T14:44:20.808Z] [INFO]   🔄 Navigating to stored URL: https://www.jumia.ma/catalog/?q=books
+[2026-06-09T14:44:20.846Z] [INFO]   ⏳ Waiting for navigation to complete...
+[2026-06-09T14:44:21.541Z] [INFO]   ⏳ Waiting for content script to be ready...
+[2026-06-09T14:44:21.611Z] [INFO]   ⏱ Waiting 500ms for page stabilization...
+[2026-06-09T14:44:22.115Z] [INFO]   📍 Current URL after go_back: https://www.jumia.ma/catalog/?q=books
+[2026-06-09T14:44:22.115Z] [SUCCESS] ✓ Went back
+[2026-06-09T14:44:22.174Z] [INFO]   ⏱ Execution time: 1366ms
+[2026-06-09T14:44:22.220Z] [INFO]   ━━━ Item 2/40 ━━━
+[2026-06-09T14:44:22.220Z] [INFO]     🔍 Checking if element at index 1 exists...
+[2026-06-09T14:44:22.262Z] [INFO]     ✓ Element exists (46 total elements, check attempt 1)
+[2026-06-09T14:44:22.321Z] [BLOCK] ▶ Executing: Wait [Scope: a.core[1]]
+[2026-06-09T14:44:22.321Z] [INFO]   📋 Config: {"type":"timeout","timeout":1500}
+[2026-06-09T14:44:22.321Z] [INFO]   🔧 Compiled: executor=executeWait, parent=72ff7224-3fde-4552-837b-93176c100964, branch=children, children=0, elseChildren=0
+[2026-06-09T14:44:22.321Z] [INFO]   🧭 Runtime: scope=css:a.core[1], macros=none, vars(local=0, global=0, blueprint=0)
+[2026-06-09T14:44:22.321Z] [INFO]   ⏱ Wait type: timeout
+[2026-06-09T14:44:22.321Z] [INFO]   ⏳ Waiting 1500ms...
+[2026-06-09T14:44:23.882Z] [INFO]   ⏱ Execution time: 1561ms
+[2026-06-09T14:44:23.919Z] [BLOCK] ▶ Executing: Click [Scope: a.core[1]]
+[2026-06-09T14:44:23.919Z] [INFO]   📋 Config: {"selector":{"type":"css","value":":scope","detected":{"css":":scope","xpath":".//self::*"}},"delayB...
+[2026-06-09T14:44:23.919Z] [INFO]   🔧 Compiled: executor=executeClick, parent=72ff7224-3fde-4552-837b-93176c100964, branch=children, children=1, elseChildren=0
+[2026-06-09T14:44:23.919Z] [INFO]   🧭 Runtime: scope=css:a.core[1], macros=none, vars(local=0, global=0, blueprint=0)
+[2026-06-09T14:44:23.919Z] [INFO]   ⏱ Delay before: 1000ms
+[2026-06-09T14:44:24.920Z] [INFO]   🖱 Normal click
+[2026-06-09T14:44:24.920Z] [INFO]   🎯 Selector: :scope
+[2026-06-09T14:44:24.920Z] [INFO]   📌 Selector type: css
+[2026-06-09T14:44:24.920Z] [INFO]   🔍 Has scope: Yes
+[2026-06-09T14:44:25.143Z] [SUCCESS] ✓ Clicked: :scope
+[2026-06-09T14:44:25.446Z] [INFO]   👶 Processing 1 children...
+[2026-06-09T14:44:25.490Z] [BLOCK] ▶ Executing: Extract Scope [Scope: a.core[1]]
+[2026-06-09T14:44:25.490Z] [INFO]   📋 Config: {"fields":[{"id":"6a22eea4-5690-46b1-b2bb-bafed3da94f5","key":"title","selector":{"type":"auto","val...
+[2026-06-09T14:44:25.490Z] [INFO]   🔧 Compiled: executor=executeExtractScope, parent=208021b6-0c71-40c0-877d-882ffa7673a0, branch=children, children=0, elseChildren=0
+[2026-06-09T14:44:25.490Z] [INFO]   🧭 Runtime: scope=css:a.core[1], macros=none, vars(local=0, global=0, blueprint=0)
+[2026-06-09T14:44:25.490Z] [INFO]   📦 Extract Scope
+[2026-06-09T14:44:25.490Z] [INFO]   📊 Fields to extract: 3
+[2026-06-09T14:44:25.490Z] [INFO]   🔄 Reset scope: Yes
+[2026-06-09T14:44:25.490Z] [INFO]   🔍 Has parent scope: Yes
+[2026-06-09T14:44:25.490Z] [INFO]     1. title: selector="h1:first-of-type" attr="text"
+[2026-06-09T14:44:25.490Z] [INFO]     2. price: selector="span.-fs24:first-of-type" attr="text"
+[2026-06-09T14:44:25.490Z] [INFO]     3. cover: selector="(//*[@id="imgs"]/a[1]/img[1])[1]" attr="src"
+[2026-06-09T14:44:25.490Z] [INFO]   📤 Extraction fields being sent: title, price, cover
+[2026-06-09T14:44:25.490Z] [INFO]   🔄 Resetting scope to document root
+[2026-06-09T14:44:25.490Z] [INFO]   📤 Sending extraction request...
+[2026-06-09T14:44:26.297Z] [INFO]   📝 Extracted values:
+[2026-06-09T14:44:26.297Z] [INFO]     title: "Book Store the Seven Husbands of Evelyn Hugo"
+[2026-06-09T14:44:26.297Z] [INFO]     price: "75.00 Dhs"
+[2026-06-09T14:44:26.297Z] [INFO]     cover: "https://ma.jumia.is/unsafe/fit-in/500x500/filters:..."
+[2026-06-09T14:44:26.297Z] [SUCCESS]   ✓ Extracted row #2
+[2026-06-09T14:44:26.297Z] [INFO]   📊 Total rows collected: 2
+[2026-06-09T14:44:26.343Z] [INFO]   ⏱ Execution time: 853ms
+[2026-06-09T14:44:26.381Z] [INFO]   ⏱ Delay after: 1000ms
+[2026-06-09T14:44:27.382Z] [INFO]   ⏱ Execution time: 3462ms
+[2026-06-09T14:44:27.409Z] [BLOCK] ▶ Executing: Wait [Scope: a.core[1]]
+[2026-06-09T14:44:27.409Z] [INFO]   📋 Config: {"type":"timeout","timeout":2000}
+[2026-06-09T14:44:27.409Z] [INFO]   🔧 Compiled: executor=executeWait, parent=72ff7224-3fde-4552-837b-93176c100964, branch=children, children=0, elseChildren=0
+[2026-06-09T14:44:27.409Z] [INFO]   🧭 Runtime: scope=css:a.core[1], macros=none, vars(local=1, global=0, blueprint=0)
+[2026-06-09T14:44:27.409Z] [INFO]   ⏱ Wait type: timeout
+[2026-06-09T14:44:27.409Z] [INFO]   ⏳ Waiting 2000ms...
+[2026-06-09T14:44:29.473Z] [INFO]   ⏱ Execution time: 2064ms
+[2026-06-09T14:44:29.504Z] [BLOCK] ▶ Executing: Go Back [Scope: a.core[1]]
+[2026-06-09T14:44:29.504Z] [INFO]   📋 Config: {}
+[2026-06-09T14:44:29.504Z] [INFO]   🔧 Compiled: executor=executeGoBack, parent=72ff7224-3fde-4552-837b-93176c100964, branch=children, children=0, elseChildren=0
+[2026-06-09T14:44:29.504Z] [INFO]   🧭 Runtime: scope=css:a.core[1], macros=none, vars(local=1, global=0, blueprint=0)
+[2026-06-09T14:44:29.504Z] [INFO] ↩ Going back...
+[2026-06-09T14:44:29.504Z] [INFO]   🎯 Current tab ID: 841303634
+[2026-06-09T14:44:29.504Z] [INFO]   🔄 Navigating to stored URL: https://www.jumia.ma/catalog/?q=books
+[2026-06-09T14:44:29.553Z] [INFO]   ⏳ Waiting for navigation to complete...
+[2026-06-09T14:44:30.120Z] [INFO]   ⏳ Waiting for content script to be ready...
+[2026-06-09T14:44:30.203Z] [INFO]   ⏱ Waiting 500ms for page stabilization...
+[2026-06-09T14:44:30.706Z] [INFO]   📍 Current URL after go_back: https://www.jumia.ma/catalog/?q=books
+[2026-06-09T14:44:30.706Z] [SUCCESS] ✓ Went back
+[2026-06-09T14:44:30.775Z] [INFO]   ⏱ Execution time: 1271ms
+[2026-06-09T14:44:30.838Z] [INFO]   ━━━ Item 3/40 ━━━
+[2026-06-09T14:44:30.838Z] [INFO]     🔍 Checking if element at index 2 exists...
+[2026-06-09T14:44:30.916Z] [INFO]     ✓ Element exists (46 total elements, check attempt 1)
+[2026-06-09T14:44:30.973Z] [BLOCK] ▶ Executing: Wait [Scope: a.core[2]]
+[2026-06-09T14:44:30.973Z] [INFO]   📋 Config: {"type":"timeout","timeout":1500}
+[2026-06-09T14:44:30.973Z] [INFO]   🔧 Compiled: executor=executeWait, parent=72ff7224-3fde-4552-837b-93176c100964, branch=children, children=0, elseChildren=0
+[2026-06-09T14:44:30.973Z] [INFO]   🧭 Runtime: scope=css:a.core[2], macros=none, vars(local=0, global=0, blueprint=0)
+[2026-06-09T14:44:30.973Z] [INFO]   ⏱ Wait type: timeout
+[2026-06-09T14:44:30.973Z] [INFO]   ⏳ Waiting 1500ms...
+[2026-06-09T14:44:32.542Z] [INFO]   ⏱ Execution time: 1569ms
+[2026-06-09T14:44:32.580Z] [BLOCK] ▶ Executing: Click [Scope: a.core[2]]
+[2026-06-09T14:44:32.580Z] [INFO]   📋 Config: {"selector":{"type":"css","value":":scope","detected":{"css":":scope","xpath":".//self::*"}},"delayB...
+[2026-06-09T14:44:32.580Z] [INFO]   🔧 Compiled: executor=executeClick, parent=72ff7224-3fde-4552-837b-93176c100964, branch=children, children=1, elseChildren=0
+[2026-06-09T14:44:32.580Z] [INFO]   🧭 Runtime: scope=css:a.core[2], macros=none, vars(local=0, global=0, blueprint=0)
+[2026-06-09T14:44:32.580Z] [INFO]   ⏱ Delay before: 1000ms
+[2026-06-09T14:44:33.581Z] [INFO]   🖱 Normal click
+[2026-06-09T14:44:33.581Z] [INFO]   🎯 Selector: :scope
+[2026-06-09T14:44:33.581Z] [INFO]   📌 Selector type: css
+[2026-06-09T14:44:33.581Z] [INFO]   🔍 Has scope: Yes
+[2026-06-09T14:44:33.788Z] [SUCCESS] ✓ Clicked: :scope
+[2026-06-09T14:44:34.090Z] [INFO]   👶 Processing 1 children...
+[2026-06-09T14:44:34.153Z] [BLOCK] ▶ Executing: Extract Scope [Scope: a.core[2]]
+[2026-06-09T14:44:34.153Z] [INFO]   📋 Config: {"fields":[{"id":"6a22eea4-5690-46b1-b2bb-bafed3da94f5","key":"title","selector":{"type":"auto","val...
+[2026-06-09T14:44:34.153Z] [INFO]   🔧 Compiled: executor=executeExtractScope, parent=208021b6-0c71-40c0-877d-882ffa7673a0, branch=children, children=0, elseChildren=0
+[2026-06-09T14:44:34.153Z] [INFO]   🧭 Runtime: scope=css:a.core[2], macros=none, vars(local=0, global=0, blueprint=0)
+[2026-06-09T14:44:34.153Z] [INFO]   📦 Extract Scope
+[2026-06-09T14:44:34.153Z] [INFO]   📊 Fields to extract: 3
+[2026-06-09T14:44:34.153Z] [INFO]   🔄 Reset scope: Yes
+[2026-06-09T14:44:34.153Z] [INFO]   🔍 Has parent scope: Yes
+[2026-06-09T14:44:34.153Z] [INFO]     1. title: selector="h1:first-of-type" attr="text"
+[2026-06-09T14:44:34.153Z] [INFO]     2. price: selector="span.-fs24:first-of-type" attr="text"
+[2026-06-09T14:44:34.153Z] [INFO]     3. cover: selector="(//*[@id="imgs"]/a[1]/img[1])[1]" attr="src"
+[2026-06-09T14:44:34.153Z] [INFO]   📤 Extraction fields being sent: title, price, cover
+[2026-06-09T14:44:34.153Z] [INFO]   🔄 Resetting scope to document root
+[2026-06-09T14:44:34.153Z] [INFO]   📤 Sending extraction request...
+[2026-06-09T14:44:34.207Z] [INFO]   📝 Extracted values:
+[2026-06-09T14:44:34.207Z] [INFO]     title: ""
+[2026-06-09T14:44:34.207Z] [INFO]     price: ""
+[2026-06-09T14:44:34.207Z] [INFO]     cover: ""
+[2026-06-09T14:44:34.207Z] [WARN]   ⏭ Duplicate record skipped
+[2026-06-09T14:44:34.264Z] [INFO]   ⏱ Execution time: 111ms
+[2026-06-09T14:44:34.306Z] [INFO]   ⏱ Delay after: 1000ms
+[2026-06-09T14:44:35.308Z] [INFO]   ⏱ Execution time: 2728ms
+[2026-06-09T14:44:35.341Z] [BLOCK] ▶ Executing: Wait [Scope: a.core[2]]
+[2026-06-09T14:44:35.341Z] [INFO]   📋 Config: {"type":"timeout","timeout":2000}
+[2026-06-09T14:44:35.341Z] [INFO]   🔧 Compiled: executor=executeWait, parent=72ff7224-3fde-4552-837b-93176c100964, branch=children, children=0, elseChildren=0
+[2026-06-09T14:44:35.341Z] [INFO]   🧭 Runtime: scope=css:a.core[2], macros=none, vars(local=0, global=0, blueprint=0)
+[2026-06-09T14:44:35.341Z] [INFO]   ⏱ Wait type: timeout
+[2026-06-09T14:44:35.341Z] [INFO]   ⏳ Waiting 2000ms...
+[2026-06-09T14:44:37.388Z] [INFO]   ⏱ Execution time: 2047ms
+[2026-06-09T14:44:37.421Z] [BLOCK] ▶ Executing: Go Back [Scope: a.core[2]]
+[2026-06-09T14:44:37.421Z] [INFO]   📋 Config: {}
+[2026-06-09T14:44:37.421Z] [INFO]   🔧 Compiled: executor=executeGoBack, parent=72ff7224-3fde-4552-837b-93176c100964, branch=children, children=0, elseChildren=0
+[2026-06-09T14:44:37.421Z] [INFO]   🧭 Runtime: scope=css:a.core[2], macros=none, vars(local=0, global=0, blueprint=0)
+[2026-06-09T14:44:37.421Z] [INFO] ↩ Going back...
+[2026-06-09T14:44:37.421Z] [INFO]   🎯 Current tab ID: 841303634
+[2026-06-09T14:44:37.421Z] [INFO]   🔄 Navigating to stored URL: https://www.jumia.ma/catalog/?q=books
+[2026-06-09T14:44:37.468Z] [INFO]   ⏳ Waiting for navigation to complete...
+[2026-06-09T14:44:38.040Z] [INFO]   ⏳ Waiting for content script to be ready...
+[2026-06-09T14:44:38.115Z] [INFO]   ⏱ Waiting 500ms for page stabilization...
+[2026-06-09T14:44:38.617Z] [INFO]   📍 Current URL after go_back: https://www.jumia.ma/catalog/?q=books
+[2026-06-09T14:44:38.617Z] [SUCCESS] ✓ Went back
+[2026-06-09T14:44:38.662Z] [INFO]   ⏱ Execution time: 1241ms
+[2026-06-09T14:44:38.704Z] [INFO]   ━━━ Item 4/40 ━━━
+[2026-06-09T14:44:38.704Z] [INFO]     🔍 Checking if element at index 3 exists...
+[2026-06-09T14:44:38.772Z] [INFO]     ✓ Element exists (46 total elements, check attempt 1)
+[2026-06-09T14:44:38.834Z] [BLOCK] ▶ Executing: Wait [Scope: a.core[3]]
+[2026-06-09T14:44:38.834Z] [INFO]   📋 Config: {"type":"timeout","timeout":1500}
+[2026-06-09T14:44:38.834Z] [INFO]   🔧 Compiled: executor=executeWait, parent=72ff7224-3fde-4552-837b-93176c100964, branch=children, children=0, elseChildren=0
+[2026-06-09T14:44:38.834Z] [INFO]   🧭 Runtime: scope=css:a.core[3], macros=none, vars(local=0, global=0, blueprint=0)
+[2026-06-09T14:44:38.834Z] [INFO]   ⏱ Wait type: timeout
+[2026-06-09T14:44:38.834Z] [INFO]   ⏳ Waiting 1500ms...
+[2026-06-09T14:44:40.403Z] [INFO]   ⏱ Execution time: 1569ms
+[2026-06-09T14:44:40.440Z] [BLOCK] ▶ Executing: Click [Scope: a.core[3]]
+[2026-06-09T14:44:40.440Z] [INFO]   📋 Config: {"selector":{"type":"css","value":":scope","detected":{"css":":scope","xpath":".//self::*"}},"delayB...
+[2026-06-09T14:44:40.440Z] [INFO]   🔧 Compiled: executor=executeClick, parent=72ff7224-3fde-4552-837b-93176c100964, branch=children, children=1, elseChildren=0
+[2026-06-09T14:44:40.440Z] [INFO]   🧭 Runtime: scope=css:a.core[3], macros=none, vars(local=0, global=0, blueprint=0)
+[2026-06-09T14:44:40.440Z] [INFO]   ⏱ Delay before: 1000ms
+[2026-06-09T14:44:41.441Z] [INFO]   🖱 Normal click
+[2026-06-09T14:44:41.441Z] [INFO]   🎯 Selector: :scope
+[2026-06-09T14:44:41.441Z] [INFO]   📌 Selector type: css
+[2026-06-09T14:44:41.441Z] [INFO]   🔍 Has scope: Yes
+[2026-06-09T14:44:41.638Z] [SUCCESS] ✓ Clicked: :scope
+[2026-06-09T14:44:41.939Z] [INFO]   👶 Processing 1 children...
+[2026-06-09T14:44:41.976Z] [BLOCK] ▶ Executing: Extract Scope [Scope: a.core[3]]
+[2026-06-09T14:44:41.976Z] [INFO]   📋 Config: {"fields":[{"id":"6a22eea4-5690-46b1-b2bb-bafed3da94f5","key":"title","selector":{"type":"auto","val...
+[2026-06-09T14:44:41.976Z] [INFO]   🔧 Compiled: executor=executeExtractScope, parent=208021b6-0c71-40c0-877d-882ffa7673a0, branch=children, children=0, elseChildren=0
+[2026-06-09T14:44:41.976Z] [INFO]   🧭 Runtime: scope=css:a.core[3], macros=none, vars(local=0, global=0, blueprint=0)
+[2026-06-09T14:44:41.976Z] [INFO]   📦 Extract Scope
+[2026-06-09T14:44:41.976Z] [INFO]   📊 Fields to extract: 3
+[2026-06-09T14:44:41.976Z] [INFO]   🔄 Reset scope: Yes
+[2026-06-09T14:44:41.976Z] [INFO]   🔍 Has parent scope: Yes
+[2026-06-09T14:44:41.976Z] [INFO]     1. title: selector="h1:first-of-type" attr="text"
+[2026-06-09T14:44:41.976Z] [INFO]     2. price: selector="span.-fs24:first-of-type" attr="text"
+[2026-06-09T14:44:41.976Z] [INFO]     3. cover: selector="(//*[@id="imgs"]/a[1]/img[1])[1]" attr="src"
+[2026-06-09T14:44:41.976Z] [INFO]   📤 Extraction fields being sent: title, price, cover
+[2026-06-09T14:44:41.976Z] [INFO]   🔄 Resetting scope to document root
+[2026-06-09T14:44:41.976Z] [INFO]   📤 Sending extraction request...
+[2026-06-09T14:44:42.847Z] [INFO]   📝 Extracted values:
+[2026-06-09T14:44:42.847Z] [INFO]     title: "Book Store The Psychology of Money Book by Morgan ..."
+[2026-06-09T14:44:42.847Z] [INFO]     price: "70.00 Dhs"
+[2026-06-09T14:44:42.847Z] [INFO]     cover: "https://ma.jumia.is/unsafe/fit-in/500x500/filters:..."
+[2026-06-09T14:44:42.847Z] [SUCCESS]   ✓ Extracted row #3
+[2026-06-09T14:44:42.847Z] [INFO]   📊 Total rows collected: 3
+[2026-06-09T14:44:42.933Z] [INFO]   ⏱ Execution time: 957ms
+[2026-06-09T14:44:42.994Z] [INFO]   ⏱ Delay after: 1000ms
+[2026-06-09T14:44:43.995Z] [INFO]   ⏱ Execution time: 3555ms
+[2026-06-09T14:44:44.044Z] [BLOCK] ▶ Executing: Wait [Scope: a.core[3]]
+[2026-06-09T14:44:44.044Z] [INFO]   📋 Config: {"type":"timeout","timeout":2000}
+[2026-06-09T14:44:44.044Z] [INFO]   🔧 Compiled: executor=executeWait, parent=72ff7224-3fde-4552-837b-93176c100964, branch=children, children=0, elseChildren=0
+[2026-06-09T14:44:44.044Z] [INFO]   🧭 Runtime: scope=css:a.core[3], macros=none, vars(local=1, global=0, blueprint=0)
+[2026-06-09T14:44:44.044Z] [INFO]   ⏱ Wait type: timeout
+[2026-06-09T14:44:44.044Z] [INFO]   ⏳ Waiting 2000ms...

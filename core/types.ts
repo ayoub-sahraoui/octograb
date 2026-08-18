@@ -1,4 +1,4 @@
-export type SelectorType = 'css' | 'xpath';
+export type SelectorType = 'css' | 'xpath' | 'text' | 'auto';
 
 export type TransformerType =
   | 'trim'

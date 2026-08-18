@@ -92,7 +92,7 @@ export class ClickBlock extends BlockBase {
     }
 
     static fromJson(json: any): ClickBlock {
-        const block = new ClickBlock(json.label || 'Click', json.config || { selector: { type: 'css', value: '' } });
+        const block = new ClickBlock(json.label || 'Click', json.config || { selector: { type: 'auto', value: '' } });
         if (json.id) block.id = json.id;
         if (json.enabled !== undefined) block.setEnabled(json.enabled);
         if (json.description !== undefined) block.setDescription(json.description);

@@ -1,4 +1,5 @@
 export enum SelectorType {
+  Auto = 'auto',
   CSS = 'css',
   XPath = 'xpath',
   Text = 'text', 

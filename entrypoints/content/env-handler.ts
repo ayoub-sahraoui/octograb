@@ -1,6 +1,5 @@
 import { registerRpcHandler, MessageResponse, Message } from '../../core/messaging';
 import { resolveScope, getElement, getElements } from '../../core/dom-query';
-import { createDomSnapshot, queryElementPreview, testExtraction } from '../../core/ai/dom-snapshot';
 import { buildSwitchFrameResult } from './switch-frame-result';
 import { DomExtractionField } from '../../core/extraction-contract';
 
@@ -20,6 +19,36 @@ function cleanupScopeMarker(markerId: string): void {
     const el = document.querySelector(`[data-octo-scope="${markerId}"]`);
     if (el) el.removeAttribute('data-octo-scope');
     scopeMarkers.delete(markerId);
+}
+
+// ─── Utility: Selector Test Highlights ─────────────────────────────────────
+
+let testHighlightOverlays: { element: HTMLElement; target: HTMLElement }[] = [];
+
+function clearTestHighlights(): void {
+    for (const item of testHighlightOverlays) {
+        item.element.remove();
+    }
+    testHighlightOverlays = [];
+    window.removeEventListener('scroll', repositionTestHighlights, true);
+    window.removeEventListener('resize', repositionTestHighlights, true);
+}
+
+function repositionTestHighlights(): void {
+    for (const item of testHighlightOverlays) {
+        const rect = item.target.getBoundingClientRect();
+        if (rect.width === 0 || rect.height === 0) {
+            item.element.style.display = 'none';
+            continue;
+        }
+        Object.assign(item.element.style, {
+            display: 'block',
+            top: `${rect.top + window.scrollY}px`,
+            left: `${rect.left + window.scrollX}px`,
+            width: `${rect.width}px`,
+            height: `${rect.height}px`
+        });
+    }
 }
 
 // ─── Utility: Abort Checking ─────────────────────────────────────────────
@@ -113,7 +142,7 @@ function extractValueFromElement(el: Element, attribute: string): string | null 
     }
 }
 
-function applyTransformers(value: any, transformers: any[]): any {
+export function applyTransformers(value: any, transformers: any[]): any {
     if (!value || !transformers) return value;
 
     for (const transform of transformers) {
@@ -160,9 +189,9 @@ function applyTransformers(value: any, transformers: any[]): any {
                                 if (match && match[transform.extractGroup]) {
                                     value = match[transform.extractGroup];
                                 } else {
-                                    // Group not found - log warning but preserve original
+                                    // Group not found - log warning and return null
                                     console.warn(`[OctoGrab] Regex group ${transform.extractGroup} not found in match for "${transform.pattern}" on: "${value.substring(0, 50)}"`);
-                                    // Keep original value
+                                    value = null;
                                 }
                             } else {
                                 // Default: extract first match
@@ -449,6 +478,10 @@ export function initEnvHandler() {
                     (window as any).__octoGrabAborted__ = true;
                     return { success: true };
 
+                case 'ENV_RESET_ABORT':
+                    (window as any).__octoGrabAborted__ = false;
+                    return { success: true };
+
                 case 'ENV_CLICK': {
                     throwIfAborted();
                     const { selector, selectorType, scope, openInNewTab } = msg.data;
@@ -496,6 +529,35 @@ export function initEnvHandler() {
                         }
                     }
                     return { success: true };
+                }
+
+                case 'ENV_GET_CLICK_TARGET_INFO': {
+                    const { selector, selectorType, scope } = msg.data;
+                    const scopeEl = resolveScope(scope);
+                    let target = scopeEl;
+
+                    if (selector && selector.trim()) {
+                        const el = getElement(selector, selectorType || 'css', scopeEl);
+                        if (!el) {
+                            return { success: false, error: `Element not found: ${selector}` };
+                        }
+                        target = el;
+                    }
+
+                    const clickableTarget = findClickableElement(target);
+                    const anchor = clickableTarget.tagName === 'A'
+                        ? clickableTarget
+                        : clickableTarget.closest('a') || (target.tagName === 'A' ? target : target.closest('a'));
+                    const href = anchor ? (anchor as HTMLAnchorElement).href || anchor.getAttribute('href') : null;
+
+                    return {
+                        success: true,
+                        data: {
+                            href,
+                            tagName: clickableTarget.tagName,
+                            navigable: Boolean(href),
+                        },
+                    };
                 }
 
                 case 'ENV_HOVER': {
@@ -822,13 +884,69 @@ export function initEnvHandler() {
                 }
 
                 case 'TEST_SELECTOR': {
-                    const { selector, selectorType } = msg.data;
+                    const { selector, selectorType, scope, highlight = false } = msg.data;
                     if (!selector || !selector.trim()) {
+                        clearTestHighlights();
                         return { success: true, data: { count: 0, elements: [] } };
                     }
 
                     try {
-                        const elements = getElements(selector, selectorType || 'css');
+                        const scopeEl = resolveScope(scope);
+                        const elements = getElements(selector, selectorType || 'css', scopeEl);
+
+                        clearTestHighlights();
+
+                        // Visually highlight matched elements on the page with a premium glowing outline overlay
+                        if (highlight && elements.length > 0) {
+                            if (!document.getElementById('octo-highlight-styles')) {
+                                const style = document.createElement('style');
+                                style.id = 'octo-highlight-styles';
+                                style.textContent = `
+                                    @keyframes octoPulseGlow {
+                                        0% { box-shadow: 0 0 6px rgba(139, 92, 246, 0.45); border-color: rgba(139, 92, 246, 0.8); }
+                                        50% { box-shadow: 0 0 16px rgba(139, 92, 246, 0.85); border-color: rgba(139, 92, 246, 1); }
+                                        100% { box-shadow: 0 0 6px rgba(139, 92, 246, 0.45); border-color: rgba(139, 92, 246, 0.8); }
+                                    }
+                                    .octo-test-highlight {
+                                        position: absolute;
+                                        pointer-events: none;
+                                        z-index: 2147483640;
+                                        background-color: rgba(139, 92, 246, 0.08);
+                                        border: 2px dashed #8b5cf6;
+                                        border-radius: 4px;
+                                        box-sizing: border-box;
+                                        animation: octoPulseGlow 2s infinite ease-in-out;
+                                        transition: top 0.1s ease, left 0.1s ease, width 0.1s ease, height 0.1s ease;
+                                    }
+                                `;
+                                document.head.appendChild(style);
+                            }
+
+                            elements.forEach((el, index) => {
+                                const htmlEl = el as HTMLElement;
+                                const rect = htmlEl.getBoundingClientRect();
+                                if (rect.width === 0 && rect.height === 0) return;
+
+                                const overlay = document.createElement('div');
+                                overlay.className = 'octo-test-highlight';
+                                Object.assign(overlay.style, {
+                                    top: `${rect.top + window.scrollY}px`,
+                                    left: `${rect.left + window.scrollX}px`,
+                                    width: `${rect.width}px`,
+                                    height: `${rect.height}px`
+                                });
+                                document.body.appendChild(overlay);
+                                testHighlightOverlays.push({ element: overlay, target: htmlEl });
+
+                                if (index === 0) {
+                                    htmlEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                }
+                            });
+
+                            window.addEventListener('scroll', repositionTestHighlights, true);
+                            window.addEventListener('resize', repositionTestHighlights, true);
+                        }
+
                         const count = elements.length;
                         // Return info about first few matched elements (max 5)
                         const elementInfo = elements.slice(0, 5).map(el => {
@@ -928,24 +1046,6 @@ export function initEnvHandler() {
 
                     await monitor.waitForIdle(timeout || 10000);
                     return { success: true };
-                }
-
-                // ─── AI Agent Handlers ───────────────────────────────────
-                case 'ENV_DOM_SNAPSHOT': {
-                    const snapshot = createDomSnapshot();
-                    return { success: true, data: snapshot };
-                }
-
-                case 'ENV_QUERY_PREVIEW': {
-                    const { selector, selectorType, maxResults } = msg.data;
-                    const result = queryElementPreview(selector, selectorType || 'css', maxResults || 5);
-                    return { success: true, data: result };
-                }
-
-                case 'ENV_TEST_EXTRACTION': {
-                    const { loopSelector, fields, maxItems } = msg.data;
-                    const extractionResult = testExtraction(loopSelector, fields, maxItems || 5);
-                    return { success: true, data: extractionResult };
                 }
             }
 

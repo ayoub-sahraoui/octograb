@@ -8,6 +8,7 @@ import { Loader2, ShieldAlert } from "lucide-react";
 
 import { isDevMode } from '@/core/dev-mode';
 import { ConfirmProvider } from './components/confirm-dialog';
+import { Toaster } from '@/components/ui/sonner';
 
 export default observer(function App() {
   const licenseStore = useLicenseStore();
@@ -25,6 +26,7 @@ export default observer(function App() {
         <div className="w-full h-screen bg-gray-200 p-2 flex flex-col gap-2 overflow-hidden">
           <Router />
         </div>
+        <Toaster />
       </ConfirmProvider>
     );
   }
@@ -64,6 +66,7 @@ export default observer(function App() {
       <div className="w-full h-screen bg-gray-200 p-2 flex flex-col gap-2 overflow-hidden">
         <Router />
       </div>
+      <Toaster />
     </ConfirmProvider>
   );
 })

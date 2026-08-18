@@ -12,13 +12,6 @@ const notifications = [
         type: "success",
     },
     {
-        id: 2,
-        title: "AI assistant preview available",
-        description: "You can now open the AI chat tab and preview the upcoming conversation workflow.",
-        time: "10 min ago",
-        type: "info",
-    },
-    {
         id: 3,
         title: "Checkpoint ready",
         description: "A paused execution can be resumed from the latest saved checkpoint.",

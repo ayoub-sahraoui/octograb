@@ -124,7 +124,7 @@ export class LoopPaginationBlock extends BlockBase {
     }
 
     static fromJson(json: any): LoopPaginationBlock {
-        const block = new LoopPaginationBlock(json.label || 'Loop Pagination', json.config || { nextButtonSelector: { type: 'css', value: '' } });
+        const block = new LoopPaginationBlock(json.label || 'Loop Pagination', json.config || { nextButtonSelector: { type: 'auto', value: '' } });
         if (json.id) block.id = json.id;
         if (json.enabled !== undefined) block.setEnabled(json.enabled);
         if (json.description !== undefined) block.setDescription(json.description);
