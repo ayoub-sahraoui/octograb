@@ -1,0 +1,193 @@
+{
+  "formatVersion": 1,
+  "id": "ed287c46-3344-4460-9b61-7aa20fe56dc7",
+  "name": "Catalog · final page",
+  "description": "Web Scraper practice catalog. At most two passes and two detail visits per pass (four rows). Captures listing values, opens each detail in a separate tab, then saves one row. Increase Maximum items per pass to collect more.",
+  "startUrl": "https://webscraper.io/test-sites/pagination?page=17",
+  "revision": 1,
+  "updatedAt": "2026-10-11T23:48:57.459Z",
+  "blocks": [
+    {
+      "id": "171bafb0-1736-4f1f-be2a-fa0298b6d408",
+      "type": "wait",
+      "label": "Wait",
+      "config": {
+        "mode": "Element appears",
+        "selector": ".test-sites-card",
+        "timeout": 20000
+      },
+      "fields": [],
+      "children": {}
+    },
+    {
+      "id": "c35d801b-392f-4037-a864-a73a57505dac",
+      "type": "repeatUntil",
+      "label": "Repeat until",
+      "config": {
+        "selector": "a[rel=\"next\"]",
+        "condition": "Element is missing",
+        "maxIterations": 2
+      },
+      "fields": [],
+      "children": {
+        "body": [
+          {
+            "id": "206f039a-d0ba-42ee-9ec5-bdb23a26b2d2",
+            "type": "forEach",
+            "label": "For each item",
+            "config": {
+              "selector": ".test-sites-card",
+              "maxItems": 10
+            },
+            "fields": [],
+            "children": {
+              "body": [
+                {
+                  "id": "daeb7da7-e938-48d3-bfc0-0b4c3575d0f8",
+                  "type": "readValues",
+                  "label": "Read values",
+                  "config": {},
+                  "fields": [
+                    {
+                      "id": "cbae6f44-79da-4eee-a72e-6256561e5bdc",
+                      "name": "listing_title",
+                      "selector": ".card-title a",
+                      "read": "text"
+                    },
+                    {
+                      "id": "e016fcae-627d-4ad0-8454-5d8e25c33fbf",
+                      "name": "detail_url",
+                      "selector": ".card-title a",
+                      "read": "href"
+                    }
+                  ],
+                  "children": {}
+                },
+                {
+                  "id": "f79f991d-58c6-4f39-ae09-903a4cc20807",
+                  "type": "withPage",
+                  "label": "With page",
+                  "config": {
+                    "url": "{{detail_url}}"
+                  },
+                  "fields": [],
+                  "children": {
+                    "body": [
+                      {
+                        "id": "de14da84-9a03-412c-a182-a97e2e044db9",
+                        "type": "wait",
+                        "label": "Wait",
+                        "config": {
+                          "mode": "Element appears",
+                          "selector": "h2.title",
+                          "timeout": 20000
+                        },
+                        "fields": [],
+                        "children": {}
+                      },
+                      {
+                        "id": "6df089d5-4343-4647-b63d-ef08771db1b4",
+                        "type": "emitRecord",
+                        "label": "Save row",
+                        "config": {
+                          "dataset": "Cars",
+                          "dedupe": "url"
+                        },
+                        "fields": [
+                          {
+                            "id": "8ca69f13-3beb-434f-8664-63bb5740209e",
+                            "name": "url",
+                            "selector": "",
+                            "read": "text",
+                            "source": "captured",
+                            "value": "detail_url"
+                          },
+                          {
+                            "id": "f072518c-2f09-4d22-814f-bd52757ad04c",
+                            "name": "listing_title",
+                            "selector": "",
+                            "read": "text",
+                            "source": "captured",
+                            "value": "listing_title"
+                          },
+                          {
+                            "id": "8415cb2c-c82a-4bac-894b-c1d2645d6480",
+                            "name": "title",
+                            "selector": "h2.title",
+                            "read": "text"
+                          },
+                          {
+                            "id": "7851ca78-7c44-4bbd-a8ca-dbddb4e6ab07",
+                            "name": "price",
+                            "selector": ".title-section .price",
+                            "read": "text"
+                          },
+                          {
+                            "id": "a36d5237-a84d-4db4-bde8-59417cadffe0",
+                            "name": "make",
+                            "selector": ".vehicle-details td.make",
+                            "read": "text"
+                          },
+                          {
+                            "id": "a72e6b1c-cb21-42cc-9ed2-45a247fb3b0f",
+                            "name": "year",
+                            "selector": ".vehicle-details td.year",
+                            "read": "text"
+                          },
+                          {
+                            "id": "31a05b2a-e0e2-4ebd-bd46-728d0dfd71d4",
+                            "name": "image",
+                            "selector": "#main-product-image",
+                            "read": "src"
+                          },
+                          {
+                            "id": "bb3f6697-cdf2-4aad-8119-ad15820b7ade",
+                            "name": "transmission",
+                            "selector": "#transmission-select",
+                            "read": "value"
+                          },
+                          {
+                            "id": "a726bfa2-db56-4ac3-8f2a-6f99f22ced59",
+                            "name": "optional_note",
+                            "selector": ".optional-note",
+                            "read": "text",
+                            "required": false
+                          }
+                        ],
+                        "children": {}
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        ],
+        "between": [
+          {
+            "id": "8d8c7058-555b-41c6-b3d3-6b595b5ca1f5",
+            "type": "click",
+            "label": "Click",
+            "config": {
+              "selector": "a[rel=\"next\"]"
+            },
+            "fields": [],
+            "children": {}
+          },
+          {
+            "id": "a359b6f8-595a-4d6a-b6fa-4aefe662a4e2",
+            "type": "wait",
+            "label": "Wait",
+            "config": {
+              "mode": "Element appears",
+              "selector": ".test-sites-card",
+              "timeout": 20000
+            },
+            "fields": [],
+            "children": {}
+          }
+        ]
+      }
+    }
+  ]
+}

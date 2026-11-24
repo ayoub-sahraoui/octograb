@@ -1,0 +1,36 @@
+import {
+  ArrowDownToLine,
+  CaseSensitive,
+  Clock3,
+  ExternalLink,
+  GitBranch,
+  Globe2,
+  Layers3,
+  ListFilter,
+  MousePointer2,
+  Repeat2,
+  RotateCcw,
+  ScanText,
+  Square,
+  Table2,
+  TextCursorInput,
+} from "lucide-react";
+import type { BlockType } from "@/lib/blueprint";
+
+export const blockIcons = {
+  navigate: Globe2,
+  click: MousePointer2,
+  wait: Clock3,
+  fill: TextCursorInput,
+  select: ListFilter,
+  scroll: ArrowDownToLine,
+  forEach: Repeat2,
+  if: GitBranch,
+  repeatUntil: RotateCcw,
+  withPage: ExternalLink,
+  group: Layers3,
+  stop: Square,
+  readValues: ScanText,
+  transform: CaseSensitive,
+  emitRecord: Table2,
+} satisfies Record<BlockType, typeof Globe2>;

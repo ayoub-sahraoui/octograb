@@ -1,0 +1,193 @@
+{
+  "formatVersion": 1,
+  "id": "21c102dc-eb01-43d4-bc7f-c0a8884075cb",
+  "name": "Catalog · load more",
+  "description": "Two passes through an append-only list, at most 12 items per pass. Save row deduplicates by URL, so earlier cars are not saved twice. Up to 12 unique rows.",
+  "startUrl": "https://webscraper.io/test-sites/load-more",
+  "revision": 1,
+  "updatedAt": "2026-10-11T23:48:57.457Z",
+  "blocks": [
+    {
+      "id": "7b712aea-47d9-4877-9e4a-8c34438649fa",
+      "type": "wait",
+      "label": "Wait",
+      "config": {
+        "mode": "Element appears",
+        "selector": ".test-sites-card",
+        "timeout": 20000
+      },
+      "fields": [],
+      "children": {}
+    },
+    {
+      "id": "bedebc07-1e2d-4054-b203-a89f49776fed",
+      "type": "repeatUntil",
+      "label": "Repeat until",
+      "config": {
+        "selector": "button.load-more-btn",
+        "condition": "Element is missing",
+        "maxIterations": 2
+      },
+      "fields": [],
+      "children": {
+        "body": [
+          {
+            "id": "6c27b935-bc28-4cda-8ba7-c19411cb1670",
+            "type": "forEach",
+            "label": "For each item",
+            "config": {
+              "selector": ".test-sites-card",
+              "maxItems": 12
+            },
+            "fields": [],
+            "children": {
+              "body": [
+                {
+                  "id": "60c7b20f-d8e6-4158-bfaf-b41470ef7495",
+                  "type": "readValues",
+                  "label": "Read values",
+                  "config": {},
+                  "fields": [
+                    {
+                      "id": "acacb568-f2d3-4901-92f8-382d590df922",
+                      "name": "listing_title",
+                      "selector": ".card-title a",
+                      "read": "text"
+                    },
+                    {
+                      "id": "077c72b7-be7f-4684-a2c6-f754c2b9971c",
+                      "name": "detail_url",
+                      "selector": ".card-title a",
+                      "read": "href"
+                    }
+                  ],
+                  "children": {}
+                },
+                {
+                  "id": "3e66347b-80bd-40ae-a21e-d65d1cf74527",
+                  "type": "withPage",
+                  "label": "With page",
+                  "config": {
+                    "url": "{{detail_url}}"
+                  },
+                  "fields": [],
+                  "children": {
+                    "body": [
+                      {
+                        "id": "6114562c-2932-4d2c-9b8c-c16db63b0a6b",
+                        "type": "wait",
+                        "label": "Wait",
+                        "config": {
+                          "mode": "Element appears",
+                          "selector": "h2.title",
+                          "timeout": 20000
+                        },
+                        "fields": [],
+                        "children": {}
+                      },
+                      {
+                        "id": "eae5c864-a332-4fe7-aed6-523350d12e2b",
+                        "type": "emitRecord",
+                        "label": "Save row",
+                        "config": {
+                          "dataset": "Cars",
+                          "dedupe": "url"
+                        },
+                        "fields": [
+                          {
+                            "id": "e5de73f0-e09d-4962-8d73-2d82dc24afe0",
+                            "name": "url",
+                            "selector": "",
+                            "read": "text",
+                            "source": "captured",
+                            "value": "detail_url"
+                          },
+                          {
+                            "id": "8d05966d-c65b-4d78-ac7d-bfdb1b96448f",
+                            "name": "listing_title",
+                            "selector": "",
+                            "read": "text",
+                            "source": "captured",
+                            "value": "listing_title"
+                          },
+                          {
+                            "id": "6ae7642a-9672-4662-a34e-e7d6edb7c73b",
+                            "name": "title",
+                            "selector": "h2.title",
+                            "read": "text"
+                          },
+                          {
+                            "id": "c1777f83-5f00-4b0c-8431-89213680927b",
+                            "name": "price",
+                            "selector": ".title-section .price",
+                            "read": "text"
+                          },
+                          {
+                            "id": "22e9ef95-716e-40fb-9733-cd4919987da5",
+                            "name": "make",
+                            "selector": ".vehicle-details td.make",
+                            "read": "text"
+                          },
+                          {
+                            "id": "6512987d-c1ef-46f1-a045-d40a8d49dce0",
+                            "name": "year",
+                            "selector": ".vehicle-details td.year",
+                            "read": "text"
+                          },
+                          {
+                            "id": "9cb825d1-f84f-414f-b9e4-4aae596aa36a",
+                            "name": "image",
+                            "selector": "#main-product-image",
+                            "read": "src"
+                          },
+                          {
+                            "id": "a06e39ef-d44d-47cf-8e54-e3bb994644fd",
+                            "name": "transmission",
+                            "selector": "#transmission-select",
+                            "read": "value"
+                          },
+                          {
+                            "id": "3c379fd4-1e80-4c52-9b83-4fe573f3843d",
+                            "name": "optional_note",
+                            "selector": ".optional-note",
+                            "read": "text",
+                            "required": false
+                          }
+                        ],
+                        "children": {}
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        ],
+        "between": [
+          {
+            "id": "27e22813-bf6b-4803-8bab-ac3cb38dc023",
+            "type": "click",
+            "label": "Click",
+            "config": {
+              "selector": "button.load-more-btn"
+            },
+            "fields": [],
+            "children": {}
+          },
+          {
+            "id": "898f3722-51aa-48f6-9a32-0559ad1c2f80",
+            "type": "wait",
+            "label": "Wait",
+            "config": {
+              "mode": "Element appears",
+              "selector": "button.load-more-btn:not(:disabled)",
+              "timeout": 20000
+            },
+            "fields": [],
+            "children": {}
+          }
+        ]
+      }
+    }
+  ]
+}

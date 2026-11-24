@@ -1,0 +1,158 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--foreground);
+  --color-popover: var(--card);
+  --color-popover-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--muted);
+  --color-secondary-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--border);
+  --color-ring: var(--primary);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+:root {
+  --radius: 0.625rem;
+  --background: #f6fbfa;
+  --foreground: #143438;
+  --card: #ffffff;
+  --muted: #e9f3f1;
+  --muted-foreground: #526c6c;
+  --accent: #dff3ed;
+  --primary: #13545a;
+  --primary-foreground: #ffffff;
+  --destructive: #bc3f3f;
+  --border: #d8e8e4;
+}
+
+.dark {
+  --background: #0f2024;
+  --foreground: #e7f7f3;
+  --card: #152c30;
+  --muted: #1d373b;
+  --muted-foreground: #a2bfbb;
+  --accent: #224540;
+  --primary: #99d8c4;
+  --primary-foreground: #10383b;
+  --destructive: #fa9393;
+  --border: #2d4b4e;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+  body {
+    @apply bg-background text-foreground;
+    margin: 0;
+    font-family:
+      ui-sans-serif,
+      system-ui,
+      -apple-system,
+      BlinkMacSystemFont,
+      "Segoe UI",
+      sans-serif;
+    font-size: 13px;
+    -webkit-font-smoothing: antialiased;
+  }
+  button,
+  input,
+  textarea,
+  select {
+    font: inherit;
+  }
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]) {
+    cursor: pointer;
+  }
+  ::selection {
+    background: color-mix(in srgb, var(--primary) 22%, transparent);
+  }
+  :focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 3px;
+  }
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+}
+
+.workflow-surface {
+  background-image: radial-gradient(var(--border) 0.8px, transparent 0.8px);
+  background-size: 16px 16px;
+}
+
+.block-children {
+  border-left: 1px solid var(--border);
+  margin-left: 17px;
+  padding-left: 12px;
+}
+.block-row {
+  transition:
+    border-color 120ms,
+    background-color 120ms,
+    box-shadow 120ms;
+}
+.block-row:hover {
+  border-color: color-mix(in srgb, var(--primary) 40%, var(--border));
+}
+.drop-zone {
+  min-height: 12px;
+  transition: background-color 120ms;
+  border-radius: 4px;
+}
+.drop-zone[data-over="true"] {
+  background: color-mix(in srgb, var(--primary) 28%, transparent);
+  outline: 1px dashed var(--primary);
+}
+.nav-item[data-active="true"] {
+  color: var(--primary);
+  background: var(--accent);
+}
+.nav-item[data-active="true"]::before {
+  content: "";
+  position: absolute;
+  left: -8px;
+  width: 3px;
+  height: 20px;
+  background: var(--primary);
+  border-radius: 0 3px 3px 0;
+}
+
+@media (max-height: 700px) {
+  .empty-state-art {
+    width: 160px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
